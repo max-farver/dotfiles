@@ -42,6 +42,8 @@ return {
     },
   },
 
+  { "RRethy/vim-illuminate", lazy = true },
+
   -- add pyright to lspconfig
   {
     "neovim/nvim-lspconfig",
