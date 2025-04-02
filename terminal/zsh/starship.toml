@@ -1,0 +1,231 @@
+# Use the color palette
+palette = "dracula"
+
+# Define Dracula color palette
+[palettes.dracula]
+background = "#282a36"
+current_line = "#44475a"
+foreground = "#f8f8f2"
+comment = "#6272a4"
+cyan = "#8be9fd"
+green = "#50fa7b"
+orange = "#ffb86c"
+pink = "#ff79c6"
+purple = "#bd93f9"
+red = "#ff5555"
+yellow = "#f1fa8c"
+
+[aws]
+disabled = true
+symbol = "  "
+
+[buf]
+disabled = true
+symbol = " "
+
+[c]
+disabled = true
+symbol = " "
+
+[cmake]
+disabled = true
+symbol = " "
+
+[conda]
+disabled = true
+symbol = " "
+
+[crystal]
+disabled = true
+symbol = " "
+
+[dart]
+disabled = true
+symbol = " "
+
+[directory]
+read_only = " 󰌾"
+
+[docker_context]
+disabled = true
+symbol = " "
+
+[elixir]
+disabled = true
+symbol = " "
+
+[elm]
+disabled = true
+symbol = " "
+
+[fennel]
+disabled = true
+symbol = " "
+
+[fossil_branch]
+disabled = true
+symbol = " "
+
+[git_branch]
+symbol = " "
+
+[git_commit]
+tag_symbol = '  '
+
+[golang]
+disabled = true
+symbol = " "
+
+[guix_shell]
+disabled = true
+symbol = " "
+
+[haskell]
+disabled = true
+symbol = " "
+
+[haxe]
+disabled = true
+symbol = " "
+
+[hg_branch]
+disabled = true
+symbol = " "
+
+[hostname]
+ssh_symbol = " "
+
+[java]
+disabled = true
+symbol = " "
+
+[julia]
+disabled = true
+symbol = " "
+
+[kotlin]
+disabled = true
+symbol = " "
+
+[lua]
+disabled = true
+symbol = " "
+
+[memory_usage]
+symbol = "󰍛 "
+
+[meson]
+disabled = true
+symbol = "󰔷 "
+
+[nim]
+disabled = true
+symbol = "󰆥 "
+
+[nix_shell]
+symbol = " "
+
+[nodejs]
+disabled = true
+symbol = " "
+
+[ocaml]
+disabled = true
+symbol = " "
+
+[os.symbols]
+Alpaquita = " "
+Alpine = " "
+AlmaLinux = " "
+Amazon = " "
+Android = " "
+Arch = " "
+Artix = " "
+CachyOS = " "
+CentOS = " "
+Debian = " "
+DragonFly = " "
+Emscripten = " "
+EndeavourOS = " "
+Fedora = " "
+FreeBSD = " "
+Garuda = "󰛓 "
+Gentoo = " "
+HardenedBSD = "󰞌 "
+Illumos = "󰈸 "
+Kali = " "
+Linux = " "
+Mabox = " "
+Macos = " "
+Manjaro = " "
+Mariner = " "
+MidnightBSD = " "
+Mint = " "
+NetBSD = " "
+NixOS = " "
+Nobara = " "
+OpenBSD = "󰈺 "
+openSUSE = " "
+OracleLinux = "󰌷 "
+Pop = " "
+Raspbian = " "
+Redhat = " "
+RedHatEnterprise = " "
+RockyLinux = " "
+Redox = "󰀘 "
+Solus = "󰠳 "
+SUSE = " "
+Ubuntu = " "
+Unknown = " "
+Void = " "
+Windows = "󰍲 "
+
+[package]
+disabled = true
+symbol = "󰏗 "
+
+[perl]
+disabled = true
+symbol = " "
+
+[php]
+disabled = true
+symbol = " "
+
+[pijul_channel]
+disabled = true
+symbol = " "
+
+[python]
+disabled = true
+symbol = " "
+
+[rlang]
+disabled = true
+symbol = "󰟔 "
+
+[ruby]
+disabled = true
+symbol = " "
+
+[rust]
+disabled = true
+symbol = "󱘗 "
+
+[scala]
+disabled = true
+symbol = " "
+
+[swift]
+disabled = true
+symbol = " "
+
+[zig]
+disabled = true
+symbol = " "
+
+[gradle]
+disabled = true
+symbol = " "
+
+format = '$all'
