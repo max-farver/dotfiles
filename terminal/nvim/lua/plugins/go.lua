@@ -11,13 +11,17 @@ return {
         goimports = "goimports",
         lsp_gofumpt = false,
         null_ls = false,
-        -- build_tags = "unit,integration,endtoendtest",
+        build_tags = "unit,integration,endtoendtest",
         dap_debug = false,
       })
     end,
     event = { "CmdlineEnter" },
     ft = { "go", "gomod" },
     build = ':lua require("go.install").update_all_sync()', -- if you need to install/update all binaries
+  },
+  {
+    "leoluz/nvim-dap-go",
+    opts = {},
   },
   {
     "nvim-neotest/neotest",
@@ -40,11 +44,11 @@ return {
             vim.env.GO_TEST_FLAGS or "",
           }
         end,
-        -- dap_go_opts = {
-        --   delve = {
-        --     build_flags = { "-tags=unit,integration,endtoendtest" },
-        --   },
-        -- },
+        dap_go_opts = {
+          delve = {
+            build_flags = { "-tags=unit,integration,endtoendtest" },
+          },
+        },
         runner = "gotestsum",
         gotestsum_args = { "--format=standard-verbose" },
         testify_enabled = true,
