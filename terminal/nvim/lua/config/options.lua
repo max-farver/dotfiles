@@ -6,3 +6,5 @@
 vim.g.copilot_workspace_folders = { vim.fn.getcwd() }
 
 vim.highlight.priorities.semantic_tokens = 95
+
+vim.opt.autoread = true
