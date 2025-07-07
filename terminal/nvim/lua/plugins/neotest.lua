@@ -25,6 +25,10 @@ return {
           },
         },
       },
+      {
+        "theHamsta/nvim-dap-virtual-text",
+        opts = {},
+      },
     },
     keys = {
       {
@@ -42,88 +46,11 @@ return {
         desc = "Toggle Breakpoint",
       },
       {
-        "<leader>dc",
-        function()
-          require("dap").continue()
-        end,
-        desc = "Run/Continue",
-      },
-      {
-        "<leader>da",
-        function()
-          require("dap").continue({ before = get_args })
-        end,
-        desc = "Run with Args",
-      },
-      {
-        "<leader>dC",
-        function()
-          require("dap").run_to_cursor()
-        end,
-        desc = "Run to Cursor",
-      },
-      {
-        "<leader>dg",
-        function()
-          require("dap").goto_()
-        end,
-        desc = "Go to Line (No Execute)",
-      },
-      {
-        "<leader>di",
-        function()
-          require("dap").step_into()
-        end,
-        desc = "Step Into",
-      },
-      {
-        "<leader>dj",
-        function()
-          require("dap").down()
-        end,
-        desc = "Down",
-      },
-      {
-        "<leader>dk",
-        function()
-          require("dap").up()
-        end,
-        desc = "Up",
-      },
-      {
         "<leader>dl",
         function()
           require("dap").run_last()
         end,
         desc = "Run Last",
-      },
-      {
-        "<leader>do",
-        function()
-          require("dap").step_out()
-        end,
-        desc = "Step Out",
-      },
-      {
-        "<leader>dO",
-        function()
-          require("dap").step_over()
-        end,
-        desc = "Step Over",
-      },
-      {
-        "<leader>dP",
-        function()
-          require("dap").pause()
-        end,
-        desc = "Pause",
-      },
-      {
-        "<leader>dr",
-        function()
-          require("dap").repl.toggle()
-        end,
-        desc = "Toggle REPL",
       },
       {
         "<leader>ds",
@@ -135,84 +62,150 @@ return {
       {
         "<leader>dt",
         function()
-          require("dap").disconnect()
-        end,
-        desc = "Disconnect (remote debug)",
-      },
-      {
-        "<leader>dT",
-        function()
           require("dap").terminate()
         end,
         desc = "Terminate",
       },
-      {
-        "<leader>dw",
-        function()
-          require("dap.ui.widgets").hover()
-        end,
-        desc = "Widgets",
-      },
     },
-  },
+    config = function()
+      -- load mason-nvim-dap here, after all adapters have been setup
+      if LazyVim.has("mason-nvim-dap.nvim") then
+        require("mason-nvim-dap").setup(LazyVim.opts("mason-nvim-dap.nvim"))
+      end
 
-  {
-    "rcarriga/nvim-dap-ui",
-    event = "VeryLazy",
-    dependencies = {
-      "nvim-neotest/nvim-nio",
-      {
-        "theHamsta/nvim-dap-virtual-text",
-        opts = {
-          virt_text_pos = "eol",
-        },
-      },
-      {
-        "mfussenegger/nvim-dap",
-        opts = {},
-      },
-      {
-        "nvim-lualine/lualine.nvim",
-        event = "VeryLazy",
-        dependencies = {
-          "mfussenegger/nvim-dap",
-        },
-        opts = function(_, opts)
-          opts.extensions = { "nvim-dap-ui" }
+      vim.api.nvim_set_hl(0, "DapStoppedLine", { default = true, link = "Visual" })
 
-          local function dap_status()
-            return "  " .. require("dap").status()
-          end
-          opts.dap_status = {
-            lualine_component = {
-              dap_status,
-              cond = function()
-                -- return package.loaded["dap"] and require("dap").status() ~= ""
-                return require("dap").status() ~= ""
-              end,
-            },
-          }
-        end,
-      },
-    },
-    opts = {},
-    config = function(_, opts)
+      for name, sign in pairs(LazyVim.config.icons.dap) do
+        sign = type(sign) == "table" and sign or { sign }
+        vim.fn.sign_define(
+          "Dap" .. name,
+          { text = sign[1], texthl = sign[2] or "DiagnosticInfo", linehl = sign[3], numhl = sign[3] }
+        )
+      end
+
       -- setup dap config by VsCode launch.json file
-      -- require("dap.ext.vscode").load_launchjs()
-      local dap = require("dap")
-      local dapui = require("dapui")
-      dapui.setup(opts)
-      dap.listeners.after.event_initialized["dapui_config"] = function()
-        dapui.open({})
-      end
-      dap.listeners.before.event_terminated["dapui_config"] = function()
-        dapui.close({})
-      end
-      dap.listeners.before.event_exited["dapui_config"] = function()
-        dapui.close({})
+      local vscode = require("dap.ext.vscode")
+      local json = require("plenary.json")
+      vscode.json_decode = function(str)
+        return vim.json.decode(json.json_strip_comments(str))
       end
     end,
   },
+
+  { "rcarriga/nvim-dap-ui", enabled = false },
+
+  {
+    "miroshQa/debugmaster.nvim",
+    -- osv is needed if you want to debug neovim lua code. Also can be used
+    -- as a way to quickly test-drive the plugin without configuring debug adapters
+    dependencies = { "mfussenegger/nvim-dap", "jbyuki/one-small-step-for-vimkind" },
+    config = function()
+      local dm = require("debugmaster")
+      -- vim.keymap.set({ "n", "v" }, "<leader>dd", dm.mode.toggle, { nowait = true })
+      -- If you want to disable debug mode in addition to leader+d using the Escape key:
+      -- vim.keymap.set("n", "<Esc>", dm.mode.disable)
+      -- This might be unwanted if you already use Esc for ":noh"
+      -- vim.keymap.set("t", "<C-\\>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
+
+      dm.plugins.osv_integration.enabled = true -- needed if you want to debug neovim lua code
+    end,
+
+    keys = {
+      {
+        "<leader>dd",
+        function()
+          local dm = require("debugmaster")
+          dm.mode.toggle()
+        end,
+        { nowait = true },
+        desc = "Toggle Debug Mode",
+      },
+    },
+  },
+  -- {
+  --   "rcarriga/nvim-dap-ui",
+  --   event = "VeryLazy",
+  --   dependencies = {
+  --     "nvim-neotest/nvim-nio",
+  --     {
+  --       "theHamsta/nvim-dap-virtual-text",
+  --       opts = {
+  --         virt_text_pos = "eol",
+  --       },
+  --     },
+  --     {
+  --       "mfussenegger/nvim-dap",
+  --       opts = {},
+  --     },
+  --     {
+  --       "nvim-lualine/lualine.nvim",
+  --       event = "VeryLazy",
+  --       dependencies = {
+  --         "mfussenegger/nvim-dap",
+  --       },
+  --       opts = function(_, opts)
+  --         opts.extensions = { "nvim-dap-ui" }
+  --
+  --         local function dap_status()
+  --           return "  " .. require("dap").status()
+  --         end
+  --         opts.dap_status = {
+  --           lualine_component = {
+  --             dap_status,
+  --             cond = function()
+  --               -- return package.loaded["dap"] and require("dap").status() ~= ""
+  --               return require("dap").status() ~= ""
+  --             end,
+  --           },
+  --         }
+  --       end,
+  --     },
+  --   },
+  --   opts = {
+  --     layouts = {
+  --       {
+  --         elements = {
+  --           {
+  --             id = "scopes",
+  --             size = 0.5,
+  --           },
+  --           {
+  --             id = "watches",
+  --             size = 0.5,
+  --           },
+  --         },
+  --         position = "left",
+  --         size = 10,
+  --       },
+  --       {
+  --         elements = {
+  --           {
+  --             id = "console",
+  --             size = 0.5,
+  --           },
+  --         },
+  --         position = "bottom",
+  --         size = 10,
+  --       },
+  --     },
+  --   },
+  --   config = function(_, opts)
+  --     -- setup dap config by VsCode launch.json file
+  --     -- require("dap.ext.vscode").load_launchjs()
+  --     local dap = require("dap")
+  --     local dapui = require("dapui")
+  --     dapui.setup(opts)
+  --     dap.listeners.after.event_initialized["dapui_config"] = function()
+  --       dapui.open({})
+  --     end
+  --     dap.listeners.before.event_terminated["dapui_config"] = function()
+  --       dapui.close({})
+  --     end
+  --     dap.listeners.before.event_exited["dapui_config"] = function()
+  --       dapui.close({})
+  --     end
+  --   end,
+  -- },
   {
     "andythigpen/nvim-coverage",
     lazy = true,

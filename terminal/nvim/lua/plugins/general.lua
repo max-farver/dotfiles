@@ -37,6 +37,10 @@ return {
       leader_key = "M", -- Recommended to be a single key
       buffer_leader_key = "m", -- Per Buffer Mappings
     },
+    keys = {
+      { "M", mode = "n", desc = "Arrow" },
+      { "m", mode = "n", desc = "Arrow (Buffer)" },
+    },
   },
 
   {
@@ -54,7 +58,65 @@ return {
     },
   },
 
-  { "sindrets/diffview.nvim" },
+  {
+    "echasnovski/mini.operators",
+    version = "*",
+    opts = {
+      evaluate = {
+        prefix = "",
+      },
+      exchange = {
+        prefix = "",
+      },
+      multiply = {
+        prefix = "",
+      },
+      replace = {
+        prefix = "<s-r>",
+        reindent_linewise = true,
+      },
+      sort = {
+        prefix = "",
+      },
+    },
+    keys = {
+      { "<s-r>", desc = "Replace operator" },
+    },
+  },
+
+  {
+    "echasnovski/mini.move",
+    event = { "LazyFile", "VeryLazy" },
+    opts = {
+      mappings = {
+        left = "<M-Left>",
+        right = "<M-Right>",
+        down = "<M-Down>",
+        up = "<M-Up>",
+        line_left = "<M-Left>",
+        line_right = "<M-Right>",
+        line_down = "<M-Down>",
+        line_up = "<A-Up>",
+      },
+    },
+  },
+
+  {
+    "sindrets/diffview.nvim",
+    opts = {
+      enhanced_diff_hl = true,
+    },
+  },
+
+  {
+    "stevearc/overseer.nvim",
+    keys = {
+      { "<leader>o", desc = "Overseer" },
+      { "<leader>ot", "<cmd>OverseerToggle<cr>", desc = "Overseer Toggle" },
+      { "<leader>oa", "<cmd>OverseerTaskAction<cr>", desc = "Overseer Task Action" },
+      { "<leader>or", "<cmd>OverseerRun<cr>", desc = "Overseer Run" },
+    },
+  },
 
   -- loading dotenv files
   {
@@ -77,6 +139,7 @@ return {
   {
     "ray-x/lsp_signature.nvim",
     event = "InsertEnter",
+    version = "0.3.1",
   },
   {
     "saghen/blink.cmp",
@@ -120,7 +183,7 @@ return {
         nerd_font_variant = "mono",
         -- Blink does not expose its default kind icons so you must copy them all (or set your custom ones) and add Copilot
         kind_icons = {
-          Copilot = "",
+          AI = "",
           Text = "󰉿",
           Method = "󰊕",
           Function = "󰊕",
@@ -186,13 +249,13 @@ return {
           copilot = {
             name = "copilot",
             module = "blink-cmp-copilot",
-            kind = "Copilot",
+            kind = "AI",
             score_offset = 100,
             async = true,
             transform_items = function(_, items)
               local CompletionItemKind = require("blink.cmp.types").CompletionItemKind
               local kind_idx = #CompletionItemKind + 1
-              CompletionItemKind[kind_idx] = "Copilot"
+              CompletionItemKind[kind_idx] = "AI"
               for _, item in ipairs(items) do
                 item.kind = kind_idx
               end
@@ -203,7 +266,7 @@ return {
       },
 
       cmdline = {
-        enabled = false,
+        enabled = true,
       },
 
       keymap = {
@@ -226,21 +289,21 @@ return {
         end
       end
 
-      -- add ai_accept to <Tab> key
-      if not opts.keymap["<Tab>"] then
-        if opts.keymap.preset == "super-tab" then -- super-tab
-          opts.keymap["<Tab>"] = {
-            require("blink.cmp.keymap.presets")["super-tab"]["<Tab>"][1],
-            LazyVim.cmp.map({ "snippet_forward", "ai_accept" }),
-            "fallback",
-          }
-        else -- other presets
-          opts.keymap["<Tab>"] = {
-            LazyVim.cmp.map({ "snippet_forward", "ai_accept" }),
-            "fallback",
-          }
-        end
-      end
+      -- -- add ai_accept to <Tab> key
+      -- if not opts.keymap["<Tab>"] then
+      --   if opts.keymap.preset == "super-tab" then -- super-tab
+      --     opts.keymap["<Tab>"] = {
+      --       require("blink.cmp.keymap.presets")["super-tab"]["<Tab>"][1],
+      --       LazyVim.cmp.map({ "snippet_forward", "ai_accept" }),
+      --       "fallback",
+      --     }
+      --   else -- other presets
+      --     opts.keymap["<Tab>"] = {
+      --       LazyVim.cmp.map({ "snippet_forward", "ai_accept" }),
+      --       "fallback",
+      --     }
+      --   end
+      -- end
 
       -- Unset custom prop to pass blink.cmp validation
       opts.sources.compat = nil

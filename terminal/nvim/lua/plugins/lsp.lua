@@ -6,14 +6,17 @@ return {
         "markdownlint-cli2",
         "markdown-toc",
         "prettier",
-        "sqlfluff",
+        "postgrestools",
       })
     end,
   },
   {
     "neovim/nvim-lspconfig",
     opts = function(_, opts)
-      vim.tbl_extend("keep", opts.servers, opts.servers, { marksman = {} })
+      vim.tbl_extend("keep", opts.servers, opts.servers, {
+        marksman = {},
+        postgres_lsp = {},
+      })
     end,
   },
   {
@@ -62,7 +65,7 @@ return {
       formatters_by_ft = {
         ["markdown"] = { "prettier", "markdownlint-cli2", "markdown-toc" },
         ["markdown.mdx"] = { "prettier", "markdownlint-cli2", "markdown-toc" },
-        sql = { "sqlfluff" },
+        sql = { "postgrestools" },
         yaml = { "yamlfix" },
       },
     },

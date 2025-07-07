@@ -32,7 +32,7 @@ vim.api.nvim_create_autocmd("BufEnter", {
   end,
 })
 
--- update buffer if and external program changes it
+-- update buffer if an external program changes it
 vim.api.nvim_create_autocmd("FocusGained", {
   desc = "Reload files from disk when we focus vim",
   pattern = "*",

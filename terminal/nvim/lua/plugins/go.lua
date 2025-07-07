@@ -10,7 +10,6 @@ return {
       require("go").setup({
         goimports = "goimports",
         lsp_gofumpt = false,
-        null_ls = false,
         build_tags = "unit,integration,endtoendtest",
         dap_debug = false,
       })
