@@ -1,0 +1,23 @@
+{ config, pkgs, lib, ... }:
+
+{
+  home.packages = with pkgs; [
+    neovim
+
+    go
+    cargo
+    lua
+    lua52Packages.lua-lsp
+    luajitPackages.luarocks
+    nodejs_24
+    zulu24
+    php
+    ruby
+    rbenv
+    python312
+    python312Packages.pip
+    julia
+    gcc
+    nil
+  ];
+}
