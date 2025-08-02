@@ -15,7 +15,6 @@
     shellAliases = {
       rebuild_switch = "sudo nixos-rebuild switch --flake ~/.config/nixos";
       rebuild_boot = "sudo nixos-rebuild boot --flake ~/.config/nixos";
-      config = "$(which git) --git-dir=$HOME/.cfg/ --work-tree=$HOME";
     };
     autosuggestion = {
       enable = true;

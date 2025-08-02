@@ -15,7 +15,7 @@ ZSH_THEME=""
 # eval "$(direnv hook zsh)"
 
 # User configuration
-alias dotfiles='/usr/bin/git --git-dir=$HOME/.cfg/ --work-tree=$HOME'
+alias config="git --git-dir=$HOME/.cfg/ --work-tree=$HOME/.config";
 
 # Preferred editor for local and remote sessions
 if [[ -n $SSH_CONNECTION ]]; then
