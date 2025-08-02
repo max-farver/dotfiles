@@ -41,7 +41,7 @@
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
 
-            home-manager.users.mfarver = import ./home.nix;
+            home-manager.users.mfarver = import ./system-specific/machines/framework16/home.nix;
             home-manager.backupFileExtension = "backup";
             # Optionally, use home-manager.extraSpecialArgs to pass arguments to home.nix
             home-manager.extraSpecialArgs = {

@@ -1,3 +1,6 @@
 .cfg
 ~/.zshrc
 ~/.config/git/config
+~/.config/tmux/tmux.conf
+~/.config/tmux/plugins/
+~/.config/zsh/.zshrc
