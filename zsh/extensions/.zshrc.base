@@ -228,8 +228,10 @@ function zvm_after_lazy_keybindings() {
 
 ######################  Source Other Configs  #####################################
 
-for file in ~/.config/zsh-helpers/extensions/.[^.]*; do
-    source "$file"
+for file in ~/.config/zsh/extensions/.[^.]*; do
+    if [[ "$file" != *.zshrc.base ]]; then
+      source "$file"
+    fi
 done
 
 eval "$(starship init zsh)"

@@ -10,5 +10,7 @@
     enable = true;
     userName = "max.farver";
     userEmail = "maxwell.farver@gmail.com";
+    # defaultBranch = "main";
+    # lfs.enable = true;
   };
 }

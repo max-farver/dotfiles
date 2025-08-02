@@ -9,8 +9,9 @@
   programs.zsh = {
     enable = true;
     enableCompletion = true;
+    dotDir = ".config/zsh"; 
     initContent = lib.mkOrder 1200 ''
-    source ~/.config/zsh-helpers/.zshrc
+    source ~/.config/zsh/extensions/.zshrc.base
     '';
     shellAliases = {
       rebuild_switch = "sudo nixos-rebuild switch --flake ~/.config/nixos";
