@@ -29,11 +29,8 @@
         };
 
         modules = [
-          ./configuration.nix
-          ./system-specific/framework16.nix
-          ./system-specific/linux.nix
-          ./hardware-configuration.nix
-          ./games/default.nix
+          ./system-specific/machines/framework16/configuration.nix
+
           nixos-hardware.nixosModules.framework-16-7040-amd
           nur.modules.nixos.default
 

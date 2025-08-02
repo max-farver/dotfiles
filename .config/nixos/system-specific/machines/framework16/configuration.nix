@@ -3,7 +3,10 @@
 
 {
   imports = [
-      ../desktop-environments/plasma.nix
+      ../../../desktop-environments/plasma.nix
+      ../../x86_64-linux/linux.nix
+      ./hardware-configuration.nix
+      ../../../games/steam.nix
   ];
   environment.systemPackages = with pkgs; [
     pkgs.amdgpu_top
@@ -62,4 +65,8 @@
       vulkan-extension-layer
     ];
   };
+
+  # Set up ZSH
+  programs.zsh.enable = true;
+  users.users.mfarver.shell = pkgs.zsh;
 }
