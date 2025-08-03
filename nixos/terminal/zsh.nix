@@ -10,7 +10,7 @@
     enable = true;
     enableCompletion = true;
     dotDir = ".config/zsh"; 
-    initContent = lib.mkOrder 1200 ''
+    initContent = ''
     source ~/.config/zsh/extensions/.zshrc.base
     '';
     shellAliases = {
@@ -22,6 +22,8 @@
     };
     historySubstringSearch = {
       enable = true;
+      searchUpKey = "$terminfo[kcuu1]";
+      searchDownKey = "$terminfo[kcud1]";
     };
     syntaxHighlighting = {
       enable = true;

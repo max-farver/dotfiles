@@ -67,6 +67,8 @@
   };
 
   # Set up ZSH
-  programs.zsh.enable = true;
+  programs.zsh = {
+    enable = true;
+  };
   users.users.mfarver.shell = pkgs.zsh;
 }
