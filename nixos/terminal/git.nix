@@ -12,5 +12,10 @@
     userEmail = "maxwell.farver@gmail.com";
     # defaultBranch = "main";
     # lfs.enable = true;
+    extraConfig = {
+      core = {
+        excludesFile = "~/.config/git/ignore";
+      };
+    };
   };
 }

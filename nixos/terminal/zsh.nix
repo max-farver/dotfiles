@@ -5,14 +5,14 @@
     starship
   ];
 
-   # Oh My ZSH
   programs.zsh = {
     enable = true;
     enableCompletion = true;
     dotDir = ".config/zsh"; 
-    initContent = ''
+    initExtra = ''
     source ~/.config/zsh/extensions/.zshrc.base
     '';
+    
     shellAliases = {
       rebuild_switch = "sudo nixos-rebuild switch --flake ~/.config/nixos";
       rebuild_boot = "sudo nixos-rebuild boot --flake ~/.config/nixos";
@@ -22,8 +22,14 @@
     };
     historySubstringSearch = {
       enable = true;
-      searchUpKey = "$terminfo[kcuu1]";
-      searchDownKey = "$terminfo[kcud1]";
+      searchUpKey = [
+        "$terminfo[kcuu1]"
+        "^[[A"
+      ];
+      searchDownKey = [
+        "$terminfo[kcud1]"
+        "^[[B"
+      ];
     };
     syntaxHighlighting = {
       enable = true;
@@ -34,8 +40,9 @@
           src = pkgs.zsh-fzf-tab.src;
         }
         { 
-          name = pkgs.zsh-vi-mode.pname;
-          src = pkgs.zsh-vi-mode.src;
+          name = "vi-mode";
+          src = pkgs.zsh-vi-mode;
+          file = "share/zsh-vi-mode/zsh-vi-mode.plugin.zsh";
         }
     ];
   };

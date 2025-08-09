@@ -7,7 +7,7 @@
     go
     cargo
     lua
-    lua52Packages.lua-lsp
+    luaPackages.lua-lsp
     luajitPackages.luarocks
     nodejs_24
     zulu24

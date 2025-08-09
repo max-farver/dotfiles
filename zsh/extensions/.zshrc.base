@@ -147,6 +147,13 @@ function tmuxsess {
 alias init_tmuxp_configs='~/.tmux/scripts/create_tmuxp_configs.sh'
 
 #### zsh-vi-mode ####
+function zvm_before_init() {
+  zvm_bindkey viins '^[[A' history-beginning-search-backward
+  zvm_bindkey viins '^[[B' history-beginning-search-forward
+  zvm_bindkey vicmd '^[[A' history-beginning-search-backward
+  zvm_bindkey vicmd '^[[B' history-beginning-search-forward
+}
+
 function os_mac_os() {
   if [[ $(uname) = "Darwin" ]]; then
     return 0
