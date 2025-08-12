@@ -9,7 +9,7 @@
     enable = true;
     enableCompletion = true;
     dotDir = ".config/zsh"; 
-    initExtra = ''
+    initExtra = lib.mkOrder 550 ''
     source ~/.config/zsh/extensions/.zshrc.base
     '';
     

@@ -20,5 +20,6 @@
     julia
     gcc
     nil
+    typescript-language-server
   ];
 }
