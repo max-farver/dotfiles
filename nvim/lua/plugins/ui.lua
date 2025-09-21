@@ -1,3 +1,33 @@
+local icons = require("config.icons")
+local statusline = require("config.statusline")
+
+local function snacks_component(getter)
+  return function()
+    local ok, snacks = pcall(require, "snacks")
+    if not ok then
+      return ""
+    end
+    return getter(snacks)
+  end
+end
+
+local function snacks_cond(checker)
+  return function()
+    local ok, snacks = pcall(require, "snacks")
+    if not ok then
+      return false
+    end
+    return checker(snacks)
+  end
+end
+
+local function snacks_color(name)
+  local ok, snacks = pcall(require, "snacks")
+  if ok and snacks.util and snacks.util.color then
+    return { fg = snacks.util.color(name) }
+  end
+end
+
 return {
   { "RRethy/vim-illuminate", lazy = true },
   {
@@ -5,22 +35,8 @@ return {
     event = "VeryLazy",
     opts = {
       event = "VeryLazy",
-      -- your configuration
     },
   },
-  -- {
-  --   "A7Lavinraj/fyler.nvim",
-  --   dependencies = { "echasnovski/mini.icons" },
-  --   branch = "stable",
-  --   opts = {
-  --     icon_provider = "nvim-web-devicons",
-  --     views = {
-  --       explorer = {
-  --         kind = "split:left",
-  --       },
-  --     },
-  --   },
-  -- },
   {
     "b0o/incline.nvim",
     config = function()
@@ -70,8 +86,6 @@ return {
       local lualine_require = require("lualine_require")
       lualine_require.require = require
 
-      local icons = LazyVim.config.icons
-
       local dmode_enabled = false
       vim.api.nvim_create_autocmd("User", {
         pattern = "DebugModeChanged",
@@ -103,7 +117,7 @@ return {
           lualine_b = { "branch" },
 
           lualine_c = {
-            LazyVim.lualine.root_dir(),
+            statusline.root_dir_component(),
             {
               "diagnostics",
               symbols = {
@@ -114,34 +128,62 @@ return {
               },
             },
             { "filetype", icon_only = true, separator = "", padding = { left = 1, right = 0 } },
-            { LazyVim.lualine.pretty_path() },
+            statusline.pretty_path_component(),
           },
           lualine_x = {
-            Snacks.profiler.status(),
-          -- stylua: ignore
-          {
-            function() return require("noice").api.status.command.get() end,
-            cond = function() return package.loaded["noice"] and require("noice").api.status.command.has() end,
-            color = function() return { fg = Snacks.util.color("Statement") } end,
-          },
-          -- stylua: ignore
-          {
-            function() return require("noice").api.status.mode.get() end,
-            cond = function() return package.loaded["noice"] and require("noice").api.status.mode.has() end,
-            color = function() return { fg = Snacks.util.color("Constant") } end,
-          },
-          -- stylua: ignore
-          {
-            function() return "  " .. require("dap").status() end,
-            cond = function() return package.loaded["dap"] and require("dap").status() ~= "" end,
-            color = function() return { fg = Snacks.util.color("Debug") } end,
-          },
-          -- stylua: ignore
-          {
-            require("lazy.status").updates,
-            cond = require("lazy.status").has_updates,
-            color = function() return { fg = Snacks.util.color("Special") } end,
-          },
+            snacks_component(function(s) return s.profiler.status() end),
+            {
+              function()
+                local ok, status = pcall(require, "copilot.status")
+                if not ok then
+                  return ""
+                end
+                local clients = vim.lsp.get_clients({ name = "copilot", bufnr = 0 })
+                if #clients == 0 then
+                  return ""
+                end
+                local icon = icons.kinds.Copilot or ""
+                local data = status.data
+                local label = data and data.status or "ready"
+                return string.format("%s %s", icon, label)
+              end,
+              cond = function()
+                return package.loaded["copilot"]
+              end,
+              color = snacks_color("Special"),
+            },
+            {
+              function()
+                return require("noice").api.status.command.get()
+              end,
+              cond = function()
+                return package.loaded["noice"] and require("noice").api.status.command.has()
+              end,
+              color = snacks_color("Statement"),
+            },
+            {
+              function()
+                return require("noice").api.status.mode.get()
+              end,
+              cond = function()
+                return package.loaded["noice"] and require("noice").api.status.mode.has()
+              end,
+              color = snacks_color("Constant"),
+            },
+            {
+              function()
+                return "  " .. require("dap").status()
+              end,
+              cond = function()
+                return package.loaded["dap"] and require("dap").status() ~= ""
+              end,
+              color = snacks_color("Debug"),
+            },
+            {
+              require("lazy.status").updates,
+              cond = require("lazy.status").has_updates,
+              color = snacks_color("Special"),
+            },
             {
               "diff",
               symbols = {

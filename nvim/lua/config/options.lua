@@ -1,10 +1,59 @@
--- Options are automatically loaded before lazy.nvim startup
--- Default options that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/options.lua
--- Add any additional options here
+local opt = vim.opt
 
--- copilot options
-vim.g.copilot_workspace_folders = { vim.fn.getcwd() }
+opt.autowrite = true
+opt.breakindent = true
+-- Do not auto-insert completion items. First item is highlighted, but only
+-- inserted when you confirm (e.g., with <Tab>).
+opt.completeopt = { "menu", "menuone", "noinsert" }
+opt.conceallevel = 2
+opt.cursorline = true
+-- Hide the command line when not in use to avoid an extra empty row
+-- Requires Neovim >= 0.9
+opt.cmdheight = 0
+-- Show command feedback in the statusline instead of taking cmdline space
+opt.showcmdloc = 'statusline'
+opt.fillchars = { eob = " ", fold = " ", foldopen = "-", foldclose = "+", foldsep = " " }
+opt.foldenable = true
+opt.foldlevel = 99
+opt.foldlevelstart = 99
+opt.foldmethod = "indent"
+opt.foldtext = ""
+opt.formatoptions:remove({ "o", "r" })
+opt.grepformat = "%f:%l:%c:%m"
+opt.grepprg = "rg --vimgrep"
+opt.inccommand = "nosplit"
+opt.incsearch = true
+opt.linebreak = true
+opt.smoothscroll = true
+opt.laststatus = 3
+opt.list = false
+opt.pumblend = 10
+opt.pumheight = 16
+opt.scrolloff = 8
+opt.sessionoptions = { "buffers", "curdir", "tabpages", "winsize", "help", "globals", "skiprtp", "folds" }
+opt.shortmess:append({ W = true, I = true, c = true })
+-- Reduce message noise when cmdheight=0 so it doesn't reserve space
+opt.shortmess:append({ F = true })
+opt.sidescrolloff = 8
+opt.splitkeep = "screen"
+opt.wildmode = "longest:full,full"
+-- Use popupmenu for command-line completion to avoid using the cmdline area
+opt.wildoptions = "pum"
+-- Command-line history: size and persistence (ShaDa)
+opt.history = 2000
+opt.shada = "!,'1000,<50,s100,:1000,/1000"
+opt.virtualedit = "block"
+opt.winminwidth = 5
+opt.ruler = false
+
+opt.autoread = true
 
 vim.highlight.priorities.semantic_tokens = 95
 
-vim.opt.autoread = true
+vim.g.copilot_workspace_folders = { vim.fn.getcwd() }
+
+-- Markdown indentation behavior fix
+vim.g.markdown_recommended_style = 0
+
+-- Treesitter
+vim.wo.foldexpr = 'v:lua.vim.treesitter.foldexpr()'

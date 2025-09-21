@@ -2,13 +2,11 @@ return {
   {
     "neovim/nvim-lspconfig",
     opts = function(_, opts)
-      vim.tbl_extend("keep", opts.servers, opts.servers, {
-        marksman = {},
-        ruby_lsp = {
-          mason = false,
-          cmd = { vim.fn.expand("~/.asdf/shims/ruby-lsp") },
-        },
-      })
+      opts.servers = opts.servers or {}
+      opts.servers.ruby_lsp = {
+        mason = false,
+        cmd = { vim.fn.expand("~/.asdf/shims/ruby-lsp") },
+      }
     end,
   },
   {

@@ -1,4 +1,10 @@
--- bootstrap lazy.nvim, LazyVim and your plugins
+-- Core bootstrap
+vim.g.mapleader = " "
+vim.g.maplocalleader = ","
+
+require("config.options")
+require("config.autocmds")
+require("config.keymaps")
 require("config.lazy")
-vim.cmd("colorscheme dracula")
-require("overseer").setup()
+
+pcall(vim.cmd.colorscheme, "dracula")

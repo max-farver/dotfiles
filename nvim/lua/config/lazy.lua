@@ -16,32 +16,59 @@ vim.opt.rtp:prepend(lazypath)
 
 require("lazy").setup({
   spec = {
-    -- add LazyVim and import its plugins
-    { "LazyVim/LazyVim", import = "lazyvim.plugins", opts = { colorscheme = "dracula" } },
-    -- import/override with your plugins
-    { import = "plugins" },
+    { import = "plugins.core" },
+    { import = "plugins.games" },
+    { import = "plugins.general" },
+    { import = "plugins.git" },
+    { import = "plugins.go" },
+    { import = "plugins.lsp" },
+    { import = "plugins.markdown" },
+    { import = "plugins.mini.misc" },
+    { import = "plugins.mini.pick" },
+    { import = "plugins.mini.animate" },
+    { import = "plugins.mini.basics" },
+    { import = "plugins.mini.files" },
+    { import = "plugins.mini.completion" },
+    { import = "plugins.mini.snippets" },
+    { import = "plugins.mini.clue" },
+    { import = "plugins.mini.notify" },
+    { import = "plugins.mini.icons" },
+    { import = "plugins.mini.hipatterns" },
+    { import = "plugins.mini.operators" },
+    { import = "plugins.mini.move" },
+    { import = "plugins.mini.surround" },
+    { import = "plugins.mini.pairs" },
+    { import = "plugins.mini.ai" },
+    { import = "plugins.dot" },
+    { import = "plugins.neotest" },
+    { import = "plugins.nvim-ufo" },
+    { import = "plugins.python" },
+    { import = "plugins.sql" },
+    { import = "plugins.ruby" },
+    { import = "plugins.snacks" },
+    { import = "plugins.vscode" },
+    { import = "plugins.themes" },
+    { import = "plugins.ui" },
   },
   defaults = {
-    -- By default, only LazyVim plugins will be lazy-loaded. Your custom plugins will load during startup.
-    -- If you know what you're doing, you can set this to `true` to have all your custom plugins lazy-loaded by default.
-    lazy = false,
-    -- It's recommended to leave version=false for now, since a lot the plugin that support versioning,
-    -- have outdated releases, which may break your Neovim install.
-    version = false, -- always use the latest git commit
-    -- version = "*", -- try installing the latest stable version for plugins that support semver
+    lazy = true,
+    version = false,
+  },
+  install = {
+    colorscheme = { "dracula", "tokyonight" },
   },
   checker = {
-    enabled = true, -- check for plugin updates periodically
-    notify = false, -- notify on update
-  }, -- automatically check for plugin updates
+    enabled = true,
+    notify = false,
+  },
+  change_detection = {
+    notify = false,
+  },
   performance = {
     rtp = {
-      -- disable some rtp plugins
       disabled_plugins = {
         "gzip",
-        -- "matchit",
-        -- "matchparen",
-        -- "netrwPlugin",
+        "netrwPlugin",
         "tarPlugin",
         "tohtml",
         "tutor",

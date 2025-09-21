@@ -1,3 +1,5 @@
+local icons = require("config.icons")
+
 return {
   {
     "mfussenegger/nvim-dap",
@@ -5,85 +7,41 @@ return {
     dependencies = {
       {
         "jay-babu/mason-nvim-dap.nvim",
-        dependencies = {
-          "williamboman/mason.nvim",
-        },
+        enabled = not require("config.os").is_linux,
+        dependencies = { "williamboman/mason.nvim" },
         cmd = { "DapInstall", "DapUninstall" },
         opts = {
-          -- Makes a best effort to setup the various debuggers with
-          -- reasonable debug configurations
           automatic_installation = true,
-
-          -- You can provide additional configuration to the handlers,
-          -- see mason-nvim-dap README for more information
           handlers = {},
-
-          -- You'll need to check that you have the required things installed
-          -- online, please don't ask me how to install them :)
-          ensure_installed = {
-            -- Update this to ensure that you have the debuggers for the langs you want
-          },
+          ensure_installed = {},
         },
       },
-      {
-        "theHamsta/nvim-dap-virtual-text",
-        opts = {},
-      },
+      { "theHamsta/nvim-dap-virtual-text", opts = {} },
     },
-    keys = {
-      {
-        "<leader>dB",
-        function()
-          require("dap").set_breakpoint(vim.fn.input("Breakpoint condition: "))
-        end,
-        desc = "Breakpoint Condition",
-      },
-      {
-        "<leader>db",
-        function()
-          require("dap").toggle_breakpoint()
-        end,
-        desc = "Toggle Breakpoint",
-      },
-      {
-        "<leader>dl",
-        function()
-          require("dap").run_last()
-        end,
-        desc = "Run Last",
-      },
-      {
-        "<leader>ds",
-        function()
-          require("dap").session()
-        end,
-        desc = "Session",
-      },
-      {
-        "<leader>dt",
-        function()
-          require("dap").terminate()
-        end,
-        desc = "Terminate",
-      },
-    },
+    -- keymaps defined in config/keymaps.lua
     config = function()
-      -- load mason-nvim-dap here, after all adapters have been setup
-      if LazyVim.has("mason-nvim-dap.nvim") then
-        require("mason-nvim-dap").setup(LazyVim.opts("mason-nvim-dap.nvim"))
+      local ok, mason_dap = pcall(require, "mason-nvim-dap")
+      if ok then
+        mason_dap.setup({ automatic_installation = true, handlers = {} })
       end
 
       vim.api.nvim_set_hl(0, "DapStoppedLine", { default = true, link = "Visual" })
 
-      for name, sign in pairs(LazyVim.config.icons.dap) do
-        sign = type(sign) == "table" and sign or { sign }
-        vim.fn.sign_define(
-          "Dap" .. name,
-          { text = sign[1], texthl = sign[2] or "DiagnosticInfo", linehl = sign[3], numhl = sign[3] }
-        )
+      for name, sign in pairs(icons.dap) do
+        local text, texthl, linehl, numhl
+        if type(sign) == "table" then
+          text, texthl, linehl, numhl = sign[1], sign[2], sign[3], sign[4]
+        else
+          text = sign
+        end
+        vim.fn.sign_define("Dap" .. name, {
+          text = text,
+          texthl = texthl or "DiagnosticInfo",
+          linehl = linehl,
+          numhl = numhl,
+        })
       end
 
-      -- setup dap config by VsCode launch.json file
       local vscode = require("dap.ext.vscode")
       local json = require("plenary.json")
       vscode.json_decode = function(str)
@@ -96,32 +54,14 @@ return {
 
   {
     "miroshQa/debugmaster.nvim",
-    -- osv is needed if you want to debug neovim lua code. Also can be used
-    -- as a way to quickly test-drive the plugin without configuring debug adapters
     dependencies = { "mfussenegger/nvim-dap", "jbyuki/one-small-step-for-vimkind" },
     config = function()
       local dm = require("debugmaster")
-      -- vim.keymap.set({ "n", "v" }, "<leader>dd", dm.mode.toggle, { nowait = true })
-      -- If you want to disable debug mode in addition to leader+d using the Escape key:
-      -- vim.keymap.set("n", "<Esc>", dm.mode.disable)
-      -- This might be unwanted if you already use Esc for ":noh"
-      -- vim.keymap.set("t", "<C-\\>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
-
-      dm.plugins.osv_integration.enabled = true -- needed if you want to debug neovim lua code
+      dm.plugins.osv_integration.enabled = true
     end,
-
-    keys = {
-      {
-        "<leader>dd",
-        function()
-          local dm = require("debugmaster")
-          dm.mode.toggle()
-        end,
-        { nowait = true },
-        desc = "Toggle Debug Mode",
-      },
-    },
+    -- keymaps defined in config/keymaps.lua
   },
+
   {
     "andythigpen/nvim-coverage",
     lazy = true,
@@ -136,6 +76,7 @@ return {
       },
     },
   },
+
   {
     "nvim-neotest/neotest",
     lazy = true,
@@ -144,32 +85,55 @@ return {
       "nvim-lua/plenary.nvim",
       "antoinemadec/FixCursorHold.nvim",
       "nvim-treesitter/nvim-treesitter",
-
       "nvim-neotest/neotest-plenary",
       "nvim-neotest/neotest-vim-test",
     },
     opts = {
-      -- See all config options with :h neotest.Config
-      discovery = {
-        -- Drastically improve performance in ginormous projects by
-        -- only AST-parsing the currently opened buffer.
-        enabled = true,
-        -- Number of workers to parse files concurrently.
-        -- A value of 0 automatically assigns number based on CPU.
-        -- Set to 1 if experiencing lag.
-        concurrent = 0,
-      },
-      running = {
-        -- Run tests concurrently when an adapter provides multiple commands to run.
-        concurrent = true,
-      },
-      summary = {
-        -- Enable/disable animation of icons.
-        animated = true,
-      },
-      log_level = vim.log.levels.WARN, -- increase to DEBUG when troubleshooting
+      discovery = { enabled = true, concurrent = 0 },
+      running = { concurrent = true },
+      summary = { animated = true },
+      log_level = vim.log.levels.WARN,
     },
+    -- keymaps defined in config/keymaps.lua
     config = function(_, opts)
+      local neotest_ns = vim.api.nvim_create_namespace("neotest")
+      vim.diagnostic.config({
+        virtual_text = {
+          format = function(diagnostic)
+            local message = diagnostic.message:gsub("\n", " "):gsub("\t", " "):gsub("%s+", " "):gsub("^%s+", "")
+            return message
+          end,
+        },
+      }, neotest_ns)
+
+      if package.loaded["trouble"] then
+        opts.consumers = opts.consumers or {}
+        opts.consumers.trouble = function(client)
+          client.listeners.results = function(adapter_id, results, partial)
+            if partial then
+              return
+            end
+            local tree = assert(client:get_position(nil, { adapter = adapter_id }))
+            local failed = 0
+            for pos_id, result in pairs(results) do
+              if result.status == "failed" and tree:get_key(pos_id) then
+                failed = failed + 1
+              end
+            end
+            vim.schedule(function()
+              local trouble = require("trouble")
+              if trouble.is_open() then
+                trouble.refresh()
+                if failed == 0 then
+                  trouble.close()
+                end
+              end
+            end)
+            return {}
+          end
+        end
+      end
+
       if opts.adapters then
         local adapters = {}
         for name, config in pairs(opts.adapters or {}) do
@@ -188,7 +152,7 @@ return {
                 adapter.adapter(config)
                 adapter = adapter.adapter
               elseif meta and meta.__call then
-                adapter(config)
+                adapter = adapter(config)
               else
                 error("Adapter " .. name .. " does not support setup")
               end
@@ -199,7 +163,6 @@ return {
         opts.adapters = adapters
       end
 
-      -- Set up Neotest.
       require("neotest").setup(opts)
     end,
   },

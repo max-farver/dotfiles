@@ -1,50 +1,37 @@
 return {
-{
-  "nvim-neotest/neotest",
-  optional = true,
-  dependencies = {
-    "nvim-neotest/neotest-python",
+  {
+    "mfussenegger/nvim-dap-python",
+    ft = { "python" },
+    dependencies = { "mfussenegger/nvim-dap" },
+    -- keymaps defined in config/keymaps.lua
+    config = function()
+      local python = vim.env.VIRTUAL_ENV and (vim.env.VIRTUAL_ENV .. "/bin/python") or "/etc/profiles/per-user/mfarver/bin/python"
+      require("dap-python").setup(python)
+    end,
   },
-  opts = {
-    adapters = {
-      ["neotest-python"] = {
-        python = "/etc/profiles/per-user/mfarver/bin/python",
+
+  {
+    "linux-cultist/venv-selector.nvim",
+    ft = "python",
+    cmd = "VenvSelect",
+    opts = {
+      options = {
+        notify_user_on_venv_activation = true,
       },
     },
+    -- keymaps defined in config/keymaps.lua
   },
 
-    config = function(_, opts)
-      if opts.adapters then
-        local adapters = {}
-        for name, config in pairs(opts.adapters or {}) do
-          if type(name) == "number" then
-            if type(config) == "string" then
-              config = require(config)
-            end
-            adapters[#adapters + 1] = config
-          elseif config ~= false then
-            local adapter = require(name)
-            if type(config) == "table" and not vim.tbl_isempty(config) then
-              local meta = getmetatable(adapter)
-              if adapter.setup then
-                adapter.setup(config)
-              elseif adapter.adapter then
-                adapter.adapter(config)
-                adapter = adapter.adapter
-              elseif meta and meta.__call then
-                adapter(config)
-              else
-                error("Adapter " .. name .. " does not support setup")
-              end
-            end
-            adapters[#adapters + 1] = adapter
-          end
-        end
-        opts.adapters = adapters
-      end
-
-      require("neotest").setup(opts)
+  {
+    "nvim-neotest/neotest",
+    dependencies = {
+      "nvim-neotest/neotest-python",
+    },
+    opts = function(_, opts)
+      opts.adapters = opts.adapters or {}
+      opts.adapters["neotest-python"] = vim.tbl_deep_extend("force", {
+        python = "/etc/profiles/per-user/mfarver/bin/python",
+      }, opts.adapters["neotest-python"] or {})
     end,
-
-}
+  },
 }
