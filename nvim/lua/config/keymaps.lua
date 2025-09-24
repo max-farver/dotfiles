@@ -34,20 +34,12 @@ do
   map("n", "<leader>e", "<leader>fe", { desc = "Explorer (Root Dir)", remap = true })
 end
 
--- (moved to consolidated pickers block below)
-
--- Portable terminal mapping
-map("n", "<leader>tt", function()
-  local ok, snacks = pcall(require, "snacks")
-  if ok then snacks.terminal(nil, { cwd = require("config.root").get() }) end
-end, { desc = "Terminal (Root Dir)" })
 
 -- Window/Split helpers
 map("n", "<leader>-", "<C-W>s", { desc = "Split Window Below", remap = true })
 map("n", "<leader>|", "<C-W>v", { desc = "Split Window Right", remap = true })
 map("n", "<leader>wd", "<C-W>c", { desc = "Delete Window", remap = true })
 
--- Move lines (handled by mini.basics / mini.move)
 
 -- Buffers
 map("n", "<S-h>", "<cmd>bprevious<cr>", { desc = "Prev Buffer" })
@@ -66,7 +58,6 @@ map("n", "<leader>bo", function()
 end, { desc = "Delete Other Buffers" })
 map("n", "<leader>bD", "<cmd>:bd<cr>", { desc = "Delete Buffer and Window" })
 
--- Save mapping provided by mini.basics
 
 -- Better visual indent
 map("v", "<", "<gv")
@@ -292,11 +283,6 @@ map("n", "<leader>tS", function() require("neotest").run.stop() end, { desc = "S
 map("n", "<leader>tw", function() require("neotest").watch.toggle(vim.fn.expand("%")) end, { desc = "Toggle Watch" })
 map("n", "<leader>td", function() require("neotest").run.run({ strategy = "dap" }) end, { desc = "Debug Nearest" })
 
--- Python extras
-map("n", "<leader>cv", function() if vim.bo.filetype == "python" then vim.cmd([[VenvSelect]]) end end, { desc = "Select VirtualEnv" })
-map("n", "<leader>dPt", function() if vim.bo.filetype == "python" then require("dap-python").test_method() end end, { desc = "Debug Python Method" })
-map("n", "<leader>dPc", function() if vim.bo.filetype == "python" then require("dap-python").test_class() end end, { desc = "Debug Python Class" })
-
 -- Snacks toggles (register after lazy plugins load)
 vim.api.nvim_create_autocmd("User", {
   pattern = "VeryLazy",
@@ -324,16 +310,6 @@ vim.api.nvim_create_autocmd("User", {
     end
   end,
 })
-
--- Floating terminal mappings (using Snacks)
-map("n", "<leader>fT", function()
-  local ok, snacks = pcall(require, "snacks")
-  if ok then snacks.terminal() end
-end, { desc = "Terminal (cwd)" })
-map("n", "<leader>ft", function()
-  local ok, snacks = pcall(require, "snacks")
-  if ok then snacks.terminal(nil, { cwd = require("config.root").get() }) end
-end, { desc = "Terminal (Root Dir)" })
 
 -- Tabs suite
 map("n", "<leader><tab>l", "<cmd>tablast<cr>", { desc = "Last Tab" })
@@ -393,12 +369,27 @@ end
 do
   local function with_pick(fn, opts)
     return function()
-      local ok, pick = pcall(require, "mini.pick")
-      if not ok or not pick.builtin or type(pick.builtin[fn]) ~= "function" then
-        vim.notify("mini.pick builtin '" .. tostring(fn) .. "' not available", vim.log.levels.WARN)
+      local pick_ok, pick = pcall(require, "mini.pick")
+      local extra_ok, extra = pcall(require, "mini.extra")
+
+      if not pick_ok then
+        vim.notify("mini.pick not available", vim.log.levels.WARN)
         return
       end
-      pick.builtin[fn](opts or {})
+
+      -- Prefer builtin pickers
+      if pick.builtin and type(pick.builtin[fn]) == "function" then
+        pick.builtin[fn](opts or {})
+        return
+      end
+
+      -- Fallback to mini.extra pickers
+      if extra_ok and extra and extra.pickers and type(extra.pickers[fn]) == "function" then
+        extra.pickers[fn](opts or {})
+        return
+      end
+
+      vim.notify("Picker '" .. tostring(fn) .. "' not available", vim.log.levels.WARN)
     end
   end
 
@@ -474,10 +465,8 @@ do
   end
 
   -- open remote in browser
-  map("n", "<leader>go", gl_action("n", "open"), { desc = "Git Browse (open)" })
-  map("x", "<leader>go", gl_action("v", "open"), { desc = "Git Browse (open)" })
+  map({"n", "x"}, "<leader>go", gl_action("n", "open"), { desc = "Git Browse (open)" })
 
   -- copy remote URL to clipboard
-  map("n", "<leader>gy", gl_action("n", "copy"), { desc = "Git Browse (copy)" })
-  map("x", "<leader>gy", gl_action("v", "copy"), { desc = "Git Browse (copy)" })
+  map({"n", "x"}, "<leader>gy", gl_action("n", "copy"), { desc = "Git Browse (copy)" })
 end

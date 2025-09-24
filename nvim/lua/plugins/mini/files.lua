@@ -1,11 +1,27 @@
 return {
   'nvim-mini/mini.files',
   version = '*',
+  dependencies = {
+	"nvim-mini/mini.extra"
+  },
   opts = {
-    options = {
+	mappings = {
+	    close       = 'q',
+	    go_in       = 'l',
+	    go_in_plus  = '<Right>',
+	    go_out      = 'h',
+	    go_out_plus = '<Left>',
+	    mark_goto   = "'",
+	    mark_set    = 'm',
+	    reset       = '<BS>',
+	    reveal_cwd  = '@',
+	    show_help   = 'g?',
+	    synchronize = '=',
+	    trim_left   = '<',
+	    trim_right  = '>',
+	  },
       use_as_default_explorer = true,
       permanent_delete = true,
-    },
   },
   config = function(_, opts)
     local MiniFiles = require('mini.files')

@@ -17,6 +17,7 @@ return {
         dap_debug = false,
         -- let go.nvim configure and start gopls
         lsp_cfg = true,
+	treesitter=false,
       })
     end,
   },

@@ -139,7 +139,8 @@ return {
       servers = servers,
     },
     config = function(_, opts)
-      local lspconfig = require("lspconfig")
+      -- Use lspconfig.configs to avoid deprecated require('lspconfig') framework
+      local configs = require("lspconfig.configs")
       local capabilities = vim.lsp.protocol.make_client_capabilities()
 
       for name, server_opts in pairs(opts.servers) do
@@ -152,7 +153,12 @@ return {
             original_attach(client, bufnr)
           end
         end
-        lspconfig[name].setup(server_opts)
+        -- Ensure the server configuration is loaded without requiring the deprecated framework
+        pcall(require, "lspconfig.server_configurations." .. name)
+        if configs[name] and type(configs[name].setup) == "function" then
+          configs[name].setup(server_opts)
+        end
+	vim.lsp.enable(name)
       end
     end,
   },
