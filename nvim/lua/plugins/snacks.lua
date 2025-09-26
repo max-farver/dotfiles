@@ -4,9 +4,10 @@ return {
     priority = 1000,
     lazy = false,
     opts = {
-      toggle = {},
+			statuscolumn = {},
     },
     config = function(_, opts)
+
       require("snacks").setup(opts)
     end,
   },

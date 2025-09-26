@@ -1,5 +1,5 @@
 return {
-  { "nvim-tree/nvim-web-devicons", lazy = true },
+		  { "nvim-tree/nvim-web-devicons", lazy = true },
   { "nvim-lua/plenary.nvim", lazy = true },
   { "MunifTanjim/nui.nvim", lazy = true },
   { "antoinemadec/FixCursorHold.nvim", event = "VeryLazy" },
@@ -38,15 +38,6 @@ return {
     opts = {},
     config = function(_, opts)
       require("persistence").setup(opts)
-    end,
-  },
-
-  {
-    "folke/ts-comments.nvim",
-    event = "VeryLazy",
-    opts = {},
-    config = function(_, opts)
-      require("ts-comments").setup(opts)
     end,
   },
 

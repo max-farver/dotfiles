@@ -7,6 +7,7 @@ opt.breakindent = true
 opt.completeopt = { "menu", "menuone", "noinsert" }
 opt.conceallevel = 2
 opt.cursorline = true
+opt.clipboard = "unnamedplus"
 -- Hide the command line when not in use to avoid an extra empty row
 -- Requires Neovim >= 0.9
 opt.cmdheight = 0
@@ -19,6 +20,8 @@ opt.foldlevelstart = 99
 opt.foldmethod = "indent"
 opt.foldtext = ""
 opt.formatoptions:remove({ "o", "r" })
+vim.b.disable_autoformat = false
+vim.g.disable_autoformat = false
 opt.grepformat = "%f:%l:%c:%m"
 opt.grepprg = "rg --vimgrep"
 opt.inccommand = "nosplit"
@@ -45,6 +48,8 @@ opt.shada = "!,'1000,<50,s100,:1000,/1000"
 opt.virtualedit = "block"
 opt.winminwidth = 5
 opt.ruler = false
+opt.tabstop = 4
+opt.relativenumber = true
 
 opt.autoread = true
 
