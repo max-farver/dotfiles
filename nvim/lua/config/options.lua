@@ -49,6 +49,7 @@ opt.virtualedit = "block"
 opt.winminwidth = 5
 opt.ruler = false
 opt.tabstop = 4
+opt.shiftwidth = 4
 opt.relativenumber = true
 
 opt.autoread = true
