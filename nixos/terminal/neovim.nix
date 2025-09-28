@@ -18,6 +18,7 @@
     nodejs_24
     zulu24
     php
+    prettier
     ruby
     rbenv
     python312

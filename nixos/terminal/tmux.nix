@@ -1,4 +1,9 @@
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 {
   programs.tmux = {
@@ -11,16 +16,16 @@
     terminal = "tmux-256color";
     shell = "${pkgs.zsh}/bin/zsh";
     plugins = [
-      { 
+      {
         plugin = pkgs.tmuxPlugins.vim-tmux-navigator;
-        extraConfig   = ''
+        extraConfig = ''
           set -g @vim_navigator_mapping_left "C-Left C-h"  # use C-h and C-Left
           set -g @vim_navigator_mapping_right "C-Right C-l"
           set -g @vim_navigator_mapping_up "C-Up C-k"
           set -g @vim_navigator_mapping_down "C-Down C-j"
         '';
       }
-      { 
+      {
         plugin = pkgs.tmuxPlugins.dracula;
         extraConfig = ''
           set -g @dracula-plugins "time"
@@ -32,10 +37,7 @@
       }
     ];
     extraConfig = ''
-    set -ag terminal-overrides ",xterm-256color:RGB"
-    set -g status-position top
-    set -g mouse-select-window on
-    set -g mouse-select-pane on
+      set -g status-position top
     '';
   };
 
