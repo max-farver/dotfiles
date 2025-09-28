@@ -1,4 +1,10 @@
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  inputs,
+  ...
+}:
 
 {
   imports = [
@@ -23,9 +29,31 @@
   #     xxx
   # '';
 
+  nixpkgs = {
+    # You can add overlays here
+    overlays = [
+      # Add overlays your own flake exports (from overlays and pkgs dir):
+
+      # You can also add overlays exported from other flakes:
+      # neovim-nightly-overlay.overlays.default
+      inputs.nur.overlays.default
+      # Or define it inline, for example:
+      # (final: prev: {
+      #   hi = final.hello.overrideAttrs (oldAttrs: {
+      #     patches = [ ./change-hello-to-hi.patch ];
+      #   });
+      # })
+    ];
+    # Configure your nixpkgs instance
+    config = {
+      # Disable if you don't want unfree packages
+      allowUnfree = true;
+    };
+  };
+
   # Packages that should be installed to the user profile.
   home.packages = with pkgs; [
-    
+
   ];
 
   # services.kdeconnect.enable = true;

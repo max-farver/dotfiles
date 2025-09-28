@@ -4,6 +4,7 @@
   programs.tmux = {
     enable = true;
     clock24 = true;
+    escapeTime = 0;
     keyMode = "vi";
     focusEvents = true;
     mouse = true;
@@ -33,6 +34,8 @@
     extraConfig = ''
     set -ag terminal-overrides ",xterm-256color:RGB"
     set -g status-position top
+    set -g mouse-select-window on
+    set -g mouse-select-pane on
     '';
   };
 

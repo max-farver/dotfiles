@@ -2,5 +2,6 @@
 {
   home.packages = with pkgs; [
     nur.repos.charmbracelet.crush
+    codex
   ];
 }

@@ -4,9 +4,11 @@
 
 { config, pkgs, ... }:
 
-
 {
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.settings.experimental-features = [
+    "nix-command"
+    "flakes"
+  ];
 
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
@@ -30,7 +32,6 @@
 
   programs.zsh.enable = true;
   users.users.mfarver.shell = pkgs.zsh;
-
 
   # List services that you want to enable:
 

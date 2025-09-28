@@ -1,14 +1,19 @@
-{ config, pkgs, lib, inputs, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  inputs,
+  ...
+}:
 
 let
   ghostty = pkgs.ghostty.overrideAttrs (_: {
     preBuild = ''
-        shopt -s globstar
-        sed -i 's/^const xev = @import("xev");$/const xev = @import("xev").Epoll;/' **/*.zig
-        shopt -u globstar
-      '';
+      shopt -s globstar
+      sed -i 's/^const xev = @import("xev");$/const xev = @import("xev").Epoll;/' **/*.zig
+      shopt -u globstar
+    '';
   });
-  inherit (config.lib.file) mkOutOfStoreSymlink;
 in
 {
   imports = [
@@ -19,28 +24,28 @@ in
     ./zsh.nix
   ];
 
-  nixpkgs.overlays = [
-    inputs.nur.overlay
-  ];
-
   home.packages = with pkgs; [
-    ghostty
-
     nur.repos.charmbracelet.freeze
-    
-    fzf
+    oauth2c
+    taskwarrior3
+    taskwarrior-tui
+    nix-search-cli
+    posting
+
     ripgrep
     fd
     bat
+    jq
+    btop
   ];
 
   programs = {
-    # ghostty = {
-    #   enable = true;
-    #   settings = {
-    #
-    #   };
-    # };
+    ghostty = {
+      enable = true;
+      settings = {
+        theme = "Dracula";
+      };
+    };
 
     direnv = {
       enable = true;
@@ -52,7 +57,25 @@ in
       enable = true;
       clean.enable = true;
       clean.extraArgs = "--keep-since 4d --keep 3";
-      flake = "/home/mfarver/.config/nixos/flake.nix"; # sets NH_OS_FLAKE variable for you
+      flake = "/home/mfarver/.config/nixos"; # sets NH_OS_FLAKE variable for you
+    };
+
+    atuin = {
+      enable = true;
+      enableZshIntegration = true;
+      settings = {
+        keymap_mode = "auto";
+        keymap_cursor = {
+          emacs = "blink-block";
+          vim_insert = "blink-block";
+          vim_normal = "steady-block";
+        };
+      };
+    };
+
+    fzf = {
+      enable = true;
+      enableZshIntegration = false;
     };
 
     bash.enable = true; # see note on other shells below

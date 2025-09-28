@@ -1,4 +1,9 @@
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 {
   home.packages = with pkgs; [
@@ -7,8 +12,9 @@
     go
     cargo
     lua
-    luaPackages.lua-lsp
+    lua-language-server
     luajitPackages.luarocks
+    markdownlint-cli2
     nodejs_24
     zulu24
     php
@@ -17,9 +23,11 @@
     python312
     python312Packages.pip
     python312Packages.debugpy
+    uv
     julia
     gcc
     nil
     typescript-language-server
+    tree-sitter
   ];
 }

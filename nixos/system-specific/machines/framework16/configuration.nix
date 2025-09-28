@@ -1,19 +1,18 @@
 { config, pkgs, ... }:
 
-
 {
   imports = [
-      ../../../desktop-environments/plasma.nix
-      ../../x86_64-linux/linux.nix
-      ./hardware-configuration.nix
-      ../../../games/steam.nix
+    ../../../desktop-environments/plasma.nix
+    ../../x86_64-linux/linux.nix
+    ./hardware-configuration.nix
+    ../../../games/steam.nix
   ];
   environment.systemPackages = with pkgs; [
     pkgs.amdgpu_top
     pkgs.virtualglLib
     pkgs.mesa-demos
     pkgs.vulkan-tools
-    plasma5Packages.plasma-thunderbolt
+    kdePackages.plasma-thunderbolt
     pkgs.dmidecode
     wl-clipboard
   ];
@@ -35,18 +34,17 @@
 
   services.power-profiles-daemon.enable = true;
   # Suspend first then hibernate when closing the lid
-  services.logind.lidSwitch = "suspend-then-hibernate";
+  services.logind.settings.Login.HandleLidSwitch = "suspend-then-hibernate";
   # Hibernate on power button pressed
-  services.logind.powerKey = "hibernate";
-  services.logind.powerKeyLongPress = "poweroff";
-
+  services.logind.settings.Login.HandlePowerKey = "hibernate";
+  services.logind.settings.Login.HandlePowerKeyLongPress = "poweroff";
 
   # Define time delay for hibernation
   systemd.sleep.extraConfig = ''
     HibernateDelaySec=30m
     SuspendState=mem
   '';
-  
+
   # Framework Updates
   services.fwupd.enable = true;
 
@@ -68,7 +66,12 @@
 
   # Firewall for KDE Connect
   networking.firewall = rec {
-    allowedTCPPortRanges = [ { from = 1714; to = 1764; } ];
+    allowedTCPPortRanges = [
+      {
+        from = 1714;
+        to = 1764;
+      }
+    ];
     allowedUDPPortRanges = allowedTCPPortRanges;
   };
 
