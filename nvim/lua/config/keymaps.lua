@@ -122,6 +122,38 @@ map('n', 'gd', function()
 	vim.lsp.buf.definition()
 end, { desc = 'Go to Definition', remap = true })
 
+-- LSP references/impl/type-def/code-actions via mini.pick
+map('n', 'grr', function()
+	local ok, pick = pcall(require, 'mini.pick')
+	if ok and pick.builtin and pick.builtin.lsp_references then
+		pick.builtin.lsp_references()
+		return
+	end
+	vim.lsp.buf.references()
+end, { desc = 'LSP References' })
+
+map('n', 'gri', function()
+	local ok, pick = pcall(require, 'mini.pick')
+	if ok and pick.builtin and pick.builtin.lsp_implementations then
+		pick.builtin.lsp_implementations()
+		return
+	end
+	vim.lsp.buf.implementation()
+end, { desc = 'LSP Implementations' })
+
+map('n', 'grt', function()
+	vim.lsp.buf.type_definition()
+end, { desc = 'Go to Type Definition' })
+
+map('n', 'gra', function()
+	local ok, pick = pcall(require, 'mini.pick')
+	if ok and pick.builtin and pick.builtin.lsp_code_actions then
+		pick.builtin.lsp_code_actions()
+		return
+	end
+	vim.lsp.buf.code_action()
+end, { desc = 'LSP Code Actions' })
+
 -- Completion / Snippet confirm + navigation
 -- - <Tab> confirms current completion item (if popup visible)
 -- - <CR> confirms and inserts a newline (if popup visible)
@@ -274,9 +306,9 @@ map('n', '<P', '<Plug>(YankyPutIndentBeforeShiftLeft)', { desc = 'Put Before and
 map('n', '=p', '<Plug>(YankyPutAfterFilter)', { desc = 'Put After Filter' })
 map('n', '=P', '<Plug>(YankyPutBeforeFilter)', { desc = 'Put Before Filter' })
 map({ 'n', 'x' }, '<leader>p', function()
-	local ok_snacks, snacks = pcall(require, 'snacks')
-	if ok_snacks and snacks.picker and snacks.picker.yanky then
-		snacks.picker.yanky()
+	local ok, pick = pcall(require, 'mini.pick')
+	if ok and pick.builtin and pick.builtin.yanky then
+		pick.builtin.yanky()
 		return
 	end
 	vim.cmd [[YankyRingHistory]]
@@ -373,7 +405,7 @@ vim.api.nvim_create_autocmd('User', {
 		Snacks.toggle.treesitter():map '<leader>uT'
 		Snacks.toggle.option('conceallevel',
 			{ off = 0, on = vim.o.conceallevel > 0 and vim.o.conceallevel or 2, name = 'Conceal Level' })
-		    :map '<leader>uc'
+			:map '<leader>uc'
 		Snacks.toggle.option('showtabline',
 			{ off = 0, on = vim.o.showtabline > 0 and vim.o.showtabline or 2, name = 'Tabline' }):map '<leader>uA'
 		Snacks.toggle.option('background', { off = 'light', on = 'dark', name = 'Dark Background' }):map '<leader>ub'

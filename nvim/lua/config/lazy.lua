@@ -46,7 +46,7 @@ require('lazy').setup {
 		{ import = 'plugins.mini.pairs' },
 		{ import = 'plugins.mini.ai' },
 		{ import = 'plugins.mini.starter' },
-		{ import = 'plugins.mini.colors' },
+		{ import = 'plugins.mini.base16' },
 		{ import = 'plugins.general' },
 		{ import = 'plugins.git' },
 		{ import = 'plugins.go' },
