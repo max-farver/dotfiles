@@ -54,6 +54,7 @@ return {
 	},
 	{
 		"Mofiqul/dracula.nvim",
+		version = "*",
 		config = function(_, opts)
 			local dracula = require("dracula")
 			opts.overrides = {
@@ -66,7 +67,15 @@ return {
 				IlluminatedWordText = { bg = darken(dracula.colors().comment, 0.65, dracula.colors().bg) },
 				IlluminatedWordRead = { bg = darken(dracula.colors().comment, 0.65, dracula.colors().bg) },
 				IlluminatedWordWrite = { bg = darken(dracula.colors().comment, 0.65, dracula.colors().bg) },
-				MiniPickMatchCurrent = { bg = dracula.colors().selection }
+				MiniPickMatchCurrent = { bg = dracula.colors().selection },
+				MiniFilesBorder = { fg = dracula.colors().fg, bg = dracula.colors().bg },
+				MiniFilesBorderModified = { fg = dracula.colors().orange, bg = dracula.colors().bg },
+				MiniFilesCursorLine = { bg = dracula.colors().selection },
+				MiniFilesDirectory = { fg = dracula.colors().cyan, bg = dracula.colors().bg },
+				MiniFilesFile = { fg = dracula.colors().fg, bg = dracula.colors().bg },
+				MiniFilesNormal = { fg = dracula.colors().fg, bg = dracula.colors().bg },
+				MiniFilesTitle = { fg = dracula.colors().purple, bg = dracula.colors().bg, bold = true },
+				MiniFilesTitleFocused = { fg = dracula.colors().cyan, bg = dracula.colors().bg, bold = true },
 			}
 			dracula.setup(opts)
 		end,

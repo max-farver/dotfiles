@@ -235,8 +235,8 @@ return {
 				},
 			},
 			formatters_by_ft = {
-				markdown = { 'prettier', 'markdownlint-cli2', 'markdown-toc' },
-				['markdown.mdx'] = { 'prettier', 'markdownlint-cli2', 'markdown-toc' },
+				markdown = { 'prettier', 'markdownlint-cli2' },
+				['markdown.mdx'] = { 'prettier', 'markdownlint-cli2' },
 				sql = { 'sqlfluff' },
 				mysql = { 'sqlfluff' },
 				plsql = { 'sqlfluff' },
@@ -253,7 +253,7 @@ return {
 		event = { 'BufReadPost', 'BufNewFile' },
 		opts = function(_, opts)
 			opts.linters_by_ft = opts.linters_by_ft or {}
-			opts.linters_by_ft.markdown = opts.linters_by_ft.markdown or { 'markdownlint-cli2' }
+			-- opts.linters_by_ft.markdown = opts.linters_by_ft.markdown or { 'markdownlint-cli2' }
 			opts.linters_by_ft.yaml = opts.linters_by_ft.yaml or { 'yamllint' }
 			opts.linters_by_ft.dockerfile = opts.linters_by_ft.dockerfile or { 'hadolint' }
 			opts.linters_by_ft.terraform = opts.linters_by_ft.terraform or { 'terraform_validate' }

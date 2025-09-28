@@ -7,4 +7,4 @@ require("config.autocmds")
 require("config.keymaps")
 require("config.lazy")
 
--- pcall(vim.cmd.colorscheme, "dracula")
+pcall(vim.cmd.colorscheme, "dracula")
