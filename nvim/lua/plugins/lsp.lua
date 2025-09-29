@@ -38,14 +38,7 @@ local servers = {
 	nil_ls = {},
 	postgres_lsp = {},
 	pyright = {},
-	ruff_lsp = {
-		cmd_env = { RUFF_TRACE = 'messages' },
-		init_options = {
-			settings = {
-				logLevel = 'error',
-			},
-		},
-	},
+	ruff = {},
 	taplo = {},
 	terraformls = {},
 	tsserver = {},
@@ -237,9 +230,10 @@ return {
 			formatters_by_ft = {
 				markdown = { 'prettier', 'markdownlint-cli2' },
 				['markdown.mdx'] = { 'prettier', 'markdownlint-cli2' },
-				sql = { 'sqlfluff' },
 				mysql = { 'sqlfluff' },
 				plsql = { 'sqlfluff' },
+				python = { 'black' },
+				sql = { 'sqlfluff' },
 				terraform = { 'terraform_fmt' },
 				tf = { 'terraform_fmt' },
 				['terraform-vars'] = { 'terraform_fmt' },
