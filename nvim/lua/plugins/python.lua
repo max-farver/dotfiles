@@ -1,16 +1,17 @@
 return {
-	{
-		"mfussenegger/nvim-dap-python",
-		ft = { "python" },
-		dependencies = { "mfussenegger/nvim-dap" },
-		-- keymaps defined in config/keymaps.lua
-		config = function()
-			local python = vim.env.VIRTUAL_ENV and (vim.env.VIRTUAL_ENV .. "/bin/python") or
-			"/etc/profiles/per-user/mfarver/bin/python"
-			require("dap-python").setup(python)
-		end,
-	},
 
+	-- {
+	-- 	"mfussenegger/nvim-dap-python",
+	-- 	ft = { "python" },
+	-- 	dependencies = { "mfussenegger/nvim-dap" },
+	-- 	-- keymaps defined in config/keymaps.lua
+	-- 	config = function()
+	-- 		local python = vim.env.VIRTUAL_ENV and (vim.env.VIRTUAL_ENV .. "/bin/python") or
+	-- 		"/etc/profiles/per-user/mfarver/bin/python"
+	-- 		require("dap-python").setup(python)
+	-- 	end,
+	-- },
+	--
 	{
 		"linux-cultist/venv-selector.nvim",
 		ft = "python",

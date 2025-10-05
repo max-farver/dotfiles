@@ -14,6 +14,21 @@ return {
 	},
 
 	{
+		"kawre/leetcode.nvim",
+		dependencies = {
+			"nvim-lua/plenary.nvim",
+			"MunifTanjim/nui.nvim",
+		},
+		opts = {
+			lang = "python",
+			picker = { provider = 'mini-picker' },
+			storage = {
+				home = vim.fn.expand "~" .. "/Documents/repos/leetcode/problems"
+			},
+		},
+	},
+
+	{
 		"otavioschwanck/arrow.nvim",
 		dependencies = { "nvim-tree/nvim-web-devicons" },
 		opts = {
@@ -107,7 +122,7 @@ return {
 				},
 				highlight = {
 					enable = true,
-					additional_vim_regex_highlighting = true,
+					-- additional_vim_regex_highlighting = { "markdown", "markdown_inline" },
 				},
 				indent = { enable = true },
 				folds = { enable = true },

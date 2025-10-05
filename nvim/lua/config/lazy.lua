@@ -51,7 +51,6 @@ require('lazy').setup {
 		{ import = 'plugins.go' },
 		{ import = 'plugins.lsp' },
 		{ import = 'plugins.markdown' },
-		{ import = 'plugins.dot' },
 		{ import = 'plugins.neotest' },
 		{ import = 'plugins.nvim-ufo' },
 		{ import = 'plugins.python' },

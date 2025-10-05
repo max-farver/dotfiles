@@ -54,7 +54,7 @@ opt.relativenumber = true
 
 opt.autoread = true
 
-vim.highlight.priorities.semantic_tokens = 95
+-- vim.highlight.priorities.semantic_tokens = 95
 
 vim.g.copilot_workspace_folders = { vim.fn.getcwd() }
 
@@ -63,3 +63,5 @@ vim.g.markdown_recommended_style = 0
 
 -- Treesitter
 vim.wo.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
+
+-- vim.g.markdown_fenced_languages = {}
