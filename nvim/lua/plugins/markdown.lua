@@ -62,14 +62,7 @@ return {
 
 	{
 		"OXY2DEV/markview.nvim",
-		lazy = true,
-		ft = { "markdown" },
-		-- init = function(args)
-		-- 			require("markview").actions.set_query(args.buf)
-		-- 		end,
-		-- 		once = true,
-		-- 	})
-		-- end,
+		lazy = false,
 		config = function()
 			local presets = require("markview.presets")
 
@@ -78,7 +71,7 @@ return {
 					-- hybrid_enabled = true,
 					modes = { "n", "no", "c", "i" },
 					hybrid_modes = { "i" },
-					-- raw_previews = { markdown = { "code_blocks" } },
+					raw_previews = { markdown = { "code_blocks" } },
 				},
 				markdown = {
 					checkboxes = presets.checkboxes.glow,

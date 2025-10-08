@@ -23,14 +23,7 @@ do
 			vim.notify('mini.files not available', vim.log.levels.WARN)
 			return
 		end
-		-- If current buffer has a file, open mini.files focused on that file so it's selected.
-		local cur_file = vim.fn.expand('%:p')
-		if cur_file ~= nil and cur_file ~= '' then
-			-- Opening with a file path makes mini.files reveal and select it
-			pcall(function() MiniFiles.open(cur_file) end)
-		else
-			pcall(function() MiniFiles.open(dir, true) end)
-		end
+		MiniFiles.open(dir, true)
 	end
 	keymap('n', '<leader>fe', function()
 		open_files(require('config.root').get())
