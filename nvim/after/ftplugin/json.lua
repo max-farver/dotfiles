@@ -9,7 +9,7 @@ M.plugins = {}
 -- PHASE 2: Runtime Configuration (runs when json buffer loads)
 -- ============================================================================
 local function setup()
-	local helpers = require("config.ftplugin_helpers")
+	local helpers = require("util.ftplugin_helpers")
 	local filetype = vim.bo.filetype
 
 	-- Vim Options - disable concealing for all JSON variants

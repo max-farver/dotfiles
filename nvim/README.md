@@ -69,7 +69,7 @@ vim.g.project_linters = {
 }
 ```
 
-Helpers in `lua/config/project.lua` and `lua/config/ftplugin_helpers.lua` merge these tables with the defaults, so you can opt-in per adapter without touching the core config.
+Helpers in `lua/util.project.lua` and `lua/util.ftplugin_helpers.lua` merge these tables with the defaults, so you can opt-in per adapter without touching the core config.
 
 ## Snippets & Language Hooks
 

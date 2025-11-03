@@ -18,8 +18,8 @@ M.plugins = {
 -- PHASE 2: Runtime Configuration (runs when ruby buffer loads)
 -- ============================================================================
 local function setup()
-	local helpers = require("config.ftplugin_helpers")
-	local project = require("config.project")
+	local helpers = require("util.ftplugin_helpers")
+	local project = require("util.project")
 
 	-- LSP Configuration (ruby-lsp via asdf)
 	helpers.setup_lsp("ruby_lsp", {

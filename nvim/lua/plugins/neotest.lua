@@ -7,7 +7,7 @@ return {
 		dependencies = {
 			{
 				"jay-babu/mason-nvim-dap.nvim",
-				enabled = not require("config.os").is_linux,
+				enabled = not require("util.os").is_linux,
 				dependencies = { "williamboman/mason.nvim" },
 				cmd = { "DapInstall", "DapUninstall" },
 				opts = {
@@ -90,7 +90,7 @@ return {
 			"nvim-neotest/neotest-vim-test",
 		},
 		opts = function()
-			local project = require("config.project")
+			local project = require("util.project")
 			local default_opts = {
 				discovery = { enabled = true, concurrent = 1 },
 				running = { concurrent = true },

@@ -26,7 +26,7 @@ do
 		MiniFiles.open(dir, true)
 	end
 	map('n', '<leader>fe', function()
-		open_files(require('config.root').get())
+		open_files(require('util.root').get())
 	end, { desc = 'Explorer (Root Dir)' })
 	map('n', '<leader>fE', function()
 		open_files(vim.uv.cwd())
@@ -527,7 +527,7 @@ do
 	end
 
 	local root = function()
-		local ok, r = pcall(require, 'config.root')
+		local ok, r = pcall(require, 'util.root')
 		return (ok and r.get()) or (vim.uv.cwd() or vim.fn.getcwd())
 	end
 

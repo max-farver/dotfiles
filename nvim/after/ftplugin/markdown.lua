@@ -2,12 +2,12 @@
 -- PHASE 1: Plugin Declarations (evaluated at startup by lazy.nvim)
 -- ============================================================================
 local M = {}
-local project = require("config.project")
+local project = require("util.project")
 
 M.plugins = {
 	{
 		"obsidian-nvim/obsidian.nvim",
-		enabled = require("config.os").is_linux,
+		enabled = require("util.os").is_linux,
 		version = "*",
 		event = {
 			"BufReadPre " .. vim.fn.expand "~" .. "/Documents/obsidian/**/*.md",
@@ -120,7 +120,7 @@ local function setup()
 	}
 
 	-- LSP Configuration
-	local helpers = require("config.ftplugin_helpers")
+	local helpers = require("util.ftplugin_helpers")
 	helpers.setup_lsp("marksman")
 
 	-- Formatters

@@ -76,7 +76,7 @@ return {
 
 	{
 		'williamboman/mason.nvim',
-		enabled = not require("config.os").is_linux,
+		enabled = not require("util.os").is_linux,
 		build = ':MasonUpdate',
 		opts = function(_, opts)
 			opts.ensure_installed = opts.ensure_installed or {}
@@ -96,7 +96,7 @@ return {
 
 	{
 		'williamboman/mason-lspconfig.nvim',
-		enabled = not require("config.os").is_linux,
+		enabled = not require("util.os").is_linux,
 		dependencies = { 'williamboman/mason.nvim' },
 		opts = function(_, opts)
 			opts.ensure_installed = opts.ensure_installed or {}

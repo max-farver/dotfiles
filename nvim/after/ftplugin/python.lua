@@ -2,7 +2,7 @@
 -- PHASE 1: Plugin Declarations (evaluated at startup by lazy.nvim)
 -- ============================================================================
 local M = {}
-local project = require("config.project")
+local project = require("util.project")
 
 -- Default venv-selector options
 local venv_selector_defaults = {
@@ -30,7 +30,7 @@ M.plugins = {
 -- PHASE 2: Runtime Configuration (runs when python buffer loads)
 -- ============================================================================
 local function setup()
-	local helpers = require("config.ftplugin_helpers")
+	local helpers = require("util.ftplugin_helpers")
 
 	-- LSP Configuration (Pyright + Ruff)
 	helpers.setup_lsps({

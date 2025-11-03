@@ -1,5 +1,5 @@
 local icons = require("config.icons")
-local statusline = require("config.statusline")
+local statusline = require("util.statusline")
 
 local function snacks_color(name)
 	local ok, snacks = pcall(require, "snacks")

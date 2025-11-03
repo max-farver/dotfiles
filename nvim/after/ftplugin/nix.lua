@@ -9,7 +9,7 @@ M.plugins = {}
 -- PHASE 2: Runtime Configuration (runs when sh/bash buffer loads)
 -- ============================================================================
 local function setup()
-	local helpers = require("config.ftplugin_helpers")
+	local helpers = require("util.ftplugin_helpers")
 
 	-- LSP Configuration
 	local lsp_config = {

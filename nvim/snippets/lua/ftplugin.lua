@@ -6,8 +6,8 @@ return {
 -- PHASE 1: Plugin Declarations (evaluated at startup by lazy.nvim)
 -- ============================================================================
 local M = {}
-local project = require("config.project")
-local helpers = require("config.ftplugin_helpers")
+local project = require("util.project")
+local helpers = require("util.ftplugin_helpers")
 
 M.plugins = {
 	-- Add plugin specs here

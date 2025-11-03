@@ -9,8 +9,8 @@ M.plugins = {}
 -- PHASE 2: Runtime Configuration (runs when dockerfile buffer loads)
 -- ============================================================================
 local function setup()
-	local helpers = require("config.ftplugin_helpers")
-	local project = require("config.project")
+	local helpers = require("util.ftplugin_helpers")
+	local project = require("util.project")
 
 	-- LSP Configuration (dockerls + docker-compose)
 	helpers.setup_lsps({

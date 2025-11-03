@@ -2,7 +2,7 @@
 --- Reduces boilerplate in after/ftplugin/ files
 
 local M = {}
-local project = require("config.project")
+local project = require("util.project")
 
 --- Setup an LSP for the current buffer with project-specific config merging
 --- @param lsp_name string The name of the LSP (e.g., 'gopls', 'pyright')

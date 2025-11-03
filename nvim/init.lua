@@ -5,7 +5,7 @@ vim.g.maplocalleader = ","
 require("config.options")
 require("config.autocmds")
 require("config.keymaps")
-require("config.ft_registry")
+require("util.ft_registry")
 
 -- Load project-specific config BEFORE lazy.nvim setup
 -- This ensures project overrides are available when ftplugin files are collected

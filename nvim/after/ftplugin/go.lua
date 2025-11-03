@@ -2,7 +2,7 @@
 -- PHASE 1: Plugin Declarations (evaluated at startup by lazy.nvim)
 -- ============================================================================
 local M = {}
-local project = require("config.project")
+local project = require("util.project")
 
 -- Default go.nvim options
 local go_nvim_defaults = {
@@ -57,7 +57,7 @@ local function setup()
 	vim.opt_local.shiftwidth = 4
 
 	-- LSP Configuration
-	local helpers = require("config.ftplugin_helpers")
+	local helpers = require("util.ftplugin_helpers")
 	helpers.setup_lsp("gopls", {
 		filetypes = { 'go', 'gomod', 'gowork', 'gotmpl' },
 		settings = {

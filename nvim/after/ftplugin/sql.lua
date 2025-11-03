@@ -2,7 +2,7 @@
 -- PHASE 1: Plugin Declarations (evaluated at startup by lazy.nvim)
 -- ============================================================================
 local M = {}
-local project = require("config.project")
+local project = require("util.project")
 
 local sql_ft = { "sql", "mysql", "plsql" }
 
@@ -37,7 +37,7 @@ M.plugins = {
 -- PHASE 2: Runtime Configuration (runs when sql buffer loads)
 -- ============================================================================
 local function setup()
-	local helpers = require("config.ftplugin_helpers")
+	local helpers = require("util.ftplugin_helpers")
 
 	-- LSP Configuration
 	helpers.setup_lsp("postgres_lsp")
