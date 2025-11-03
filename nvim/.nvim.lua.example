@@ -1,0 +1,155 @@
+-- ============================================================================
+-- Project-Specific Configuration Template
+-- ============================================================================
+-- This file demonstrates how to override ftplugin defaults on a per-project
+-- basis. Place a file named `.nvim.lua` in your project root directory.
+--
+-- Neovim will automatically load this file when you open the project, allowing
+-- you to customize plugin options, LSP settings, formatters, and linters for
+-- the specific project.
+--
+-- All overrides are DEEP MERGED with ftplugin defaults, meaning:
+-- - You only need to specify what you want to change
+-- - Your project settings augment/override the defaults
+-- - Unspecified settings remain at their ftplugin defaults
+-- ============================================================================
+
+-- ============================================================================
+-- Plugin Options Overrides
+-- ============================================================================
+-- Override plugin options by plugin name
+-- These are DEEPLY MERGED with defaults defined in after/ftplugin/<filetype>.lua
+-- Note: Arrays/lists are REPLACED, not merged. Tables are merged recursively.
+
+vim.g.project_plugin_opts = {
+	-- Example: Override go.nvim build tags for this project
+	['ray-x/go.nvim'] = {
+		build_tags = 'custom,project,tags',
+		lsp_gofumpt = true,  -- Enable gofumpt for this project
+	},
+
+	-- Example: Override venv-selector settings for Python projects
+	['linux-cultist/venv-selector.nvim'] = {
+		options = {
+			notify_user_on_venv_activation = false,  -- Disable notifications
+		},
+	},
+
+	-- Add more plugin overrides as needed...
+}
+
+-- ============================================================================
+-- LSP Server Configuration Overrides
+-- ============================================================================
+-- Override LSP server settings by server name
+-- These are DEEPLY MERGED with defaults defined in after/ftplugin/<filetype>.lua
+-- This means you only need to specify what you want to change!
+-- All other default settings are automatically preserved.
+--
+-- IMPORTANT: Arrays/lists are REPLACED, not merged. Tables are merged recursively.
+-- For example, buildFlags = { '-tags=custom' } will REPLACE the default buildFlags,
+-- not append to them.
+
+vim.g.project_lsp_servers = {
+	-- Example 1: Override ONLY buildFlags for gopls
+	-- All other gopls settings (staticcheck, gofumpt, analyses, etc.) are preserved
+	gopls = {
+		settings = {
+			gopls = {
+				buildFlags = { '-tags=custom,project' },  -- This REPLACES default buildFlags
+				-- That's it! No need to repeat all the other default settings
+			},
+		},
+	},
+
+	-- Example 2: Override multiple gopls settings
+	-- gopls = {
+	-- 	settings = {
+	-- 		gopls = {
+	-- 			buildFlags = { '-tags=custom,project' },
+	-- 			analyses = {
+	-- 				nilness = true,  -- Add this analysis
+	-- 				unusedwrite = true,  -- Add this analysis
+	-- 				-- Other default analyses (unusedparams, shadow) are preserved
+	-- 			},
+	-- 		},
+	-- 	},
+	-- },
+
+	-- Example: Override pyright settings for this Python project
+	pyright = {
+		settings = {
+			python = {
+				analysis = {
+					typeCheckingMode = "strict",
+				},
+			},
+		},
+	},
+
+	-- Example: Override lua_ls settings for this Lua project
+	lua_ls = {
+		settings = {
+			Lua = {
+				diagnostics = {
+					globals = { 'vim', 'describe', 'it', 'before_each' },  -- Add testing globals
+				},
+			},
+		},
+	},
+
+	-- Add more LSP server overrides as needed...
+}
+
+-- ============================================================================
+-- Formatter Overrides
+-- ============================================================================
+-- Override formatters by filetype
+-- If specified, these REPLACE the default formatters (not merged)
+
+vim.g.project_formatters = {
+	-- Example: Use gofumpt instead of gofmt for this Go project
+	go = { "gofumpt", "goimports" },
+
+	-- Example: Use ruff instead of black for this Python project
+	python = { "ruff" },
+
+	-- Example: Use prettier for markdown in this project
+	markdown = { "prettier" },
+
+	-- Add more formatter overrides as needed...
+}
+
+-- ============================================================================
+-- Linter Overrides
+-- ============================================================================
+-- Override linters by filetype
+-- If specified, these REPLACE the default linters (not merged)
+
+vim.g.project_linters = {
+	-- Example: Add custom linters for Go
+	go = { "golangci-lint", "revive" },
+
+	-- Example: Add custom linters for Python
+	python = { "ruff", "mypy" },
+
+	-- Add more linter overrides as needed...
+}
+
+-- ============================================================================
+-- Additional Project-Specific Configuration
+-- ============================================================================
+-- You can add any other Neovim configuration here that should be specific
+-- to this project, such as:
+--
+-- - Environment variables: vim.env.PROJECT_VAR = "value"
+-- - Global variables: vim.g.project_setting = true
+-- - Project-specific keymaps
+-- - Custom autocmds
+-- - etc.
+
+-- Example: Set project-specific environment variable
+-- vim.env.GOFLAGS = "-tags=custom,project"
+
+-- Example: Set project root for certain plugins
+-- vim.g.project_root = vim.fn.getcwd()

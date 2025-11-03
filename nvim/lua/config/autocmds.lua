@@ -1,33 +1,6 @@
 local augroup = vim.api.nvim_create_augroup
 local autocmd = vim.api.nvim_create_autocmd
 
-local go_group = augroup('user_go_test_flags', { clear = true })
-autocmd('BufEnter', {
-	group = go_group,
-	pattern = { '*_test.go' },
-	callback = function(event)
-		local tags = {}
-		local buf = event.buf
-		local pattern = [[^//\s*[+|(go:)]*build\s\+\(.\+\)]]
-		local cnt = vim.fn.getbufinfo(buf)[1].linecount
-		cnt = math.min(cnt, 10)
-		for i = 1, cnt do
-			local line = vim.fn.trim(vim.fn.getbufline(buf, i)[1] or '')
-			if line:find('package', 1, true) then
-				break
-			end
-			local t = vim.fn.substitute(line, pattern, [[\1]], '')
-			if t ~= line then
-				t = vim.fn.substitute(t, [[ \+]], ',', 'g')
-				table.insert(tags, t)
-			end
-		end
-		if #tags > 0 then
-			vim.env.GO_TEST_FLAGS = '-tags=' .. table.concat(tags, ',')
-		end
-	end,
-})
-
 local reload_group = augroup('user_auto_reload', { clear = true })
 autocmd('FocusGained', {
 	group = reload_group,
@@ -89,25 +62,6 @@ autocmd('FileType', {
 	end,
 })
 
--- Wrap and spell for text-centric filetypes
-autocmd('FileType', {
-	group = augroup('user_wrap_spell', { clear = true }),
-	pattern = { 'text', 'plaintex', 'typst', 'gitcommit', 'markdown' },
-	callback = function()
-		vim.opt_local.wrap = true
-		vim.opt_local.spell = true
-	end,
-})
-
--- Fix conceallevel for json-like files
-autocmd('FileType', {
-	group = augroup('user_json_conceal', { clear = true }),
-	pattern = { 'json', 'jsonc', 'json5' },
-	callback = function()
-		vim.opt_local.conceallevel = 0
-	end,
-})
-
 -- Auto create directories on save if missing
 autocmd('BufWritePre', {
 	group = augroup('user_auto_create_dir', { clear = true }),
@@ -120,11 +74,15 @@ autocmd('BufWritePre', {
 	end,
 })
 
--- Auto enable treesitter for all filetypes
+-- Auto enable treesitter for any real buffer
 autocmd('FileType', {
-	pattern = { 'go', 'rb', 'spec', 'md', 'yaml', 'yml', 'json', 'env', 'sh', 'zshrc' },
-	callback = function()
-		vim.treesitter.start()
+	group = augroup('user_auto_treesitter', { clear = true }),
+	pattern = '*',
+	callback = function(event)
+		if vim.bo[event.buf].buftype ~= '' or vim.bo[event.buf].filetype == '' then
+			return
+		end
+		pcall(vim.treesitter.start, event.buf)
 	end,
 })
 

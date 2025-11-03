@@ -89,12 +89,16 @@ return {
 			"nvim-neotest/neotest-plenary",
 			"nvim-neotest/neotest-vim-test",
 		},
-		opts = {
-			discovery = { enabled = true, concurrent = 1 },
-			running = { concurrent = true },
-			summary = { animated = true },
-			log_level = vim.log.levels.WARN,
-		},
+		opts = function()
+			local project = require("config.project")
+			local default_opts = {
+				discovery = { enabled = true, concurrent = 1 },
+				running = { concurrent = true },
+				summary = { animated = true },
+				log_level = vim.log.levels.WARN,
+			}
+			return project.merge_plugin_opts("nvim-neotest/neotest", default_opts)
+		end,
 		-- keymaps defined in config/keymaps.lua
 		config = function(_, opts)
 			local neotest_ns = vim.api.nvim_create_namespace("neotest")

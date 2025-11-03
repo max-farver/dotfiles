@@ -63,5 +63,3 @@ vim.g.markdown_recommended_style = 0
 
 -- Treesitter
 vim.wo.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
-
--- vim.g.markdown_fenced_languages = {}

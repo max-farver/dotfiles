@@ -9,6 +9,8 @@ return {
 			return
 		end
 
+		vim.ui.select = pick.ui_select
+
 		local function map_send_to_qf()
 			local matches = pick.get_picker_matches()
 			if not matches then
@@ -89,64 +91,6 @@ return {
 				return
 			end
 			vim.notify("LSP code actions not available", vim.log.levels.WARN)
-		end
-
-		builtin.lsp_symbols = function(local_opts)
-			if not vim.lsp or not vim.lsp.buf or not vim.lsp.buf.document_symbol then
-				vim.notify("LSP not available", vim.log.levels.WARN)
-				return
-			end
-
-			local function postprocess(items)
-				local result = {}
-				for _, item in ipairs(items) do
-					local kind = vim.lsp.protocol.SymbolKind[item.kind] or 'Unknown'
-					local text = string.format('%s: %s', kind, item.name)
-					table.insert(result, {
-						text = text,
-						bufnr = vim.api.nvim_get_current_buf(),
-						lnum = item.selectionRange.start.line + 1,
-						col = item.selectionRange.start.character + 1,
-						_item = item
-					})
-				end
-				return result
-			end
-
-			local function get_symbols()
-				local bufnr = vim.api.nvim_get_current_buf()
-				local params = { textDocument = vim.lsp.util.make_text_document_params() }
-
-				local results = vim.lsp.buf_request_sync(bufnr, 'textDocument/documentSymbol', params, 1000)
-				if not results or vim.tbl_isempty(results) then
-					return {}
-				end
-
-				local symbols = {}
-				for _, result in pairs(results) do
-					if result.result then
-						vim.list_extend(symbols, result.result)
-					end
-				end
-				return symbols
-			end
-
-			local symbols = get_symbols()
-			if #symbols == 0 then
-				vim.notify("No symbols found in current buffer", vim.log.levels.INFO)
-				return
-			end
-
-			local source = {
-				items = postprocess(symbols),
-				name = 'LSP Symbols',
-				choose = function(item)
-					if not item then return end
-					vim.api.nvim_win_set_cursor(0, { item.lnum, item.col - 1 })
-				end,
-			}
-
-			pick.start({ source = source })
 		end
 
 		-- Git pickers

@@ -1,37 +1,105 @@
 return {
-	"zbirenbaum/copilot.lua",
-	dependencies = {
-		"copilotlsp-nvim/copilot-lsp", -- (optional) for NES functionality
+	{
+		"zbirenbaum/copilot.lua",
+		dependencies = {
+			"copilotlsp-nvim/copilot-lsp",
+		},
+		cmd = "Copilot",
+		event = "InsertEnter",
+		enabled = false,
+		config = function()
+			require("copilot").setup({
+				suggestion = {
+					enabled = true,
+					auto_trigger = false,
+					hide_during_completion = true,
+					debounce = 75,
+					trigger_on_accept = true,
+					keymap = {
+						accept = "<M-l>",
+						accept_word = false,
+						accept_line = false,
+						next = "<M-]>",
+						prev = "<M-[>",
+						dismiss = "<C-]>",
+					},
+				},
+			})
+		end,
 	},
-	cmd = "Copilot",
-	event = "InsertEnter",
-	enabled = false,
-	config = function()
-		require("copilot").setup({
-			suggestion = {
-				enabled = true,
-				auto_trigger = false,
-				hide_during_completion = true,
-				debounce = 75,
-				trigger_on_accept = true,
-				keymap = {
-					accept = "<M-l>",
-					accept_word = false,
-					accept_line = false,
-					next = "<M-]>",
-					prev = "<M-[>",
-					dismiss = "<C-]>",
+	{
+		"folke/sidekick.nvim",
+		opts = {
+			-- add any options here
+			cli = {
+				mux = {
+					backend = "tmux",
+					enabled = true,
 				},
 			},
-			nes = {
-				enabled = false, -- requires copilot-lsp as a dependency
-				auto_trigger = false,
-				keymap = {
-					accept_and_goto = false,
-					accept = false,
-					dismiss = false,
-				},
+		},
+		keys = {
+			{
+				"<tab>",
+				function()
+					-- if there is a next edit, jump to it, otherwise apply it if any
+					if not require("sidekick").nes_jump_or_apply() then
+						return "<Tab>" -- fallback to normal tab
+					end
+				end,
+				expr = true,
+				desc = "Goto/Apply Next Edit Suggestion",
 			},
-		})
-	end,
+			{
+				"<c-.>",
+				function() require("sidekick.cli").toggle() end,
+				desc = "Sidekick Toggle",
+				mode = { "n", "t", "i", "x" },
+			},
+			{
+				"<leader>aa",
+				function() require("sidekick.cli").toggle() end,
+				desc = "Sidekick Toggle CLI",
+			},
+			{
+				"<leader>as",
+				function() require("sidekick.cli").select({ filter = { installed = true } }) end,
+				desc = "Select CLI",
+			},
+			{
+				"<leader>ad",
+				function() require("sidekick.cli").close() end,
+				desc = "Detach a CLI Session",
+			},
+			{
+				"<leader>at",
+				function() require("sidekick.cli").send({ msg = "{this}" }) end,
+				mode = { "x", "n" },
+				desc = "Send This",
+			},
+			{
+				"<leader>af",
+				function() require("sidekick.cli").send({ msg = "{file}" }) end,
+				desc = "Send File",
+			},
+			{
+				"<leader>av",
+				function() require("sidekick.cli").send({ msg = "{selection}" }) end,
+				mode = { "x" },
+				desc = "Send Visual Selection",
+			},
+			{
+				"<leader>ap",
+				function() require("sidekick.cli").prompt() end,
+				mode = { "n", "x" },
+				desc = "Sidekick Select Prompt",
+			},
+			-- Example of a keybinding to open Claude directly
+			-- {
+			-- 	"<leader>ac",
+			-- 	function() require("sidekick.cli").toggle({ name = "claude", focus = true }) end,
+			-- 	desc = "Sidekick Toggle Claude",
+			-- },
+		},
+	}
 }

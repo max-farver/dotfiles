@@ -3,8 +3,13 @@ return {
   version = '*',
   event = 'VeryLazy',
   opts = function()
+    local gen_loader = require('mini.snippets').gen_loader
+
     return {
-      -- keep defaults; we’ll just set up loaders below
+      -- Load snippets scoped by language from `snippets/<lang>/` directories.
+      snippets = {
+        gen_loader.from_lang({ cache = false }),
+      },
     }
   end,
   config = function(_, opts)
@@ -12,4 +17,3 @@ return {
     ms.setup(opts)
   end,
 }
-

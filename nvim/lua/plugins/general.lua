@@ -1,5 +1,3 @@
-local icons = require("config.icons")
-
 return {
 	{
 		"christoomey/vim-tmux-navigator",
@@ -10,31 +8,6 @@ return {
 			"TmuxNavigateRight",
 			"TmuxNavigatePrevious",
 			"TmuxNavigatorProcessList",
-		},
-	},
-
-	{
-		"kawre/leetcode.nvim",
-		dependencies = {
-			"nvim-lua/plenary.nvim",
-			"MunifTanjim/nui.nvim",
-		},
-		opts = {
-			lang = "python",
-			picker = { provider = 'mini-picker' },
-			storage = {
-				home = vim.fn.expand "~" .. "/Documents/repos/leetcode/problems"
-			},
-		},
-	},
-
-	{
-		"otavioschwanck/arrow.nvim",
-		dependencies = { "nvim-tree/nvim-web-devicons" },
-		opts = {
-			show_icons = true,
-			leader_key = "M",
-			buffer_leader_key = "gm",
 		},
 	},
 
@@ -62,8 +35,8 @@ return {
 			"OverseerQuickAction",
 			"OverseerInfo",
 		},
-		opts = {},
-		-- keymaps defined in config/keymaps.lua
+		opts = {
+		},
 	},
 
 	{
@@ -84,45 +57,8 @@ return {
 		build = ":TSUpdate",
 		opts = function()
 			return {
-				ensure_installed = {
-					"bash",
-					"css",
-					"dockerfile",
-					"git_config",
-					"git_rebase",
-					"gitattributes",
-					"gitcommit",
-					"gitignore",
-					"go",
-					"gomod",
-					"gosum",
-					"printf",
-					"html",
-					"hyprlang",
-					"javascript",
-					"json",
-					"json5",
-					"jsonc",
-					"lua",
-					"markdown",
-					"markdown_inline",
-					"ninja",
-					"python",
-					"query",
-					"regex",
-					"rst",
-					"sql",
-					"terraform",
-					"hcl",
-					"toml",
-					"tsx",
-					"typescript",
-					"vim",
-					"yaml",
-				},
 				highlight = {
 					enable = true,
-					-- additional_vim_regex_highlighting = { "markdown", "markdown_inline" },
 				},
 				indent = { enable = true },
 				folds = { enable = true },

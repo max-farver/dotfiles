@@ -9,62 +9,53 @@ local function snacks_color(name)
 end
 
 return {
+	{ "RRethy/vim-illuminate", lazy = true },
 	{
-		"folke/noice.nvim",
+		"rachartier/tiny-glimmer.nvim",
 		event = "VeryLazy",
 		opts = {
-			lsp = {
-				override = {
-					["vim.lsp.util.convert_input_to_markdown_lines"] = true,
-					["vim.lsp.util.stylize_markdown"] = true,
-				},
-			},
-
-			presets = {
-				bottom_search = true, -- use a classic bottom cmdline for search
-				command_palette = true, -- position the cmdline and popupmenu together
-				long_message_to_split = true, -- long messages will be sent to a split
-				inc_rename = false, -- enables an input dialog for inc-rename.nvim
-				lsp_doc_border = false, -- add a border to hover docs and signature help
-			},
+			event = "VeryLazy",
 		},
-		dependencies = {
-			-- if you lazy-load any plugin below, make sure to add proper `module="..."` entries
-			"MunifTanjim/nui.nvim",
-		}
 	},
-	-- {
-	-- 	"b0o/incline.nvim",
-	-- 	config = function()
-	-- 		local helpers = require("incline.helpers")
-	-- 		local devicons = require("nvim-web-devicons")
-	--
-	-- 		require("incline").setup({
-	-- 			window = {
-	-- 				padding = 0,
-	-- 				margin = { horizontal = 0 },
-	-- 			},
-	-- 			render = function(props)
-	-- 				local filename = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(props.buf), ":t")
-	-- 				if filename == "" then
-	-- 					filename = "[No Name]"
-	-- 				end
-	-- 				local ft_icon, ft_color = devicons.get_icon_color(filename)
-	-- 				local modified = vim.bo[props.buf].modified
-	-- 				return {
-	-- 					ft_icon and { " ", ft_icon, " ", guibg = ft_color, guifg = helpers.contrast_color(ft_color) } or
-	-- 					"",
-	-- 					" ",
-	-- 					{ filename, gui = modified and "bold,italic" or "bold" },
-	-- 					" ",
-	-- 					guibg = "#44406e",
-	-- 				}
-	-- 			end,
-	-- 		})
-	-- 	end,
-	-- 	-- Optional: Lazy load Incline
-	-- 	event = "VeryLazy",
-	-- },
+	{
+		"rachartier/tiny-inline-diagnostic.nvim",
+		event = "VeryLazy",
+		config = function()
+			require("tiny-inline-diagnostic").setup()
+		end,
+	},
+	{
+		"b0o/incline.nvim",
+		config = function()
+			local helpers = require("incline.helpers")
+			local devicons = require("nvim-web-devicons")
+
+			require("incline").setup({
+				window = {
+					padding = 0,
+					margin = { horizontal = 0 },
+				},
+				render = function(props)
+					local filename = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(props.buf), ":t")
+					if filename == "" then
+						filename = "[No Name]"
+					end
+					local ft_icon, ft_color = devicons.get_icon_color(filename)
+					local modified = vim.bo[props.buf].modified
+					return {
+						ft_icon and { " ", ft_icon, " ", guibg = ft_color, guifg = helpers.contrast_color(ft_color) } or
+						"",
+						" ",
+						{ filename, gui = modified and "bold,italic" or "bold" },
+						" ",
+						guibg = "#44406e",
+					}
+				end,
+			})
+		end,
+		-- Optional: Lazy load Incline
+		event = "VeryLazy",
+	},
 	{
 		"nvim-lualine/lualine.nvim",
 		event = "VeryLazy",
@@ -79,7 +70,6 @@ return {
 			end
 		end,
 		opts = function()
-			-- PERF: we don't need this lualine require madness 🤷
 			local lualine_require = require("lualine_require")
 			lualine_require.require = require
 

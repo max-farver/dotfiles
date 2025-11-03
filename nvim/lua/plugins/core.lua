@@ -1,4 +1,5 @@
 return {
+	{ "nvim-tree/nvim-web-devicons",     lazy = true },
 	{ "nvim-lua/plenary.nvim",           lazy = true },
 	{ "MunifTanjim/nui.nvim",            lazy = true },
 	{ "antoinemadec/FixCursorHold.nvim", event = "VeryLazy" },
@@ -25,7 +26,10 @@ return {
 	{
 		"folke/trouble.nvim",
 		cmd = "Trouble",
-		opts = { use_diagnostic_signs = true },
+		opts = {
+			use_diagnostic_signs = true,
+			auto_preview = false,
+		},
 		config = function(_, opts)
 			require("trouble").setup(opts)
 		end,

@@ -41,6 +41,7 @@ return {
 			{ mode = 'n', keys = '<Leader>f',  desc = 'Find' },
 			{ mode = 'x', keys = '<Leader>f',  desc = 'Find' },
 			{ mode = 'n', keys = '<Leader>g',  desc = 'Git' },
+			{ mode = 'x', keys = '<Leader>g',  desc = 'Git' },
 			{ mode = 'n', keys = '<Leader>u',  desc = 'UI' },
 			{ mode = 'n', keys = '<Leader>d',  desc = 'Debug' },
 			{ mode = 'n', keys = '<Leader>t',  desc = 'Terminal/Test' },
@@ -74,7 +75,6 @@ return {
 	end,
 	config = function(_, opts)
 		-- ensure key timeout is enabled so clue can trigger
-		vim.o.timeout = true
 		vim.o.timeoutlen = vim.o.timeoutlen > 0 and vim.o.timeoutlen or 300
 		require('mini.clue').setup(opts)
 	end,
