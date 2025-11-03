@@ -1,10 +1,10 @@
-{ config, pkgs, ... }:
+{ pkgs, config, ... }:
 
 {
   imports = [
+    ./hardware-configuration.nix
     ../../../desktop-environments/plasma.nix
     ../../x86_64-linux/linux.nix
-    ./hardware-configuration.nix
     ../../../games/steam.nix
   ];
   environment.systemPackages = with pkgs; [
@@ -22,6 +22,17 @@
   ];
 
   boot.resumeDevice = "/dev/disk/by-uuid/21d58950-6d40-4862-9dc4-3de2ce8b55b0";
+
+  hardware.framework.enableKmod = false;
+  boot = {
+    kernelModules = [
+      "cros_ec"
+      "cros_ec_lpcs"
+    ];
+    extraModulePackages = with config.boot.kernelPackages; [
+      framework-laptop-kmod
+    ];
+  };
 
   powerManagement.enable = true;
 
@@ -74,6 +85,17 @@
     ];
     allowedUDPPortRanges = allowedTCPPortRanges;
   };
+
+
+	networking.nameservers = [ "1.1.1.1#one.one.one.one" "1.0.0.1#one.one.one.one" ];
+
+	services.resolved = {
+	  enable = true;
+	  dnssec = "true";
+	  domains = [ "~." ];
+	  fallbackDns = [ "1.1.1.1#one.one.one.one" "1.0.0.1#one.one.one.one" ];
+	  dnsovertls = "true";
+	};
 
   # Set up ZSH
   programs.zsh = {

@@ -9,8 +9,9 @@
   home.packages = with pkgs; [
     neovim
 
-    go
+    black
     cargo
+    go
     lua
     lua-language-server
     luajitPackages.luarocks
@@ -19,13 +20,15 @@
     zulu24
     php
     prettier
+    pyright
+    ruff
     ruby
     rbenv
     python312
     python312Packages.pip
     python312Packages.debugpy
     uv
-    julia
+    # julia
     gcc
     nil
     typescript-language-server

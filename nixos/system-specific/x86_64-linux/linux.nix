@@ -1,8 +1,10 @@
 { config, pkgs, ... }:
 
-
 {
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.settings.experimental-features = [
+    "nix-command"
+    "flakes"
+  ];
 
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
@@ -64,7 +66,10 @@
   users.users.mfarver = {
     isNormalUser = true;
     description = "Max Farver";
-    extraGroups = [ "networkmanager" "wheel" ];
+    extraGroups = [
+      "networkmanager"
+      "wheel"
+    ];
   };
 
   # Install firefox.
@@ -73,8 +78,6 @@
   hardware.bluetooth.enable = true; # enables support for Bluetooth
   hardware.bluetooth.powerOnBoot = true; # powers up the default Bluetooth controller on boot
   services.blueman.enable = true;
-
-
 
   # Enable sound with pipewire.
   services.pulseaudio.enable = false;

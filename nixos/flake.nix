@@ -2,7 +2,9 @@
   description = "NixOS configuration";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    nixpkgs = {
+      url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    };
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
     flake-utils.url = "github:numtide/flake-utils";
     nur = {
@@ -12,6 +14,7 @@
     ghostty = {
       url = "github:ghostty-org/ghostty";
     };
+
     # home-manager, used for managing user configuration
     home-manager = {
       url = "github:nix-community/home-manager";
@@ -36,13 +39,15 @@
       nixosConfigurations = {
         nixos = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
+          # pkgs = nixpkgs.legacyPackages.x86_64-linux;
+          # nixpkgs.config.allowUnfree = true;
+
           specialArgs = {
             inherit inputs;
           };
 
           modules = [
             ./system-specific/machines/framework16/configuration.nix
-
             nixos-hardware.nixosModules.framework-16-7040-amd
             nur.modules.nixos.default
             (

@@ -1,4 +1,9 @@
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 {
   imports = [
@@ -25,7 +30,7 @@
 
   # Packages that should be installed to the user profile.
   home.packages = with pkgs; [
-    
+
   ];
 
   # This value determines the home Manager release that your

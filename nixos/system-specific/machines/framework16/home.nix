@@ -10,6 +10,7 @@
   imports = [
     ../../../terminal/default.nix
     ../../../applications/default.nix
+    ../../../games/heroic.nix
   ];
   home.username = "mfarver";
   home.homeDirectory = "/home/mfarver";

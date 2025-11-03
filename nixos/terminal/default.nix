@@ -31,6 +31,12 @@ in
     taskwarrior-tui
     nix-search-cli
     posting
+    postgresql
+    sqlite
+    docker
+    csvlens
+
+    gnumake
 
     ripgrep
     fd
