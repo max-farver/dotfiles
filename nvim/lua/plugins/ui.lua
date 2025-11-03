@@ -28,7 +28,25 @@ return {
 		"b0o/incline.nvim",
 		config = function()
 			local helpers = require("incline.helpers")
-			local devicons = require("nvim-web-devicons")
+			local mini_icons = require("mini.icons")
+
+			local function highlight_hex(hl)
+				if not hl then
+					return nil
+				end
+				local ok, data = pcall(vim.api.nvim_get_hl_by_name, hl, true)
+				if not ok or not data then
+					return nil
+				end
+				local fg = data.foreground
+				if not fg then
+					return nil
+				end
+				return string.format("#%06x", fg)
+			end
+
+			local _, default_hl = mini_icons.get("default", "file")
+			local default_color = highlight_hex(default_hl) or "#6d8086"
 
 			require("incline").setup({
 				window = {
@@ -40,7 +58,8 @@ return {
 					if filename == "" then
 						filename = "[No Name]"
 					end
-					local ft_icon, ft_color = devicons.get_icon_color(filename)
+					local ft_icon, ft_hl = mini_icons.get("file", filename)
+					local ft_color = highlight_hex(ft_hl) or default_color
 					local modified = vim.bo[props.buf].modified
 					return {
 						ft_icon and { " ", ft_icon, " ", guibg = ft_color, guifg = helpers.contrast_color(ft_color) } or
