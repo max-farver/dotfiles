@@ -603,5 +603,5 @@ do
 	map({ 'n', 'x' }, '<leader>go', gl_action('open'), { desc = 'Git Browse (open)' })
 
 	-- copy remote URL to clipboard
-	map({ 'n', 'x' }, '<leader>gY', gl_action('copy'), { desc = 'Git Browse (copy)' })
+	map({ 'n', 'x' }, '<leader>gy', gl_action('copy'), { desc = 'Git Browse (copy)' })
 end

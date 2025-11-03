@@ -23,9 +23,6 @@ return {
 			{ mode = 'n', keys = '<C-w>' },
 			-- Insert completion
 			{ mode = 'i', keys = '<C-x>' },
-			-- v/y prefixes
-			{ mode = 'n', keys = 'y' },
-			{ mode = 'n', keys = 'v' },
 		}
 
 		-- Build clues list
@@ -38,6 +35,8 @@ return {
 			clue.gen_clues.z(),
 			clue.gen_clues.g(),
 			-- Leader group labels
+			{ mode = 'n', keys = '<Leader>a',  desc = 'AI' },
+			{ mode = 'n', keys = '<Leader>a',  desc = 'AI' },
 			{ mode = 'n', keys = '<Leader>f',  desc = 'Find' },
 			{ mode = 'x', keys = '<Leader>f',  desc = 'Find' },
 			{ mode = 'n', keys = '<Leader>g',  desc = 'Git' },

@@ -29,9 +29,10 @@ return {
 
 	{
 		"ruifm/gitlinker.nvim",
+		lazy = true,
 		dependencies = { "nvim-lua/plenary.nvim" },
 		opts = {
-			mappings = nil,
+			mappings = false,
 		},
 		config = function(_, opts)
 			require("gitlinker").setup(opts)
