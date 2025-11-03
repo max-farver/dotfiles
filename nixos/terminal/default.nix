@@ -1,8 +1,5 @@
 {
-  config,
   pkgs,
-  lib,
-  inputs,
   ...
 }:
 
@@ -25,24 +22,21 @@ in
   ];
 
   home.packages = with pkgs; [
+    csvlens
+    docker
     nur.repos.charmbracelet.freeze
-    oauth2c
-    taskwarrior3
-    taskwarrior-tui
-    nix-search-cli
     posting
     postgresql
     sqlite
-    docker
-    csvlens
 
     gnumake
 
-    ripgrep
-    fd
     bat
-    jq
     btop
+    fd
+    lsof
+    jq
+    ripgrep
   ];
 
   programs = {
