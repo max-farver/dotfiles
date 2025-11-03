@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: new-tmux-session <start-dir> [session-name]
+
+Creates a tmux session in <start-dir> with windows: nvim, git, term.
+EOF
+}
+
+main() {
+  if ! command -v tmux >/dev/null 2>&1; then
+    echo "tmux not found in PATH" >&2
+    exit 1
+  fi
+
+  local start_dir=${1:-}
+  if [[ -z ${start_dir} ]]; then
+    usage
+    exit 1
+  fi
+
+  if [[ ! -d ${start_dir} ]]; then
+    echo "Start directory '${start_dir}' does not exist or is not a directory" >&2
+    exit 1
+  fi
+
+  local abs_start_dir
+  abs_start_dir=$(cd "${start_dir}" && pwd)
+
+  local session_name=${2:-$(basename "${abs_start_dir}")}
+
+  if tmux has-session -t "${session_name}" 2>/dev/null; then
+    echo "Session '${session_name}' already exists, attaching…" >&2
+    attach_to_session "${session_name}"
+    exit 0
+  fi
+
+  tmux new-session -d -s "${session_name}" -c "${abs_start_dir}"
+  tmux rename-window -t "${session_name}:0" "nvim"
+  tmux new-window -d -t "${session_name}:" -n "git" -c "${abs_start_dir}"
+  tmux new-window -d -t "${session_name}:" -n "term" -c "${abs_start_dir}"
+
+  tmux send-keys -t "${session_name}:0" "nvim" C-m
+  tmux send-keys -t "${session_name}:1" "lg" C-m
+  tmux select-window -t "${session_name}:0"
+
+  attach_to_session "${session_name}"
+}
+
+attach_to_session() {
+  local session_name=$1
+
+  if [[ -n ${TMUX:-} ]]; then
+    tmux switch-client -t "${session_name}"
+  else
+    tmux attach -t "${session_name}"
+  fi
+}
+
+main "$@"
