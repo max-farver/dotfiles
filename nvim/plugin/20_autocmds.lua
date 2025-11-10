@@ -75,16 +75,16 @@ autocmd('BufWritePre', {
 })
 
 -- Auto enable treesitter for any real buffer
-autocmd('FileType', {
-	group = augroup('user_auto_treesitter', { clear = true }),
-	pattern = '*',
-	callback = function(event)
-		if vim.bo[event.buf].buftype ~= '' or vim.bo[event.buf].filetype == '' then
-			return
-		end
-		pcall(vim.treesitter.start, event.buf)
-	end,
-})
+-- autocmd('FileType', {
+--	group = augroup('user_auto_treesitter', { clear = true }),
+--	pattern = '*',
+--	callback = function(event)
+--		if vim.bo[event.buf].buftype ~= '' or vim.bo[event.buf].filetype == '' then
+--			return
+--		end
+--		pcall(vim.treesitter.start, event.buf)
+--	end,
+--})
 
 -- Autoformat
 vim.api.nvim_create_user_command("FormatDisable", function(args)

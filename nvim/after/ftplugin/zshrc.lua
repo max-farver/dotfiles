@@ -1,37 +1,14 @@
--- ============================================================================
--- PHASE 1: Plugin Declarations (evaluated at startup by lazy.nvim)
--- ============================================================================
-local M = {}
-local project = require("util.project")
-local helpers = require("util.ftplugin_helpers")
+local helpers = _G.Config.ftplugin_helpers
+local project = _G.Config.project
 
-M.plugins = {
-	-- Add plugin specs here
-}
+helpers.setup_lsp("zls", {})
 
--- ============================================================================
--- PHASE 2: Runtime Configuration (runs when zshrc buffer loads)
--- ============================================================================
-local function setup()
-	-- Vim Options
-
-	-- LSP Configuration
-	helpers.setup_lsp('lsp_name', {})
-
-	-- Formatters & Linters
-	local formatters = project.get_formatters('zshrc')
-	if formatters then
-		vim.b.formatters = formatters
-	end
-
-	local linters = project.get_linters('zshrc')
-	if linters then
-		vim.b.linters = linters
-	end
-
-	-- Buffer-local Keymaps
+local formatters = project.get_formatters("zshrc")
+if formatters then
+	vim.b.formatters = formatters
 end
 
-setup()
-
-return M
+local linters = project.get_linters("zshrc")
+if linters then
+	vim.b.linters = linters
+end

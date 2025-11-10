@@ -2,6 +2,8 @@
 --- Reduces boilerplate in after/ftplugin/ files
 
 local M = {}
+
+
 local project = require("util.project")
 
 --- Setup an LSP for the current buffer with project-specific config merging

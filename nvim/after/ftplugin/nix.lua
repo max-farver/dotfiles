@@ -1,27 +1,7 @@
--- ============================================================================
--- PHASE 1: Plugin Declarations (evaluated at startup by lazy.nvim)
--- ============================================================================
-local M = {}
+local helpers = _G.Config.ftplugin_helpers
 
-M.plugins = {}
-
--- ============================================================================
--- PHASE 2: Runtime Configuration (runs when sh/bash buffer loads)
--- ============================================================================
-local function setup()
-	local helpers = require("util.ftplugin_helpers")
-
-	-- LSP Configuration
-	local lsp_config = {
-		command = "nil",
-		filetypes = { "nix" },
-		rootPatterns = { "flake.nix" },
-	}
-	helpers.setup_lsp("nil_ls", lsp_config)
-end
-
--- Execute setup when buffer loads
-setup()
-
--- Export for lazy.nvim to read at startup
-return M
+helpers.setup_lsp("nil_ls", {
+	command = "nil",
+	filetypes = { "nix" },
+	rootPatterns = { "flake.nix" },
+})

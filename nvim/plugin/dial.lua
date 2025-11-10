@@ -1,3 +1,6 @@
+local add = MiniDeps.add
+local now = MiniDeps.now
+
 local M = {}
 
 ---@param increment boolean
@@ -123,5 +126,10 @@ function M.setup(opts)
   require("dial.config").augends:register_group(opts.groups)
   vim.g.dials_by_ft = opts.dials_by_ft
 end
+
+now(function()
+  add("monaqa/dial.nvim")
+  M.setup()
+end)
 
 return M
