@@ -46,32 +46,13 @@
 local mini_path = vim.fn.stdpath('data') .. '/site/pack/deps/start/mini.nvim'
 if not vim.loop.fs_stat(mini_path) then
 	vim.cmd('echo "Installing `mini.nvim`" | redraw')
-	local origin = 'https://github.com/nvim-mini/mini.nvim'
+	local origin = 'https://github.com/max-farver/mini.nvim'
 	local clone_cmd = { 'git', 'clone', '--filter=blob:none', origin, mini_path }
 	vim.fn.system(clone_cmd)
 	vim.cmd('packadd mini.nvim | helptags ALL')
 	vim.cmd('echo "Installed `mini.nvim`" | redraw')
 end
 
-
--- Load project-specific config BEFORE mini.deps setup
--- This ensures project overrides are available when ftplugin files are collected
--- local nvim_lua = vim.fn.getcwd() .. "/.nvim.lua"
--- if vim.fn.filereadable(nvim_lua) == 1 then
--- 	-- Use vim.secure.read for trust checking (requires Neovim 0.9+)
--- 	local content = vim.secure.read(nvim_lua)
--- 	if content then
--- 		local chunk, load_err = load(content, "@.nvim.lua")
--- 		if chunk then
--- 			local success, exec_err = pcall(chunk)
--- 			if not success then
--- 				vim.notify("Error executing .nvim.lua: " .. exec_err, vim.log.levels.ERROR)
--- 			end
--- 		else
--- 			vim.notify("Error loading .nvim.lua: " .. load_err, vim.log.levels.ERROR)
--- 		end
--- 	end
--- end
 
 
 -- Plugin manager. Set up immediately for `now()`/`later()` helpers.

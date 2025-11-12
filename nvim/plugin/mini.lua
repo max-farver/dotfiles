@@ -394,34 +394,6 @@ now(function()
 		vim.notify("mini.extra diagnostic picker not available", vim.log.levels.WARN)
 	end
 
-	builtin.lsp_references = function(local_opts)
-		if extra_ok and extra and extra.pickers and extra.pickers.lsp then
-			return extra.pickers.lsp(vim.tbl_extend("force", { scope = "references" }, local_opts or {}))
-		end
-		vim.notify("mini.extra lsp picker not available", vim.log.levels.WARN)
-	end
-
-	builtin.lsp_implementations = function(local_opts)
-		if extra_ok and extra and extra.pickers and extra.pickers.lsp then
-			return extra.pickers.lsp(vim.tbl_extend("force", { scope = "implementation" }, local_opts or {}))
-		end
-		vim.notify("mini.extra lsp picker not available", vim.log.levels.WARN)
-	end
-
-	builtin.lsp_definitions = function(local_opts)
-		if extra_ok and extra and extra.pickers and extra.pickers.lsp then
-			return extra.pickers.lsp(vim.tbl_extend("force", { scope = "definition" }, local_opts or {}))
-		end
-		vim.notify("mini.extra lsp picker not available", vim.log.levels.WARN)
-	end
-
-	builtin.lsp_type_definitions = function(local_opts)
-		if extra_ok and extra and extra.pickers and extra.pickers.lsp then
-			return extra.pickers.lsp(vim.tbl_extend("force", { scope = "type_definition" }, local_opts or {}))
-		end
-		vim.notify("mini.extra lsp picker not available", vim.log.levels.WARN)
-	end
-
 	builtin.lsp_code_actions = function(_)
 		if vim.lsp and vim.lsp.buf and vim.lsp.buf.code_action then
 			vim.lsp.buf.code_action()
@@ -485,6 +457,93 @@ now(function()
 			command = { "git", "stash", "list", "--pretty=%gd %h %s" },
 			postprocess = postprocess,
 		})
+	end
+
+	builtin.notifications = function(_)
+		local ok_notify, mini_notify = pcall(require, "mini.notify")
+		if not ok_notify or not mini_notify or type(mini_notify.get_all) ~= "function" then
+			vim.notify("mini.notify history not available", vim.log.levels.WARN)
+			return
+		end
+
+		local history = mini_notify.get_all() or {}
+		if vim.tbl_isempty(history) then
+			vim.notify("No notifications recorded", vim.log.levels.INFO)
+			return
+		end
+
+		local notif_arr = {}
+		for id, notif in pairs(history) do
+			if notif and notif.msg then
+				table.insert(notif_arr, { id = id, notif = notif })
+			end
+		end
+
+		if #notif_arr == 0 then
+			vim.notify("No notifications recorded", vim.log.levels.INFO)
+			return
+		end
+
+		table.sort(notif_arr, function(a, b)
+			local ts_a = a.notif.ts_update or a.notif.ts_add or 0
+			local ts_b = b.notif.ts_update or b.notif.ts_add or 0
+			if ts_a == ts_b then
+				return a.id > b.id
+			end
+			return ts_a > ts_b
+		end)
+
+		local items = {}
+		for _, entry in ipairs(notif_arr) do
+			local notif = entry.notif
+			local lines = vim.split(notif.msg or "", "\n", { plain = true })
+			if #lines == 0 then
+				lines = { "" }
+			end
+			local ts = math.floor(notif.ts_update or notif.ts_add or 0)
+			local short_ts = vim.fn.strftime("%H:%M:%S", ts)
+			local full_ts = vim.fn.strftime("%Y-%m-%d %H:%M:%S", ts)
+			local level = notif.level or "INFO"
+			local summary = lines[1]
+			if #lines > 1 then
+				summary = summary .. " …"
+			end
+			table.insert(items, {
+				text = string.format("%s %-5s %s", short_ts, level, summary),
+				_lines = lines,
+				_ts = full_ts,
+				_level = level,
+				_msg = notif.msg or "",
+				_source = notif.data and notif.data.source or "",
+				_id = entry.id,
+			})
+		end
+
+		local source = {
+			name = "Notifications",
+			items = items,
+			preview = function(buf_id, item)
+				if not item then
+					vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, { "" })
+					return
+				end
+				local lines = vim.deepcopy(item._lines)
+				table.insert(lines, 1, string.format("#%d [%s] %s", item._id, item._level, item._ts))
+				if item._source ~= "" then
+					table.insert(lines, 2, "source: " .. item._source)
+				end
+				vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, lines)
+			end,
+			choose = function(item)
+				if not item then
+					return
+				end
+				local level = vim.log.levels[item._level] or vim.log.levels.INFO
+				vim.notify(item._msg, level)
+			end,
+		}
+
+		pick.start({ source = source })
 	end
 
 	builtin.yanky = function(local_opts)
@@ -564,8 +623,6 @@ now(function()
 		end
 	end
 
-
-
 	-- Files
 	map('n', '<leader>ff', with_pick('files', { cwd = root() }), { desc = 'Find Files (Root Dir)' })
 	nmap_leader('<leader>', '<leader>ff', 'Find Files (Root Dir)', { remap = true })
@@ -575,8 +632,8 @@ now(function()
 	map('n', '<leader>fr', with_pick('oldfiles', { cwd = root() }), { desc = 'Recent Files (Root Dir)' })
 	map('n', '<leader>fR', with_pick 'oldfiles', { desc = 'Recent Files (global)' })
 	map('n', '<leader>fg', with_pick('files', { cwd = root() }), { desc = 'Find Files (Root Dir)' })
-
-	-- Search
+	--
+	-- -- Search
 	map({ 'n', 'x' }, '<leader>sw', function()
 		local word
 		if vim.fn.mode():find '[vV\22]' then
@@ -588,21 +645,23 @@ now(function()
 	end, { desc = 'Search Word (Root Dir)' })
 	map('n', '<leader>/', with_pick('grep_live', { cwd = root() }), { desc = 'Search (Live Grep, Root)' })
 	map('n', '<leader>?', with_pick('grep_live', { cwd = vim.uv.cwd() }), { desc = 'Search (Live Grep, cwd)' })
-	map('n', '<leader>sl', with_pick 'lines', { desc = 'Search Lines (buffer)' })
-	map('n', '<leader>sm', with_pick 'marks', { desc = 'Search Marks' })
+	-- map('n', '<leader>sl', with_pick 'lines', { desc = 'Search Lines (buffer)' })
+	-- map('n', '<leader>sm', with_pick 'marks', { desc = 'Search Marks' })
 	map('n', '<leader>sh', with_pick 'help', { desc = 'Help Tags' })
-
+	--
 	-- Commands and keymaps pickers (mini.pick)
 	map('n', '<leader>sC', with_pick 'commands', { desc = 'Search Commands' })
 	map('n', '<leader>sk', with_pick 'keymaps', { desc = 'Search Keymaps' })
 	map('n', '<leader>sd', with_pick 'diagnostics', { desc = 'Search Diagnostics' })
 
-	-- LSP pickers (mini.pick custom)
-	map('n', '<leader>sr', with_pick 'lsp_references', { desc = 'LSP References' })
-	map('n', '<leader>si', with_pick 'lsp_implementations', { desc = 'LSP Implementations' })
-	map('n', '<leader>st', with_pick 'lsp_type_definitions', { desc = 'LSP Type Definitions' })
-	map('n', '<leader>sA', with_pick 'lsp_code_actions', { desc = 'LSP Code Actions' })
+	-- Notifications
+	map('n', '<leader>sn', with_pick 'notifications', { desc = 'Search Notifications' })
 
+	-- LSP pickers (mini.pick custom)
+	map('n', 'grr', with_pick('lsp', { scope = 'references' }), { desc = 'LSP References' })
+	map('n', 'gri', with_pick('lsp', { scope = 'implementation' }), { desc = 'LSP Implementations' })
+	map('n', 'grd', with_pick('lsp', { scope = 'definition' }), { desc = 'LSP Definitions' })
+	map('n', 'grs', with_pick('lsp', { scope = 'document_symbol' }), { desc = 'LSP Document Symbols' })
 	-- Git pickers (mini.pick custom)
 	map('n', '<leader>sS', with_pick 'git_status', { desc = 'Git Status' })
 	map('n', '<leader>sB', with_pick 'git_branches', { desc = 'Git Branches' })

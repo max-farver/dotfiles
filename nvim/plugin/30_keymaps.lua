@@ -86,48 +86,11 @@ map('n', '<leader>uI', function()
 end, { desc = 'Inspect Tree' })
 
 -- Code (LSP) helpers
-nmap_leader('cli', '<cmd>LspInfo<cr>', 'LSP Info')
-nmap_leader('clr', '<cmd>LspRestart<cr>', 'LSP Restart')
-map({ 'n', 'x' }, '<leader>ca', function()
-	if vim.lsp.buf.code_action then
-		vim.lsp.buf.code_action()
-	end
-end, { desc = 'Code Action' })
-map('n', 'gd', function()
-	vim.lsp.buf.definition()
-end, { desc = 'Go to Definition', remap = true })
-
--- LSP references/impl/type-def/code-actions via mini.pick
-map('n', 'grr', function()
-	local ok, pick = pcall(require, 'mini.pick')
-	if ok and pick.builtin and pick.builtin.lsp_references then
-		pick.builtin.lsp_references()
-		return
-	end
-	vim.lsp.buf.references()
-end, { desc = 'LSP References' })
-
-map('n', 'gri', function()
-	local ok, pick = pcall(require, 'mini.pick')
-	if ok and pick.builtin and pick.builtin.lsp_implementations then
-		pick.builtin.lsp_implementations()
-		return
-	end
-	vim.lsp.buf.implementation()
-end, { desc = 'LSP Implementations' })
-
-map('n', 'grt', function()
-	vim.lsp.buf.type_definition()
-end, { desc = 'Go to Type Definition' })
-
-map('n', 'gra', function()
-	local ok, pick = pcall(require, 'mini.pick')
-	if ok and pick.builtin and pick.builtin.lsp_code_actions then
-		pick.builtin.lsp_code_actions()
-		return
-	end
-	vim.lsp.buf.code_action()
-end, { desc = 'LSP Code Actions' })
+-- map({ 'n', 'x' }, '<leader>ca', function()
+-- 	if vim.lsp.buf.code_action then
+-- 		vim.lsp.buf.code_action()
+-- 	end
+-- end, { desc = 'Code Action' })
 
 -- Tabs suite
 nmap_leader('<tab>l', '<cmd>tablast<cr>', 'Last Tab')

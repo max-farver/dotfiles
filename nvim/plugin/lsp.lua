@@ -1,6 +1,8 @@
 local add = MiniDeps.add
 local now, later = MiniDeps.now, MiniDeps.later
 local os_cfg = _G.Config.os
+local nmap = _G.Config.nmap
+local nmap_leader = _G.Config.nmap_leader
 
 local function ensure(list, value)
 	if not vim.tbl_contains(list, value) then
@@ -13,25 +15,14 @@ end
 -- ============================================================================
 
 local function on_attach(client, bufnr)
-	local function map(mode, lhs, rhs, desc, extra)
-		local opts = { buffer = bufnr, desc = desc }
-		if extra then
-			opts = vim.tbl_extend("force", opts, extra)
-		end
-		vim.keymap.set(mode, lhs, rhs, opts)
-	end
-
-	map("n", "gd", vim.lsp.buf.definition, "Goto Definition")
-	map("n", "gD", vim.lsp.buf.declaration, "Goto Declaration")
-	map("n", "gr", vim.lsp.buf.references, "Goto References")
-	map("n", "gi", vim.lsp.buf.implementation, "Goto Implementation")
-	map("n", "K", vim.lsp.buf.hover, "Hover")
-	map("n", "<leader>ca", vim.lsp.buf.code_action, "Code Action")
-	map("n", "<leader>cd", vim.diagnostic.open_float, "Line Diagnostics")
-	map("n", "<leader>cf", function()
+	nmap("K", vim.lsp.buf.hover, "Hover")
+	nmap_leader('cli', '<cmd>LspInfo<cr>', 'LSP Info')
+	nmap_leader('clr', '<cmd>LspRestart<cr>', 'LSP Restart')
+	nmap("<leader>cd", vim.diagnostic.open_float, "Line Diagnostics")
+	nmap("<leader>cf", function()
 		vim.lsp.buf.format({ async = true })
 	end, "Format Buffer")
-	map("n", "<leader>cr", function()
+	nmap("<leader>cr", function()
 		if package.loaded["inc_rename"] then
 			return ":" .. require("inc_rename").config.cmd_name .. " " .. vim.fn.expand("<cword>") .. "<CR>"
 		end
@@ -236,16 +227,13 @@ now(function()
 		depends = { "nvim-lua/plenary.nvim" },
 	})
 	local nls = require("null-ls")
-	local opts = { sources = {} }
-	local sources = {
-		nls.builtins.diagnostics.markdownlint_cli2,
-		nls.builtins.diagnostics.hadolint,
-		nls.builtins.diagnostics.terraform_validate,
-		nls.builtins.formatting.terraform_fmt,
-		nls.builtins.formatting.sqlfluff,
-	}
-	for _, source in ipairs(sources) do
-		table.insert(opts.sources, source)
-	end
-	nls.setup(opts)
+
+	nls.setup({
+		sources = {
+			nls.builtins.diagnostics.markdownlint_cli2,
+			nls.builtins.diagnostics.hadolint,
+			nls.builtins.diagnostics.terraform_validate,
+			nls.builtins.formatting.terraform_fmt,
+			nls.builtins.formatting.sqlfluff, }
+	})
 end)
