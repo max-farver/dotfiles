@@ -159,12 +159,33 @@ now(function()
 		},
 	})
 	opts.adapters = {
-		require('neotest-golang')({})
+		require('neotest-golang')({
+			go_test_args = function()
+				return {
+					'-v',
+					'-count=1',
+					'-race',
+					'-coverprofile=' .. vim.fn.getcwd() .. '/coverage.out',
+					vim.env.GO_TEST_FLAGS or '',
+				}
+			end,
+			dap_go_opts = {
+				delve = {
+					build_flags = { '-tags=unit,integration,endtoendtest' },
+				},
+			},
+			runner = 'gotestsum',
+			gotestsum_args = { '--format=standard-verbose' },
+			testify_enabled = true,
+			log_level = vim.log.levels.TRACE,
+
+			-- experimental
+			dev_notifications = true,
+		})
 	}
 	require('neotest').setup(opts)
 
 
-	-- nmap_leader('t', '<nop>', '+test')
 	nmap_leader('tt', function()
 		require('neotest').run.run(vim.fn.expand '%')
 	end, 'Run File')

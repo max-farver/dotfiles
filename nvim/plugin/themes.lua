@@ -23,39 +23,10 @@ local function darken(hex, amount, bg)
 	return blend(hex, bg, amount)
 end
 
--- now(function()
--- 	add({ source = "nyoom-engineering/oxocarbon.nvim", name = "oxocarbon" })
--- end)
-
--- now(function()
--- 	add({ source = "catppuccin/nvim", name = "catppuccin" })
--- end)
-
--- now(function()
--- 	add({ source = "projekt0n/github-nvim-theme", name = "github-theme" })
--- 	require("github-theme").setup({})
--- end)
-
--- now(function()
--- 	add("rebelot/kanagawa.nvim")
--- 	require("kanagawa").setup({
--- 		compile = false,
--- 		theme = "wave",
--- 		background = {
--- 			dark = "wave",
--- 			light = "lotus",
--- 		},
--- 		overrides = function(colors)
--- 			local theme = colors.theme
--- 			return {
--- 				Pmenu = { fg = theme.ui.shade0, bg = theme.ui.bg_p1 },
--- 				PmenuSel = { fg = "NONE", bg = theme.ui.bg_p2 },
--- 				PmenuSbar = { bg = theme.ui.bg_m1 },
--- 				PmenuThumb = { bg = theme.ui.bg_p2 },
--- 			}
--- 		end,
--- 	})
--- end)
+now(function()
+	add({ source = "projekt0n/github-nvim-theme", name = "github-theme" })
+	require("github-theme").setup({})
+end)
 
 now(function()
 	add("Mofiqul/dracula.nvim")

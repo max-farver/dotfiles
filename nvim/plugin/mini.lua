@@ -128,6 +128,10 @@ later(function()
 end)
 
 now(function()
+	require('mini.cursorword').setup()
+end)
+
+now(function()
 	local clue = require("mini.clue")
 
 	local triggers = {
@@ -319,7 +323,6 @@ now(function()
 		permanent_delete = true,
 	})
 
-	map('n', '<leader>fe', '<Cmd>lua MiniFiles.open(_G.Config.root.get(), true)<CR>', { desc = 'Explorer (Root Dir)' })
 	map('n', '<leader>fE', '<Cmd>lua MiniFiles.open(vim.uv.cwd(), true)<CR>', { desc = 'Explorer (cwd)' })
 	map('n', '<leader>e',
 		[[<Cmd>lua local file = vim.api.nvim_buf_get_name(0); local dir = (file ~= '' and vim.fn.fnamemodify(file, ':h')) or vim.uv.cwd(); MiniFiles.open(dir, true)<CR>]],
@@ -632,23 +635,12 @@ now(function()
 	map('n', '<leader>fr', with_pick('oldfiles', { cwd = root() }), { desc = 'Recent Files (Root Dir)' })
 	map('n', '<leader>fR', with_pick 'oldfiles', { desc = 'Recent Files (global)' })
 	map('n', '<leader>fg', with_pick('files', { cwd = root() }), { desc = 'Find Files (Root Dir)' })
-	--
-	-- -- Search
-	map({ 'n', 'x' }, '<leader>sw', function()
-		local word
-		if vim.fn.mode():find '[vV\22]' then
-			word = vim.fn.getreg '*'
-		else
-			word = vim.fn.expand '<cword>'
-		end
-		require('mini.pick').builtin.grep { pattern = word, cwd = root() }
-	end, { desc = 'Search Word (Root Dir)' })
+
+	-- Search
 	map('n', '<leader>/', with_pick('grep_live', { cwd = root() }), { desc = 'Search (Live Grep, Root)' })
 	map('n', '<leader>?', with_pick('grep_live', { cwd = vim.uv.cwd() }), { desc = 'Search (Live Grep, cwd)' })
-	-- map('n', '<leader>sl', with_pick 'lines', { desc = 'Search Lines (buffer)' })
-	-- map('n', '<leader>sm', with_pick 'marks', { desc = 'Search Marks' })
 	map('n', '<leader>sh', with_pick 'help', { desc = 'Help Tags' })
-	--
+
 	-- Commands and keymaps pickers (mini.pick)
 	map('n', '<leader>sC', with_pick 'commands', { desc = 'Search Commands' })
 	map('n', '<leader>sk', with_pick 'keymaps', { desc = 'Search Keymaps' })
@@ -661,7 +653,9 @@ now(function()
 	map('n', 'grr', with_pick('lsp', { scope = 'references' }), { desc = 'LSP References' })
 	map('n', 'gri', with_pick('lsp', { scope = 'implementation' }), { desc = 'LSP Implementations' })
 	map('n', 'grd', with_pick('lsp', { scope = 'definition' }), { desc = 'LSP Definitions' })
+	map('n', 'gd', with_pick('lsp', { scope = 'definition' }), { desc = 'LSP Definitions' })
 	map('n', 'grs', with_pick('lsp', { scope = 'document_symbol' }), { desc = 'LSP Document Symbols' })
+
 	-- Git pickers (mini.pick custom)
 	map('n', '<leader>sS', with_pick 'git_status', { desc = 'Git Status' })
 	map('n', '<leader>sB', with_pick 'git_branches', { desc = 'Git Branches' })

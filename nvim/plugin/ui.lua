@@ -22,70 +22,59 @@ end
 init_lualine()
 
 later(function()
-	add("RRethy/vim-illuminate")
-end)
-
-later(function()
-	add("rachartier/tiny-glimmer.nvim")
-	require("tiny-glimmer").setup({
-		event = "VeryLazy",
-	})
-end)
-
-later(function()
 	add("rachartier/tiny-inline-diagnostic.nvim")
 	require("tiny-inline-diagnostic").setup()
 end)
 
-if not vim.g.vscode then
-	later(function()
-		add("b0o/incline.nvim")
-
-		local helpers = require("incline.helpers")
-		local mini_icons = require("mini.icons")
-
-		local function highlight_hex(hl)
-			if not hl then
-				return nil
-			end
-			local ok, data = pcall(vim.api.nvim_get_hl_by_name, hl, true)
-			if not ok or not data then
-				return nil
-			end
-			local fg = data.foreground
-			if not fg then
-				return nil
-			end
-			return string.format("#%06x", fg)
-		end
-
-		local _, default_hl = mini_icons.get("default", "file")
-		local default_color = highlight_hex(default_hl) or "#6d8086"
-
-		require("incline").setup({
-			window = {
-				padding = 0,
-				margin = { horizontal = 0 },
-			},
-			render = function(props)
-				local filename = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(props.buf), ":t")
-				if filename == "" then
-					filename = "[No Name]"
-				end
-				local ft_icon, ft_hl = mini_icons.get("file", filename)
-				local ft_color = highlight_hex(ft_hl) or default_color
-				local modified = vim.bo[props.buf].modified
-				return {
-					ft_icon and { " ", ft_icon, " ", guibg = ft_color, guifg = helpers.contrast_color(ft_color) } or "",
-					" ",
-					{ filename, gui = modified and "bold,italic" or "bold" },
-					" ",
-					guibg = "#44406e",
-				}
-			end,
-		})
-	end)
-end
+-- if not vim.g.vscode then
+-- later(function()
+-- 	add("b0o/incline.nvim")
+--
+-- 	local helpers = require("incline.helpers")
+-- 	local mini_icons = require("mini.icons")
+--
+-- 	local function highlight_hex(hl)
+-- 		if not hl then
+-- 			return nil
+-- 		end
+-- 		local ok, data = pcall(vim.api.nvim_get_hl_by_name, hl, true)
+-- 		if not ok or not data then
+-- 			return nil
+-- 		end
+-- 		local fg = data.foreground
+-- 		if not fg then
+-- 			return nil
+-- 		end
+-- 		return string.format("#%06x", fg)
+-- 	end
+--
+-- 	local _, default_hl = mini_icons.get("default", "file")
+-- 	local default_color = highlight_hex(default_hl) or "#6d8086"
+--
+-- 	require("incline").setup({
+-- 		window = {
+-- 			padding = 0,
+-- 			margin = { horizontal = 0 },
+-- 		},
+-- 		render = function(props)
+-- 			local filename = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(props.buf), ":t")
+-- 			if filename == "" then
+-- 				filename = "[No Name]"
+-- 			end
+-- 			local ft_icon, ft_hl = mini_icons.get("file", filename)
+-- 			local ft_color = highlight_hex(ft_hl) or default_color
+-- 			local modified = vim.bo[props.buf].modified
+-- 			return {
+-- 				ft_icon and { " ", ft_icon, " ", guibg = ft_color, guifg = helpers.contrast_color(ft_color) } or "",
+-- 				" ",
+-- 				{ filename, gui = modified and "bold,italic" or "bold" },
+-- 				" ",
+-- 				guibg = "#44406e",
+-- 			}
+-- 		end,
+-- 	})
+-- end)
+-- end
 
 if not vim.g.vscode then
 	later(function()
@@ -149,7 +138,7 @@ if not vim.g.vscode then
 					},
 				},
 				lualine_y = {
-					{ "progress", separator = " ", padding = { left = 1, right = 0 } },
+					{ "progress", separator = " ",                  padding = { left = 1, right = 0 } },
 					{ "location", padding = { left = 0, right = 1 } },
 				},
 				lualine_z = {

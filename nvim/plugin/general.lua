@@ -56,7 +56,7 @@ later(function()
 	end, { desc = 'Toggle Flash Search' })
 end)
 
-later(function()
+now(function()
 	add("gbprod/yanky.nvim")
 	require("yanky").setup({
 		highlight = { timer = 150 },

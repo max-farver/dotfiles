@@ -85,14 +85,8 @@ map('n', '<leader>uI', function()
 	vim.api.nvim_input 'I'
 end, { desc = 'Inspect Tree' })
 
--- Code (LSP) helpers
--- map({ 'n', 'x' }, '<leader>ca', function()
--- 	if vim.lsp.buf.code_action then
--- 		vim.lsp.buf.code_action()
--- 	end
--- end, { desc = 'Code Action' })
-
 -- Tabs suite
+
 nmap_leader('<tab>l', '<cmd>tablast<cr>', 'Last Tab')
 nmap_leader('<tab>o', '<cmd>tabonly<cr>', 'Close Other Tabs')
 nmap_leader('<tab>f', '<cmd>tabfirst<cr>', 'First Tab')
