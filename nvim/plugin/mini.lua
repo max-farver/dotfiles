@@ -198,60 +198,6 @@ end)
 
 
 now(function()
-	require("mini.completion").setup({})
-
-	local pumvisible = function()
-		return vim.fn.pumvisible() == 1
-	end
-
-	-- Tab: confirm current selection when popup menu is visible, otherwise insert tab
-	map('i', '<Tab>', function()
-		if pumvisible() then
-			return '<C-y>'
-		end
-		return '\t'
-	end, { expr = true, desc = 'Jump snippet / confirm completion / Tab' })
-
-	-- Enter: do NOT accept completion; just newline (cancel popup if visible)
-	map('i', '<CR>', function()
-		if pumvisible() then
-			return '<C-e><CR>'
-		end
-		return '\n'
-	end, { expr = true, desc = 'Newline (no completion confirm)' })
-
-	-- Navigate with arrows when popup is visible
-	map('i', '<Down>', function()
-		if pumvisible() then
-			return '<C-n>'
-		end
-		return '<Down>'
-	end, { expr = true, desc = 'Next completion item' })
-
-	map('i', '<Up>', function()
-		if pumvisible() then
-			return '<C-p>'
-		end
-		return '<Up>'
-	end, { expr = true, desc = 'Prev completion item' })
-
-	-- Ensure Ctrl-n / Ctrl-p navigate items (even if some plugin remaps them)
-	map('i', '<C-n>', function()
-		if pumvisible() then
-			return '<C-n>'
-		end
-		return '<C-n>'
-	end, { expr = true, desc = 'Next completion item' })
-
-	map('i', '<C-p>', function()
-		if pumvisible() then
-			return '<C-p>'
-		end
-		return '<C-p>'
-	end, { expr = true, desc = 'Prev completion item' })
-end)
-
-now(function()
 	require("mini.diff").setup({})
 end)
 

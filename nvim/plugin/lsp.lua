@@ -40,14 +40,8 @@ local function lspconfig_config()
 	-- Disable diagnostic virtual_text in favor of tiny-inline-diagnostic
 	vim.diagnostic.config({ virtual_text = false })
 
-	-- Get base capabilities
-	local capabilities = vim.lsp.protocol.make_client_capabilities()
-
 	-- Merge with cmp_nvim_lsp capabilities if available
-	local has_cmp, cmp_nvim_lsp = pcall(require, "cmp_nvim_lsp")
-	if has_cmp then
-		capabilities = vim.tbl_deep_extend("force", capabilities, cmp_nvim_lsp.default_capabilities())
-	end
+	local capabilities = require('blink.cmp').get_lsp_capabilities(capabilities)
 
 	-- Store capabilities globally for ftplugin files to access
 	vim.g.lsp_capabilities = capabilities
@@ -126,7 +120,10 @@ if not os_cfg.is_linux then
 end
 
 now(function()
-	add("neovim/nvim-lspconfig")
+	add({
+		source = "neovim/nvim-lspconfig",
+		depends = { "saghen/blink.cmp" }
+	})
 	lspconfig_config()
 end)
 
