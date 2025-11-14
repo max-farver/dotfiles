@@ -56,18 +56,4 @@ now(function()
 	nmap_leader('uf', function()
 		autoformat:toggle()
 	end, 'Toggle Autoformat')
-
-	local theme = toggle.new({
-		id = 'background',
-		name = 'Background',
-		get = function()
-			return vim.o.background == 'dark'
-		end,
-		set = function(state)
-			vim.o.background = state and 'dark' or 'light'
-		end,
-	})
-	nmap_leader('ub', function()
-		theme:toggle()
-	end, 'Toggle Dark/Light Theme')
 end)

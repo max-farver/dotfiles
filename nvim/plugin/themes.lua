@@ -1,5 +1,8 @@
 local add = MiniDeps.add
 local now = MiniDeps.now
+local nmap_leader = _G.Config.nmap_leader
+
+local Theme = require("util.theme")
 
 local function hex_to_rgb(c)
 	c = string.lower(c)
@@ -53,6 +56,26 @@ now(function()
 			MiniFilesTitleFocused = { fg = dracula.colors().cyan, bg = dracula.colors().bg, bold = true },
 		},
 	})
-
-	vim.cmd("colorscheme dracula")
 end)
+
+now(function()
+	Theme.load_last()
+end)
+
+_G.Config.new_autocmd("ColorScheme", "*", function(event)
+	Theme.on_colorscheme(event.match)
+end, "Persist preferred theme variant")
+
+vim.api.nvim_create_user_command("ThemeDark", function()
+	Theme.apply("dark")
+end, { desc = "Switch to the default dark theme" })
+
+vim.api.nvim_create_user_command("ThemeLight", function()
+	Theme.apply("light")
+end, { desc = "Switch to the default light theme" })
+
+vim.api.nvim_create_user_command("ThemeToggle", function()
+	Theme.toggle()
+end, { desc = "Toggle between light/dark themes" })
+
+nmap_leader('ub', '<Cmd>ThemeToggle<CR>', 'Toggle Dark Mode')
