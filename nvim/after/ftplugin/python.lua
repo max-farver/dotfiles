@@ -10,10 +10,10 @@ local venv_selector_defaults = {
 }
 
 local function ensure_python_plugins()
-	if vim.b._python_ftplugin_plugins_loaded then
+	if vim.g._python_ftplugin_plugins_loaded then
 		return
 	end
-	vim.b._python_ftplugin_plugins_loaded = true
+	vim.g._python_ftplugin_plugins_loaded = true
 
 	add({
 		source = "linux-cultist/venv-selector.nvim",

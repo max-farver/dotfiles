@@ -3,10 +3,10 @@ local helpers = _G.Config.ftplugin_helpers
 local project = _G.Config.project
 
 local function ensure_ruby_plugins()
-	if vim.b._ruby_ftplugin_plugins_loaded then
+	if vim.g._ruby_ftplugin_plugins_loaded then
 		return
 	end
-	vim.b._ruby_ftplugin_plugins_loaded = true
+	vim.g._ruby_ftplugin_plugins_loaded = true
 
 	add({
 		source = "tpope/vim-rails",

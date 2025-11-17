@@ -5,10 +5,10 @@ local ftplugin_helpers = _G.Config.ftplugin_helpers
 local project = _G.Config.project
 
 local function ensure_markdown_plugins()
-	if vim.b._markdown_ftplugin_plugins_loaded then
+	if vim.g._markdown_ftplugin_plugins_loaded then
 		return
 	end
-	vim.b._markdown_ftplugin_plugins_loaded = true
+	vim.g._markdown_ftplugin_plugins_loaded = true
 	later(function()
 		if os.is_linux then
 			add({

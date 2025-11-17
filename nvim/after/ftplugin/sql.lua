@@ -3,10 +3,10 @@ local project = _G.Config.project
 local helpers = _G.Config.ftplugin_helpers
 
 local function ensure_sql_plugins()
-	if vim.b._sql_ftplugin_plugins_loaded then
+	if vim.g._sql_ftplugin_plugins_loaded then
 		return
 	end
-	vim.b._sql_ftplugin_plugins_loaded = true
+	vim.g._sql_ftplugin_plugins_loaded = true
 
 	add("tpope/vim-dadbod")
 	add({
