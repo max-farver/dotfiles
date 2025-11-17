@@ -32,28 +32,29 @@ now(function()
 end)
 
 now(function()
-	add("Mofiqul/dracula.nvim")
+	add("max-farver/dracula.nvim")
 	local dracula = require("dracula")
+	local colors = dracula.colors()
 	dracula.setup({
 		overrides = {
-			DiffAdd = { bg = darken(dracula.colors().bright_green, 0.15, dracula.colors().bg) },
-			DiffDelete = { fg = darken(dracula.colors().bright_red, 0.15, dracula.colors().bg) },
-			DiffChange = { bg = darken(dracula.colors().comment, 0.15, dracula.colors().bg) },
-			DiffText = { bg = darken(dracula.colors().comment, 0.50, dracula.colors().bg) },
-			illuminatedWord = { bg = darken(dracula.colors().comment, 0.65, dracula.colors().bg) },
-			illuminatedCurWord = { bg = darken(dracula.colors().comment, 0.65, dracula.colors().bg) },
-			IlluminatedWordText = { bg = darken(dracula.colors().comment, 0.65, dracula.colors().bg) },
-			IlluminatedWordRead = { bg = darken(dracula.colors().comment, 0.65, dracula.colors().bg) },
-			IlluminatedWordWrite = { bg = darken(dracula.colors().comment, 0.65, dracula.colors().bg) },
-			MiniPickMatchCurrent = { bg = dracula.colors().selection },
-			MiniFilesBorder = { fg = dracula.colors().fg, bg = dracula.colors().bg },
-			MiniFilesBorderModified = { fg = dracula.colors().orange, bg = dracula.colors().bg },
-			MiniFilesCursorLine = { bg = dracula.colors().selection },
-			MiniFilesDirectory = { fg = dracula.colors().cyan, bg = dracula.colors().bg },
-			MiniFilesFile = { fg = dracula.colors().fg, bg = dracula.colors().bg },
-			MiniFilesNormal = { fg = dracula.colors().fg, bg = dracula.colors().bg },
-			MiniFilesTitle = { fg = dracula.colors().purple, bg = dracula.colors().bg, bold = true },
-			MiniFilesTitleFocused = { fg = dracula.colors().cyan, bg = dracula.colors().bg, bold = true },
+			DiffAdd = { bg = darken(colors.bright_green, 0.15, colors.bg) },
+			DiffDelete = { fg = darken(colors.bright_red, 0.15, colors.bg) },
+			DiffChange = { bg = darken(colors.comment, 0.15, colors.bg) },
+			DiffText = { bg = darken(colors.comment, 0.50, colors.bg) },
+			illuminatedWord = { bg = darken(colors.comment, 0.65, colors.bg) },
+			illuminatedCurWord = { bg = darken(colors.comment, 0.65, colors.bg) },
+			IlluminatedWordText = { bg = darken(colors.comment, 0.65, colors.bg) },
+			IlluminatedWordRead = { bg = darken(colors.comment, 0.65, colors.bg) },
+			IlluminatedWordWrite = { bg = darken(colors.comment, 0.65, colors.bg) },
+			MiniPickMatchCurrent = { bg = colors.selection },
+			MiniFilesBorder = { fg = colors.fg, bg = colors.bg },
+			MiniFilesBorderModified = { fg = colors.orange, bg = colors.bg },
+			MiniFilesCursorLine = { bg = colors.selection },
+			MiniFilesDirectory = { fg = colors.cyan, bg = colors.bg },
+			MiniFilesFile = { fg = colors.fg, bg = colors.bg },
+			MiniFilesNormal = { fg = colors.fg, bg = colors.bg },
+			MiniFilesTitle = { fg = colors.purple, bg = colors.bg, bold = true },
+			MiniFilesTitleFocused = { fg = colors.cyan, bg = colors.bg, bold = true },
 		},
 	})
 end)

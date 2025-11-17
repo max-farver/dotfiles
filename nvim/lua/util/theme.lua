@@ -11,8 +11,8 @@ M.variants = {
 		aliases = { "dracula" },
 	},
 	light = {
-		colorscheme = "github_light",
-		aliases = { "github_light", "github_light_default" },
+		colorscheme = "dracula-alucard",
+		aliases = { "dracula-alucard" },
 	},
 }
 
