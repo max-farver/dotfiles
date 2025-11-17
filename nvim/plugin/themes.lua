@@ -27,6 +27,20 @@ local function darken(hex, amount, bg)
 end
 
 now(function()
+	add("f-person/auto-dark-mode.nvim")
+	require("auto-dark-mode").setup({
+		set_dark_mode = function()
+			vim.api.nvim_set_option_value("background", "dark", {})
+			Theme.apply('dark')
+		end,
+		set_light_mode = function()
+			vim.api.nvim_set_option_value("background", "light", {})
+			Theme.apply('light')
+		end,
+	})
+end)
+
+now(function()
 	add({ source = "projekt0n/github-nvim-theme", name = "github-theme" })
 	require("github-theme").setup({})
 end)
