@@ -43,7 +43,7 @@ in
     ghostty = {
       enable = true;
       settings = {
-        theme = "dracula-local";
+        theme = "dark:dracula-local,light:dracula-local-alucard";
       };
       themes = {
         dracula-local = {

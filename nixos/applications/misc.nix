@@ -1,11 +1,14 @@
 {
   pkgs,
+  inputs,
   ...
 }:
 
 {
-  home.packages = with pkgs; [
-    obsidian
+  home.packages = [
+    pkgs.obsidian
+    pkgs.gimp
+    # inputs.affinity-nix.packages.x86_64-linux.v3
   ];
 
   programs.thunderbird = {

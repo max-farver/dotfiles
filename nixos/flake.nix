@@ -7,6 +7,7 @@
     };
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
     flake-utils.url = "github:numtide/flake-utils";
+
     nur = {
       url = "github:nix-community/NUR";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -14,6 +15,7 @@
     ghostty = {
       url = "github:ghostty-org/ghostty";
     };
+    affinity-nix.url = "github:mrshmllow/affinity-nix";
 
     # home-manager, used for managing user configuration
     home-manager = {
@@ -29,10 +31,11 @@
   outputs =
     inputs@{
       nixpkgs,
+      nixos-hardware,
+      home-manager,
       nur,
       ghostty,
-      home-manager,
-      nixos-hardware,
+      # affinity-nix,
       ...
     }:
     {

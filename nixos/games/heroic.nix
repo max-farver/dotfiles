@@ -6,6 +6,6 @@
 }:
 {
   home.packages = with pkgs; [
-    heroic
+    # heroic
   ];
 }
