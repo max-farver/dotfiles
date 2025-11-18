@@ -17,20 +17,6 @@ local go_nvim_defaults = {
 	},
 }
 
-
-local function printTable(t, indent)
-	indent = indent or ""
-	for k, v in pairs(t) do
-		if type(v) == "table" then
-			print(indent .. k .. " = {")
-			printTable(v, indent .. "  ")
-			print(indent .. "}")
-		else
-			print(indent .. k .. " = " .. tostring(v))
-		end
-	end
-end
-
 local function ensure_go_plugins()
 	if vim.g._go_ftplugin_plugins_loaded then
 		return
@@ -55,6 +41,42 @@ local function ensure_go_plugins()
 		})
 		local go_opts = project.merge_plugin_opts("ray-x/go.nvim", go_nvim_defaults)
 		require("go").setup(go_opts)
+
+		add("TheNoeTrevino/no-go.nvim")
+		require("no-go").setup({ -- required w/o lazy.nvim
+			-- Enable the plugin behavior by default
+			enabled = true,
+
+			-- Identifiers to match in if statements (e.g., "if err != nil", "if error != nil")
+			-- Only collapse blocks where the identifier is in this list
+			identifiers = { "err" },
+
+			-- Virtual text for collapsed error handling
+			-- Built as: prefix + content + content_separator + return_character + suffix
+			-- The default follows Jetbrains GoLand style of concealment:
+			virtual_text = {
+				prefix = ": ",
+				content_separator = " ",
+				return_character = "󱞿 ",
+				suffix = "",
+			},
+
+			-- Highlight group for the collapsed text
+			highlight_group = "MiniFilesDirectory",
+
+			-- Auto-update on these events
+			update_events = {
+				"BufEnter",
+				"BufWritePost",
+				"TextChanged",
+				"TextChangedI",
+				"InsertLeave",
+			},
+
+			-- Reveal concealed lines when cursor is on the if err != nil line
+			-- This allows you to inspect the error handling by hovering over the collapsed line
+			reveal_on_cursor = true,
+		})
 	end)
 end
 
