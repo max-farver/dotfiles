@@ -98,7 +98,6 @@ local function setup()
 					shadow = true,
 				},
 				staticcheck = true,
-				gofumpt = true,
 				usePlaceholders = true,
 				completeUnimported = true,
 			},
@@ -115,10 +114,15 @@ local function setup()
 		vim.b.linters = linters
 	end
 
-	local opts = { buffer = true, silent = true }
-	vim.keymap.set("n", "<leader>gt", "<cmd>GoTest<cr>", vim.tbl_extend("force", opts, { desc = "Run Go tests" }))
-	vim.keymap.set("n", "<leader>gT", "<cmd>GoTestFile<cr>", vim.tbl_extend("force", opts, { desc = "Run Go test file" }))
+	vim.api.nvim_create_autocmd("BufWritePre", {
+		pattern = "*.go",
+		callback = function()
+			vim.cmd("GoImports")
+		end,
+		group = vim.api.nvim_create_augroup("GoImports", { clear = true }),
+	})
 
+	-- Update test tags based on the header of the current file
 	if vim.fn.expand("%"):match("_test%.go$") then
 		local tags = {}
 		local buf = vim.api.nvim_get_current_buf()

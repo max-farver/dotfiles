@@ -155,20 +155,23 @@ now(function()
 		clue.gen_clues.windows(),
 		clue.gen_clues.z(),
 		clue.gen_clues.g(),
-		{ mode = "n", keys = "<Leader>a",  desc = "AI" },
-		{ mode = "n", keys = "<Leader>a",  desc = "AI" },
-		{ mode = "n", keys = "<Leader>f",  desc = "Find" },
-		{ mode = "x", keys = "<Leader>f",  desc = "Find" },
-		{ mode = "n", keys = "<Leader>g",  desc = "Git" },
-		{ mode = "x", keys = "<Leader>g",  desc = "Git" },
-		{ mode = "n", keys = "<Leader>u",  desc = "UI" },
-		{ mode = "n", keys = "<Leader>d",  desc = "Debug" },
-		{ mode = "n", keys = "<Leader>t",  desc = "Terminal/Test" },
-		{ mode = "n", keys = "<Leader>w",  desc = "Windows" },
-		{ mode = "n", keys = "<Leader>b",  desc = "Buffers" },
-		{ mode = "n", keys = "<Leader>c",  desc = "Code" },
-		{ mode = "n", keys = "<Leader>cl", desc = "LSP" },
-		{ mode = "n", keys = "<Leader>o",  desc = "Overseer/Other" },
+		{ mode = "n", keys = "<Leader>a",     desc = "AI" },
+		{ mode = "n", keys = "<Leader>a",     desc = "AI" },
+		{ mode = "n", keys = "<Leader>b",     desc = "Buffers" },
+		{ mode = "n", keys = "<Leader>c",     desc = "Code" },
+		{ mode = "n", keys = "<Leader>d",     desc = "Debug" },
+		{ mode = "n", keys = "<Leader>f",     desc = "Find" },
+		{ mode = "x", keys = "<Leader>f",     desc = "Find" },
+		{ mode = "n", keys = "<Leader>g",     desc = "Git" },
+		{ mode = "x", keys = "<Leader>g",     desc = "Git" },
+		{ mode = "n", keys = "<Leader>cl",    desc = "LSP" },
+		{ mode = "n", keys = "<Leader>o",     desc = "Overseer/Other" },
+		{ mode = "n", keys = "<Leader>x",     desc = "Quickfix" },
+		{ mode = "n", keys = "<Leader>s",     desc = "Search" },
+		{ mode = "n", keys = "<Leader><Tab>", desc = "Tab" },
+		{ mode = "n", keys = "<Leader>t",     desc = "Terminal/Test" },
+		{ mode = "n", keys = "<Leader>u",     desc = "UI" },
+		{ mode = "n", keys = "<Leader>w",     desc = "Windows" },
 	}
 
 	local max_desc = 0
@@ -261,7 +264,7 @@ now(function()
 			reset = "<BS>",
 			reveal_cwd = "@",
 			show_help = "g?",
-			synchronize = "=",
+			synchronize = "S",
 			trim_left = "<",
 			trim_right = ">",
 		},
@@ -278,10 +281,6 @@ now(function()
 		pattern = "MiniFilesBufferCreate",
 		callback = function(args)
 			local buf = args.data.buf_id
-
-			vim.keymap.set("n", "S", function()
-				pcall(function() MiniFiles.synchronize() end)
-			end, { buffer = buf, desc = "mini.files: Synchronize changes" })
 
 			vim.keymap.set("n", "Q", function()
 				pcall(function() MiniFiles.synchronize() end)
