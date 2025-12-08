@@ -22,13 +22,11 @@ local function on_attach(client, bufnr)
 	nmap("<leader>cf", function()
 		vim.lsp.buf.format({ async = true })
 	end, "Format Buffer")
-	nmap("<leader>cr", function()
-		if package.loaded["inc_rename"] then
-			return ":" .. require("inc_rename").config.cmd_name .. " " .. vim.fn.expand("<cword>") .. "<CR>"
-		end
-		vim.schedule(vim.lsp.buf.rename)
-		return ""
-	end, "Rename", { expr = true })
+	nmap("<leader>ca", vim.lsp.buf.code_action, "Code Actions")
+	nmap_leader('cn', function()
+		return ':IncRename ' .. vim.fn.expand('<cword>')
+	end, 'Rename Symbol', { expr = true })
+
 	vim.bo[bufnr].omnifunc = "v:lua.vim.lsp.omnifunc"
 
 	if client.name == "ruff_lsp" then
@@ -182,7 +180,9 @@ later(function()
 				args = { "fmt", "-" },
 			},
 		},
-		formatters_by_ft = {},
+		formatters_by_ft = {
+			go = { 'gofmt', 'gci' },
+		},
 	}
 	require("conform").setup(opts)
 

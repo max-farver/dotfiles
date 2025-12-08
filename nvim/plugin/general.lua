@@ -112,6 +112,29 @@ now(function()
 	require("inc_rename").setup()
 end)
 
+
+
+later(function()
+	add({
+		source = "OXY2DEV/markview.nvim",
+	})
+	local presets = require("markview.presets")
+	local opts = {
+		preview = {
+			modes = { "n", "no" },
+			raw_previews = { markdown = { "code_blocks" } },
+		},
+		markdown = {
+			checkboxes = presets.checkboxes.glow,
+			headings = presets.headings.glow,
+			horizontal_rules = presets.horizontal_rules.glow,
+			tables = presets.tables.glow,
+		},
+	}
+	require("markview").setup(opts)
+	vim.g.markview_lazy_loaded = true
+end)
+
 now(function()
 	add({
 		source = "nvim-treesitter/nvim-treesitter",
@@ -185,8 +208,10 @@ now(function()
 		'lua',
 		'vimdoc',
 		'markdown',
+		'markdown_inline',
 		'go',
-		'bash'
+		'bash',
+		'python'
 		-- 'go'
 		-- Add here more languages with which you want to use tree-sitter
 		-- To see available languages:

@@ -114,14 +114,6 @@ local function setup()
 		vim.b.linters = linters
 	end
 
-	vim.api.nvim_create_autocmd("BufWritePre", {
-		pattern = "*.go",
-		callback = function()
-			vim.cmd("GoImports")
-		end,
-		group = vim.api.nvim_create_augroup("GoImports", { clear = true }),
-	})
-
 	-- Update test tags based on the header of the current file
 	if vim.fn.expand("%"):match("_test%.go$") then
 		local tags = {}

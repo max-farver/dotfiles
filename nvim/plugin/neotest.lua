@@ -105,7 +105,7 @@ now(function()
 	})
 
 	local default_opts = {
-		discovery = { enabled = true, concurrent = 1 },
+		discovery = { enabled = false, concurrent = 0 },
 		running = { concurrent = true },
 		summary = { animated = true },
 		log_level = vim.log.levels.WARN,
@@ -163,7 +163,6 @@ now(function()
 			go_test_args = function()
 				return {
 					'-v',
-					'-count=1',
 					'-race',
 					'-coverprofile=' .. vim.fn.getcwd() .. '/coverage.out',
 					vim.env.GO_TEST_FLAGS or '',

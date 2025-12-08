@@ -13,25 +13,6 @@ local function ensure_markdown_plugins()
 		if vim.fn.exists(":MarkdownPreviewToggle") == 0 then
 			vim.cmd("silent! call mkdp#util#install()")
 		end
-
-		add({
-			source = "OXY2DEV/markview.nvim",
-		})
-		local presets = require("markview.presets")
-		local markview_opts = project.merge_plugin_opts("OXY2DEV/markview.nvim", {
-			preview = {
-				modes = { "n", "no" },
-				raw_previews = { markdown = { "code_blocks" } },
-			},
-			markdown = {
-				checkboxes = presets.checkboxes.glow,
-				headings = presets.headings.glow,
-				horizontal_rules = presets.horizontal_rules.glow,
-				tables = presets.tables.glow,
-			},
-		})
-		require("markview").setup(markview_opts)
-		vim.g.markview_lazy_loaded = true
 	end)
 end
 
