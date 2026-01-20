@@ -27,7 +27,7 @@ function M.setup_lsp(lsp_name, default_config, buffer_var_name)
 	local final_config = project.merge_lsp_config(lsp_name, config)
 
 	-- Configure and enable the LSP
-	vim.lsp.config(lsp_name, final_config)
+	vim.lsp.config(lsp_name, config)
 	vim.lsp.enable(lsp_name)
 
 	-- Mark as setup for this buffer

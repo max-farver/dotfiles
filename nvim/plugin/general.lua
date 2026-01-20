@@ -99,13 +99,13 @@ now(function()
 	nmap_leader('or', '<cmd>OverseerRun<cr>', 'Overseer Run')
 end)
 
-later(function()
-	add({
-		source = "ray-x/lsp_signature.nvim",
-		checkout = "0.3.1",
-	})
-	require("lsp_signature").setup()
-end)
+-- later(function()
+-- 	add({
+-- 		source = "ray-x/lsp_signature.nvim",
+-- 		checkout = "0.3.1",
+-- 	})
+-- 	require("lsp_signature").setup()
+-- end)
 
 now(function()
 	add("smjonas/inc-rename.nvim")
@@ -211,8 +211,10 @@ now(function()
 		'markdown_inline',
 		'go',
 		'bash',
-		'python'
-		-- 'go'
+		'python',
+		'proto',
+		'yaml',
+		'json',
 		-- Add here more languages with which you want to use tree-sitter
 		-- To see available languages:
 		-- - Execute `:=require('nvim-treesitter').get_available()`

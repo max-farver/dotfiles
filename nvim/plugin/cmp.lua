@@ -67,7 +67,7 @@ now(function()
 		-- signature = { enabled = true },
 
 		sources = {
-			default = { "lsp", "path", "snippets", "buffer" },
+			default = { "lsp", "path", "buffer" },
 		},
 
 		cmdline = {
@@ -89,8 +89,25 @@ now(function()
 		},
 
 		keymap = {
-			preset = "super-tab",
 			["<C-y>"] = { "select_and_accept" },
+			['<C-space>'] = { 'show', 'show_documentation', 'hide_documentation' },
+			['<C-e>'] = { 'hide', 'fallback' },
+
+			['<Tab>'] = {
+				'select_and_accept',
+				'fallback'
+			},
+			['<S-Tab>'] = { 'snippet_backward', 'fallback' },
+
+			['<Up>'] = { 'select_prev', 'fallback' },
+			['<Down>'] = { 'select_next', 'fallback' },
+			['<C-p>'] = { 'select_prev', 'fallback_to_mappings' },
+			['<C-n>'] = { 'select_next', 'fallback_to_mappings' },
+
+			['<C-b>'] = { 'scroll_documentation_up', 'fallback' },
+			['<C-f>'] = { 'scroll_documentation_down', 'fallback' },
+
+			['<C-k>'] = { 'show_signature', 'hide_signature', 'fallback' },
 		}
 	}
 

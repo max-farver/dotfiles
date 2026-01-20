@@ -21,7 +21,6 @@ local root = _G.Config.root.get
 local map = _G.Config.map
 local nmap_leader = _G.Config.nmap_leader
 
--- now(function() vim.command('colorscheme dracula') end)
 now(function()
 	require('mini.basics').setup()
 end)

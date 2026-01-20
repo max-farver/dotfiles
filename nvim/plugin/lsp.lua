@@ -96,6 +96,7 @@ if not os_cfg.is_linux then
 		local opts = { ensure_installed = {} }
 		local servers = {
 			"bashls",
+			"buf_ls",
 			"dockerls",
 			"docker_compose_language_service",
 			"gopls",
@@ -105,6 +106,7 @@ if not os_cfg.is_linux then
 			"postgres_lsp",
 			"pyright",
 			"ruff",
+			"ruby_lsp",
 			"taplo",
 			"terraformls",
 			"ts_ls",

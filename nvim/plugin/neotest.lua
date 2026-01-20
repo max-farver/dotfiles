@@ -101,14 +101,17 @@ now(function()
 			"nvim-treesitter/nvim-treesitter",
 			"nvim-neotest/neotest-plenary",
 			"nvim-neotest/neotest-vim-test",
-		}
+		},
 	})
 
 	local default_opts = {
 		discovery = { enabled = false, concurrent = 0 },
 		running = { concurrent = true },
-		summary = { animated = true },
+		-- summary = { animated = true },
 		log_level = vim.log.levels.WARN,
+		status = { virtual_text = true },
+		output = { open_on_run = false },
+		quickfix = { enabled = false },
 		adapters = {},
 	}
 	local opts = project.merge_plugin_opts("nvim-neotest/neotest", default_opts)
@@ -123,39 +126,45 @@ now(function()
 		},
 	}, neotest_ns)
 
-	if package.loaded["trouble"] then
-		opts.consumers = opts.consumers or {}
-		opts.consumers.trouble = function(client)
-			client.listeners.results = function(adapter_id, results, partial)
-				if partial then
-					return
-				end
-				local tree = assert(client:get_position(nil, { adapter = adapter_id }))
-				local failed = 0
-				for pos_id, result in pairs(results) do
-					if result.status == "failed" and tree:get_key(pos_id) then
-						failed = failed + 1
-					end
-				end
-				vim.schedule(function()
-					local trouble = require("trouble")
-					if trouble.is_open() then
-						trouble.refresh()
-						if failed == 0 then
-							trouble.close()
-						end
-					end
-				end)
-				return {}
-			end
-		end
-	end
-
+	-- if package.loaded["trouble"] then
+	-- 	opts.consumers = opts.consumers or {}
+	-- 	opts.consumers.trouble = function(client)
+	-- 		client.listeners.results = function(adapter_id, results, partial)
+	-- 			if partial then
+	-- 				return
+	-- 			end
+	-- 			local tree = assert(client:get_position(nil, { adapter = adapter_id }))
+	-- 			local failed = 0
+	-- 			for pos_id, result in pairs(results) do
+	-- 				if result.status == "failed" and tree:get_key(pos_id) then
+	-- 					failed = failed + 1
+	-- 				end
+	-- 			end
+	-- 			vim.schedule(function()
+	-- 				local trouble = require("trouble")
+	-- 				if trouble.is_open() then
+	-- 					trouble.refresh()
+	-- 					if failed == 0 then
+	-- 						trouble.close()
+	-- 					end
+	-- 				end
+	-- 			end)
+	-- 			return {}
+	-- 		end
+	-- 	end
+	-- end
+	--
 	add({
 		source = "fredrikaverpil/neotest-golang",
 		depends = {
 			"leoluz/nvim-dap-go",
 			"uga-rosa/utf8.nvim",
+		},
+	})
+	add({
+		source = "nvim-neotest/neotest",
+		depends = {
+			"olimorris/neotest-rspec",
 		},
 	})
 	opts.adapters = {
@@ -180,7 +189,8 @@ now(function()
 
 			-- experimental
 			dev_notifications = true,
-		})
+		}),
+		require("neotest-rspec")
 	}
 	require('neotest').setup(opts)
 
