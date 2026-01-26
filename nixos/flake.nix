@@ -2,9 +2,7 @@
   description = "NixOS configuration";
 
   inputs = {
-    nixpkgs = {
-      url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    };
+    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
     flake-utils.url = "github:numtide/flake-utils";
 
@@ -12,9 +10,7 @@
       url = "github:nix-community/NUR";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    ghostty = {
-      url = "github:ghostty-org/ghostty";
-    };
+    ghostty.url = "github:ghostty-org/ghostty";
     affinity-nix.url = "github:mrshmllow/affinity-nix";
 
     # home-manager, used for managing user configuration
@@ -35,15 +31,13 @@
       home-manager,
       nur,
       ghostty,
-      # affinity-nix,
+      affinity-nix,
       ...
     }:
     {
       nixosConfigurations = {
         nixos = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
-          # pkgs = nixpkgs.legacyPackages.x86_64-linux;
-          # nixpkgs.config.allowUnfree = true;
 
           specialArgs = {
             inherit inputs;

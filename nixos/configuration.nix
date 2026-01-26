@@ -33,6 +33,9 @@
   programs.zsh.enable = true;
   users.users.mfarver.shell = pkgs.zsh;
 
+  # enable docker
+  virtualisation.docker.extraGroups = [ "docker" ];
+
   # List services that you want to enable:
 
   # Enable the OpenSSH daemon.

@@ -23,7 +23,6 @@ in
 
   home.packages = with pkgs; [
     csvlens
-    docker
     nur.repos.charmbracelet.freeze
     posting
     postgresql
@@ -43,7 +42,7 @@ in
     ghostty = {
       enable = true;
       settings = {
-        theme = "dark:dracula-local,light:dracula-local-alucard";
+        theme = "dark:dracula-local,light:alucard-local";
       };
       themes = {
         dracula-local = {
@@ -72,6 +71,33 @@ in
             "15=#ffffff"
           ];
         };
+        alucard-local = {
+          background = "#fffbeb";
+          foreground = "#1f1f1f";
+          cursor-color = "#1f1f1f";
+          cursor-text = "#fffbeb";
+          selection-foreground = "#1f1f1f";
+          selection-background = "#CFCFDE";
+          palette = [
+            "0=#fffbeb"
+            "1=#cb3a2a"
+            "2=#14710a"
+            "3=#846e15"
+            "4=#644ac9"
+            "5=#a3144d"
+            "6=#036a96"
+            "7=#1f1f1f"
+            "8=#6C664B"
+            "9=#D74C3D"
+            "10=#198D0C"
+            "11=#9E841A"
+            "12=#7862D0"
+            "13=#BF185A"
+            "14=#047FB4"
+            "15=#2C2B31"
+          ];
+        };
+
       };
     };
 

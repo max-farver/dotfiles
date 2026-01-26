@@ -11,26 +11,27 @@
 
     black
     cargo
+    gcc
     go
+    jdk
     lua
     lua-language-server
     luajitPackages.luarocks
     markdownlint-cli2
+    nil
     nodejs_24
-    zulu24
+    openscad-lsp
     php
     prettier
     pyright
-    ruff
-    ruby
-    rbenv
     python312
     python312Packages.pip
     python312Packages.debugpy
+    ruff
+    ruby
+    rbenv
     uv
-    # julia
-    gcc
-    nil
+    typescript
     typescript-language-server
     tree-sitter
   ];

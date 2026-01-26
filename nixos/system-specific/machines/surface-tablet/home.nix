@@ -10,12 +10,9 @@
   imports = [
     ../../../terminal/default.nix
     ../../../applications/default.nix
-    ../../../games/heroic.nix
   ];
   home.username = "mfarver";
   home.homeDirectory = "/home/mfarver";
-
-  xdg.enable = true;
 
   # link the configuration file in current directory to the specified location in home directory
   # home.file.".config/i3/wallpaper.jpg".source = ./wallpaper.jpg;
@@ -69,6 +66,5 @@
   # You can update home Manager without changing this value. See
   # the home Manager release notes for a list of state version
   # changes in each release.
-  home.stateVersion = "25.11";
-  home.enableNixpkgsReleaseCheck = false;
+  home.stateVersion = "25.05";
 }
