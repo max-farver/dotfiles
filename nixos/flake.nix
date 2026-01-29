@@ -5,6 +5,7 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
     flake-utils.url = "github:numtide/flake-utils";
+    devshell.url = "github:numtide/devshell";
 
     nur = {
       url = "github:nix-community/NUR";
@@ -71,6 +72,31 @@
               };
             }
           ];
+        };
+      };
+
+      # Devshell templates for quick project initialization
+      templates = rec {
+        default = python;
+        base = {
+          path = ./devshells/base;
+          description = "Base development environment with common tools";
+        };
+        python = {
+          path = ./devshells/python;
+          description = "Python development environment";
+        };
+        rust = {
+          path = ./devshells/rust;
+          description = "Rust development environment";
+        };
+        go = {
+          path = ./devshells/go;
+          description = "Go development environment";
+        };
+        javascript = {
+          path = ./devshells/javascript;
+          description = "JavaScript/TypeScript development environment";
         };
       };
     };

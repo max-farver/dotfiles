@@ -15,6 +15,9 @@
     kdePackages.plasma-thunderbolt
     pkgs.dmidecode
     wl-clipboard
+    pkgs.docker-compose   # V2 plugin
+    pkgs.docker-buildx    # Advanced building with multi-platform support
+    pkgs.compose2nix      # Tool to convert docker-compose.yml to NixOS modules
   ];
 
   boot.kernelParams = [
@@ -94,5 +97,13 @@
   programs.zsh = {
     enable = true;
   };
-  users.users.mfarver.shell = pkgs.zsh;
+  users.users.mfarver = {
+    shell = pkgs.zsh;
+    extraGroups = [ "docker" ];
+  };
+
+  # Docker setup
+  virtualisation.docker = {
+    enable = true;
+  };
 }
