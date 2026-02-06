@@ -272,9 +272,11 @@ now(function()
 	})
 
 	map('n', '<leader>fE', '<Cmd>lua MiniFiles.open(vim.uv.cwd(), true)<CR>', { desc = 'Explorer (cwd)' })
-	map('n', '<leader>e',
-		[[<Cmd>lua local file = vim.api.nvim_buf_get_name(0); local dir = (file ~= '' and vim.fn.fnamemodify(file, ':h')) or vim.uv.cwd(); MiniFiles.open(dir, true)<CR>]],
-		{ desc = 'Explorer (Current File Dir)' })
+	map('n', '<leader>e', function()
+		local file = vim.api.nvim_buf_get_name(0)
+		local dir = (file ~= '' and vim.fn.fnamemodify(file, ':h')) or vim.uv.cwd()
+		MiniFiles.open(dir, true)
+	end, { desc = 'Explorer (Current File Dir)' })
 
 	vim.api.nvim_create_autocmd("User", {
 		pattern = "MiniFilesBufferCreate",

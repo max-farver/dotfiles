@@ -92,11 +92,6 @@ end)
 now(function()
 	add("stevearc/overseer.nvim")
 	require("overseer").setup()
-
-	nmap_leader('o', '<nop>', 'Overseer')
-	nmap_leader('ot', '<cmd>OverseerToggle<cr>', 'Overseer Toggle')
-	nmap_leader('oa', '<cmd>OverseerTaskAction<cr>', 'Overseer Task Action')
-	nmap_leader('or', '<cmd>OverseerRun<cr>', 'Overseer Run')
 end)
 
 -- later(function()
@@ -112,29 +107,6 @@ now(function()
 	require("inc_rename").setup()
 end)
 
-
-
-later(function()
-	add({
-		source = "OXY2DEV/markview.nvim",
-	})
-	local presets = require("markview.presets")
-	local opts = {
-		preview = {
-			modes = { "n", "no" },
-			raw_previews = { markdown = { "code_blocks" } },
-		},
-		markdown = {
-			checkboxes = presets.checkboxes.glow,
-			headings = presets.headings.glow,
-			horizontal_rules = presets.horizontal_rules.glow,
-			tables = presets.tables.glow,
-		},
-	}
-	require("markview").setup(opts)
-	vim.g.markview_lazy_loaded = true
-end)
-
 now(function()
 	add({
 		source = "nvim-treesitter/nvim-treesitter",
@@ -143,7 +115,7 @@ now(function()
 		hooks = { post_checkout = function() vim.cmd('TSUpdate') end },
 	})
 
-	require("nvim-treesitter").setup()
+	local nvim_ts = require("nvim-treesitter").setup()
 	add({
 		source = "nvim-treesitter/nvim-treesitter-textobjects",
 		checkout = 'main',
@@ -210,11 +182,15 @@ now(function()
 		'markdown',
 		'markdown_inline',
 		'go',
+		'gomod',
+		'gosum',
+		'gowork',
 		'bash',
 		'python',
 		'proto',
 		'yaml',
 		'json',
+		'ruby',
 		-- Add here more languages with which you want to use tree-sitter
 		-- To see available languages:
 		-- - Execute `:=require('nvim-treesitter').get_available()`
@@ -226,9 +202,8 @@ now(function()
 	end
 	local to_install = vim.tbl_filter(isnt_installed, languages)
 	if #to_install > 0 then
-		local ts = require('nvim-treesitter').setup()
-		if ts then
-			ts.install(to_install)
+		if nvim_ts then
+			nvim_ts.install(to_install)
 		end
 	end
 

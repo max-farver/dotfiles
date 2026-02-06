@@ -132,7 +132,7 @@ later(function()
 	local opts = {
 		format_on_save = function(bufnr)
 			-- Disable autoformat on certain filetypes
-			local ignore_filetypes = { "sql", "java" }
+			local ignore_filetypes = { "sql", "java", "yaml", "csv", "tsv" }
 			if vim.tbl_contains(ignore_filetypes, vim.bo[bufnr].filetype) then
 				return
 			end
@@ -144,24 +144,24 @@ later(function()
 			return { timeout_ms = 500, lsp_format = "fallback" }
 		end,
 		formatters = {
-			["markdown-toc"] = {
-				condition = function(_, ctx)
-					for _, line in ipairs(vim.api.nvim_buf_get_lines(ctx.buf, 0, -1, false)) do
-						if line:find("<!%-%- toc %-%->") then
-							return true
-						end
-					end
-					return false
-				end,
-			},
-			["markdownlint-cli2"] = {
-				condition = function(_, ctx)
-					local diag = vim.tbl_filter(function(d)
-						return d.source == "markdownlint-cli2"
-					end, vim.diagnostic.get(ctx.buf))
-					return #diag > 0
-				end,
-			},
+			-- ["markdown-toc"] = {
+			-- 	condition = function(_, ctx)
+			-- 		for _, line in ipairs(vim.api.nvim_buf_get_lines(ctx.buf, 0, -1, false)) do
+			-- 			if line:find("<!%-%- toc %-%->") then
+			-- 				return true
+			-- 			end
+			-- 		end
+			-- 		return false
+			-- 	end,
+			-- },
+			-- ["markdownlint-cli2"] = {
+			-- 	condition = function(_, ctx)
+			-- 		local diag = vim.tbl_filter(function(d)
+			-- 			return d.source == "markdownlint-cli2"
+			-- 		end, vim.diagnostic.get(ctx.buf))
+			-- 		return #diag > 0
+			-- 	end,
+			-- },
 			yamlfix = {
 				env = {
 					YAMLFIX_SEQUENCE_STYLE = "block_style",
@@ -183,7 +183,10 @@ later(function()
 			},
 		},
 		formatters_by_ft = {
-			go = { 'gofmt', 'gci' },
+			go = {
+				'gofmt',
+				-- 'gci'
+			},
 		},
 	}
 	require("conform").setup(opts)

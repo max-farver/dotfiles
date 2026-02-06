@@ -40,31 +40,31 @@ end
 function M.setup_schemastore_lsp(lsp_name, extra_config)
 	local schemastore = require("schemastore")
 
-	local config = vim.tbl_deep_extend("force", {
-		capabilities = vim.g.lsp_capabilities,
-	}, extra_config or {})
-
-	-- Add schemastore schemas based on LSP type
-	if lsp_name == "jsonls" then
-		config.settings = vim.tbl_deep_extend("force", config.settings or {}, {
-			json = {
-				schemas = schemastore.json.schemas(),
-				validate = { enable = true },
-			},
-		})
-	elseif lsp_name == "yamlls" then
-		config.settings = vim.tbl_deep_extend("force", config.settings or {}, {
-			yaml = {
-				schemaStore = {
-					enable = false,
-					url = "",
-				},
-				schemas = schemastore.yaml.schemas(),
-			},
-		})
-	end
-
-	M.setup_lsp(lsp_name, config)
+	-- local config = vim.tbl_deep_extend("force", {
+	-- 	capabilities = vim.g.lsp_capabilities,
+	-- }, extra_config or {})
+	--
+	-- -- Add schemastore schemas based on LSP type
+	-- if lsp_name == "jsonls" then
+	-- 	config.settings = vim.tbl_deep_extend("force", config.settings or {}, {
+	-- 		json = {
+	-- 			schemas = schemastore.json.schemas(),
+	-- 			validate = { enable = true },
+	-- 		},
+	-- 	})
+	-- elseif lsp_name == "yamlls" then
+	-- 	config.settings = vim.tbl_deep_extend("force", config.settings or {}, {
+	-- 		yaml = {
+	-- 			schemaStore = {
+	-- 				enable = false,
+	-- 				url = "",
+	-- 			},
+	-- 			schemas = schemastore.yaml.schemas(),
+	-- 		},
+	-- 	})
+	-- end
+	--
+	M.setup_lsp(lsp_name, extra_config)
 end
 
 --- Setup multiple LSPs with a simple configuration

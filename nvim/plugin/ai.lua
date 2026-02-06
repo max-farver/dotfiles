@@ -1,34 +1,10 @@
 local add = MiniDeps.add
 local now, later = MiniDeps.now, MiniDeps.later
 
--- later(function()
--- 	add({
--- 		source = "zbirenbaum/copilot.lua",
--- 		depends = { "copilotlsp-nvim/copilot-lsp" },
--- 	})
--- 	require("copilot").setup({
--- 		suggestion = {
--- 			enabled = true,
--- 			auto_trigger = false,
--- 			hide_during_completion = true,
--- 			debounce = 75,
--- 			trigger_on_accept = true,
--- 			keymap = {
--- 				accept = "<M-l>",
--- 				accept_word = false,
--- 				accept_line = false,
--- 				next = "<M-]>",
--- 				prev = "<M-[>",
--- 				dismiss = "<C-]>",
--- 			},
--- 		},
--- 	})
--- end)
---
 later(function()
 	add({
 		source = "folke/sidekick.nvim",
-		depends = { "copilot-nvim/copilot-lsp" },
+		-- depends = { "copilot-nvim/copilot-lsp" },
 	})
 	require("sidekick").setup({
 		nes = {

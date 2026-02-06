@@ -62,7 +62,7 @@ local function ensure_go_plugins()
 			},
 
 			-- Highlight group for the collapsed text
-			highlight_group = "MiniFilesDirectory",
+			highlight_group = "Comment",
 
 			-- Auto-update on these events
 			update_events = {

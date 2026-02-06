@@ -8,10 +8,40 @@ local function ensure_markdown_plugins()
 		return
 	end
 	vim.g._markdown_ftplugin_plugins_loaded = true
+
+	-- later(function()
+	-- 	add("iamcco/markdown-preview.nvim")
+	-- 	if vim.fn.exists(":MarkdownPreviewToggle") == 0 then
+	-- 		vim.cmd("silent! call mkdp#util#install()")
+	-- 	end
+	-- end)
+
 	later(function()
-		add("iamcco/markdown-preview.nvim")
-		if vim.fn.exists(":MarkdownPreviewToggle") == 0 then
-			vim.cmd("silent! call mkdp#util#install()")
+		add({
+			source = "OXY2DEV/markview.nvim",
+		})
+		vim.g.markview_lazy_loaded = true
+		local presets = require("markview.presets")
+		local opts = {
+			preview = {
+				modes = { "n", "no" },
+				-- raw_previews = { markdown = { "code_blocks" } },
+			},
+			map_gx = true,
+			markdown = {
+				checkboxes = presets.checkboxes.glow,
+				headings = {
+					heading_1 = { icon_hl = "@markup.link", icon = "[%d] " },
+					heading_2 = { icon_hl = "@markup.link", icon = "[%d.%d] " },
+					heading_3 = { icon_hl = "@markup.link", icon = "[%d.%d.%d] " }
+				},
+				horizontal_rules = presets.horizontal_rules.dashed,
+				tables = presets.tables.single,
+			},
+		}
+		require("markview").setup(opts)
+		if vim.bo.filetype == "markdown" then
+			vim.cmd("Markview attach")
 		end
 	end)
 end
@@ -34,9 +64,9 @@ local function setup()
 		},
 	}
 
-	ftplugin_helpers.setup_lsp("marksman")
+	-- ftplugin_helpers.setup_lsp("marksman")
 
-	vim.b.formatters = project.get_formatters("markdown") or { "prettier", "markdownlint-cli2", "markdown-toc" }
+	vim.b.formatters = project.get_formatters("markdown")
 end
 
 setup()
