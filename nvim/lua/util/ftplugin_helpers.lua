@@ -3,8 +3,26 @@
 
 local M = {}
 
-
 local project = require("util.project")
+
+local checked_parsers = {}
+
+function M.ensure_treesitter(parsers)
+	local to_install = {}
+	for _, lang in ipairs(parsers) do
+		if not checked_parsers[lang] then
+			checked_parsers[lang] = true
+			local ok, result = pcall(vim.treesitter.language.add, lang)
+			if not (ok and result) then
+				table.insert(to_install, lang)
+			end
+		end
+	end
+	if #to_install > 0 and _G.Config.nvim_ts then
+		_G.Config.nvim_ts.install(to_install)
+	end
+	pcall(vim.treesitter.start)
+end
 
 --- Setup an LSP for the current buffer with project-specific config merging
 --- @param lsp_name string The name of the LSP (e.g., 'gopls', 'pyright')

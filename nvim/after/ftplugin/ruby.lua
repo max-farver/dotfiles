@@ -19,6 +19,7 @@ end
 
 local function setup()
 	ensure_ruby_plugins()
+	helpers.ensure_treesitter({ 'ruby' })
 
 	helpers.setup_lsp("ruby-lsp", {
 		cmd = { '/Users/maxwell.farver/.rbenv/shims/ruby-lsp' },

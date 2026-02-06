@@ -29,6 +29,7 @@ end
 
 local function setup()
 	ensure_python_plugins()
+	helpers.ensure_treesitter({ 'python' })
 
 	helpers.setup_lsps({
 		pyright = {},

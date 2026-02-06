@@ -82,6 +82,7 @@ end
 
 local function setup()
 	ensure_go_plugins()
+	helpers.ensure_treesitter({ 'go', 'gomod', 'gosum', 'gowork' })
 
 	vim.opt_local.expandtab = false
 	vim.opt_local.tabstop = 4

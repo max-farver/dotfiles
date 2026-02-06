@@ -48,6 +48,7 @@ end
 
 local function setup()
 	ensure_markdown_plugins()
+	ftplugin_helpers.ensure_treesitter({ 'markdown', 'markdown_inline' })
 
 	vim.cmd("setlocal nospell wrap")
 	vim.cmd("setlocal foldmethod=expr foldexpr=v:lua.vim.treesitter.foldexpr()")
