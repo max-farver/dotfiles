@@ -235,6 +235,20 @@ later(function()
 	require("mini.pairs").setup({})
 end)
 
+later(function()
+	require("mini.visits").setup()
+
+	-- Visit labels (add/remove)
+	map('n', '<leader>la', function()
+		local label = vim.fn.input('Label: ')
+		if label ~= '' then MiniVisits.add_label(label) end
+	end, { desc = 'Add Visit Label' })
+	map('n', '<leader>ld', function()
+		local label = vim.fn.input('Label: ')
+		if label ~= '' then MiniVisits.remove_label(label) end
+	end, { desc = 'Remove Visit Label' })
+end)
+
 now(function()
 	require("mini.surround").setup({
 		mappings = {
@@ -573,14 +587,13 @@ now(function()
 	end
 
 	-- Files
-	map('n', '<leader>ff', with_pick('files', { cwd = root() }), { desc = 'Find Files (Root Dir)' })
-	nmap_leader('<leader>', '<leader>ff', 'Find Files (Root Dir)', { remap = true })
+	nmap_leader('<leader>', with_pick('files', { cwd = root() }), 'Find Files (Root Dir)')
 	map('n', '<leader>fF', with_pick('files', { cwd = vim.uv.cwd() }), { desc = 'Find Files (cwd)' })
 	map('n', '<leader>fb', with_pick 'buffers', { desc = 'Buffers' })
-	map('n', '<leader>fo', with_pick 'oldfiles', { desc = 'Recent Files' })
-	map('n', '<leader>fr', with_pick('oldfiles', { cwd = root() }), { desc = 'Recent Files (Root Dir)' })
-	map('n', '<leader>fR', with_pick 'oldfiles', { desc = 'Recent Files (global)' })
-	map('n', '<leader>fg', with_pick('files', { cwd = root() }), { desc = 'Find Files (Root Dir)' })
+	map('n', '<leader>fo', with_pick('visit_paths', { cwd = root() }), { desc = 'Visits (Root Dir)' })
+	map('n', '<leader>fV', with_pick('visit_paths', { cwd = '' }), { desc = 'Visits (All)' })
+	map('n', '<leader>fl', with_pick('visit_labels', { cwd = root() }), { desc = 'Visit Labels (Root Dir)' })
+	map('n', '<leader>fL', with_pick('visit_labels', { cwd = '' }), { desc = 'Visit Labels (All)' })
 
 	-- Search
 	map('n', '<leader>/', with_pick('grep_live', { cwd = root() }), { desc = 'Search (Live Grep, Root)' })
