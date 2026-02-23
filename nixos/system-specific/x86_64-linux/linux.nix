@@ -34,7 +34,7 @@
 
   # Enable networking
   networking.networkmanager.enable = true;
-  networking.wireless.userControlled.enable = true;
+  networking.wireless.userControlled = true;
   # networking.wireless.iwd.enable = true;
   # networking.networkmanager.wifi.backend = "iwd";
 

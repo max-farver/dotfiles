@@ -10,5 +10,6 @@
     nur.repos.charmbracelet.crush
     codex
     claude-code
+    opencode
   ];
 }

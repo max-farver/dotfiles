@@ -8,14 +8,16 @@
 
   programs.git = {
     enable = true;
-    userName = "max.farver";
-    userEmail = "maxwell.farver@gmail.com";
-    # defaultBranch = "main";
-    # lfs.enable = true;
-    extraConfig = {
+    settings = {
+      user = {
+        name = "max.farver";
+        email = "maxwell.farver@gmail.com";
+      };
       core = {
         excludesFile = "~/.config/git/ignore";
       };
     };
+    # defaultBranch = "main";
+    # lfs.enable = true;
   };
 }
