@@ -36,6 +36,7 @@ in
     lsof
     jq
     ripgrep
+    playwright-test
   ];
 
   programs = {

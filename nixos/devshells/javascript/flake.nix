@@ -33,6 +33,7 @@
               typescript
               pnpm
               nodePackages.prettier
+              playwright-test
             ];
 
             shellHook = ''
@@ -40,7 +41,7 @@
               echo "JavaScript/TypeScript development environment activated"
               echo "Node: $(node --version)"
               echo "TypeScript: $(tsc --version)"
-              echo "Available commands: node, npm, pnpm, tsc, prettier"
+              echo "Available commands: node, npm, pnpm, tsc, prettier, playwright"
             '';
           };
         }
