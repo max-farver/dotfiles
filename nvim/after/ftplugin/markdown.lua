@@ -8,35 +8,47 @@ local function ensure_markdown_plugins()
 		return
 	end
 	vim.g._markdown_ftplugin_plugins_loaded = true
-	later(function()
-		add("iamcco/markdown-preview.nvim")
-		if vim.fn.exists(":MarkdownPreviewToggle") == 0 then
-			vim.cmd("silent! call mkdp#util#install()")
-		end
 
+	-- later(function()
+	-- 	add("iamcco/markdown-preview.nvim")
+	-- 	if vim.fn.exists(":MarkdownPreviewToggle") == 0 then
+	-- 		vim.cmd("silent! call mkdp#util#install()")
+	-- 	end
+	-- end)
+
+	later(function()
 		add({
 			source = "OXY2DEV/markview.nvim",
 		})
+		vim.g.markview_lazy_loaded = true
 		local presets = require("markview.presets")
-		local markview_opts = project.merge_plugin_opts("OXY2DEV/markview.nvim", {
+		local opts = {
 			preview = {
 				modes = { "n", "no" },
-				raw_previews = { markdown = { "code_blocks" } },
+				-- raw_previews = { markdown = { "code_blocks" } },
 			},
+			map_gx = true,
 			markdown = {
 				checkboxes = presets.checkboxes.glow,
-				headings = presets.headings.glow,
-				horizontal_rules = presets.horizontal_rules.glow,
-				tables = presets.tables.glow,
+				headings = {
+					heading_1 = { icon_hl = "@markup.link", icon = "[%d] " },
+					heading_2 = { icon_hl = "@markup.link", icon = "[%d.%d] " },
+					heading_3 = { icon_hl = "@markup.link", icon = "[%d.%d.%d] " }
+				},
+				horizontal_rules = presets.horizontal_rules.dashed,
+				tables = presets.tables.single,
 			},
-		})
-		require("markview").setup(markview_opts)
-		vim.g.markview_lazy_loaded = true
+		}
+		require("markview").setup(opts)
+		if vim.bo.filetype == "markdown" then
+			vim.cmd("Markview attach")
+		end
 	end)
 end
 
 local function setup()
 	ensure_markdown_plugins()
+	ftplugin_helpers.ensure_treesitter({ 'markdown', 'markdown_inline' })
 
 	vim.cmd("setlocal nospell wrap")
 	vim.cmd("setlocal foldmethod=expr foldexpr=v:lua.vim.treesitter.foldexpr()")
@@ -53,9 +65,9 @@ local function setup()
 		},
 	}
 
-	ftplugin_helpers.setup_lsp("marksman")
+	-- ftplugin_helpers.setup_lsp("marksman")
 
-	vim.b.formatters = project.get_formatters("markdown") or { "prettier", "markdownlint-cli2", "markdown-toc" }
+	vim.b.formatters = project.get_formatters("markdown")
 end
 
 setup()

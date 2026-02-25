@@ -53,6 +53,8 @@ if not vim.loop.fs_stat(mini_path) then
 	vim.cmd('echo "Installed `mini.nvim`" | redraw')
 end
 
+-- Set this immediately so that project level options are loaded correctly
+vim.opt.exrc = true
 
 
 -- Plugin manager. Set up immediately for `now()`/`later()` helpers.

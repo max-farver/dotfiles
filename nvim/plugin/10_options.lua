@@ -3,6 +3,7 @@ vim.g.maplocalleader = ','
 
 local opt = vim.opt
 
+opt.exrc = true
 opt.autowrite = true
 opt.breakindent = true
 -- Do not auto-insert completion items. First item is highlighted, but only

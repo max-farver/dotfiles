@@ -19,9 +19,25 @@ end
 
 local function setup()
 	ensure_ruby_plugins()
+	helpers.ensure_treesitter({ 'ruby' })
 
-	helpers.setup_lsp("ruby_lsp", {
-		cmd = { vim.fn.expand("~/.asdf/shims/ruby-lsp") },
+	helpers.setup_lsp("ruby-lsp", {
+		cmd = { '/Users/maxwell.farver/.rbenv/shims/ruby-lsp' },
+		-- cmd = { 'ruby-lsp' },
+		filetypes = { 'ruby', 'eruby' },
+		root_markers = { 'Gemfile', '.git' },
+		init_options = {
+			formatter = 'auto',
+		},
+		addonSettings = {
+			["Ruby LSP Rails"] = {
+				enablePendingMigrationsPrompt = false,
+			},
+		},
+		reuse_client = function(client, config)
+			config.cmd_cwd = config.root_dir
+			return client.config.cmd_cwd == config.cmd_cwd
+		end,
 	})
 
 	local formatters = project.get_formatters("ruby")

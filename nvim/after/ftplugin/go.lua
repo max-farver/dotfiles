@@ -62,7 +62,7 @@ local function ensure_go_plugins()
 			},
 
 			-- Highlight group for the collapsed text
-			highlight_group = "MiniFilesDirectory",
+			highlight_group = "Comment",
 
 			-- Auto-update on these events
 			update_events = {
@@ -82,6 +82,7 @@ end
 
 local function setup()
 	ensure_go_plugins()
+	helpers.ensure_treesitter({ 'go', 'gomod', 'gosum', 'gowork' })
 
 	vim.opt_local.expandtab = false
 	vim.opt_local.tabstop = 4
@@ -113,14 +114,6 @@ local function setup()
 	if linters then
 		vim.b.linters = linters
 	end
-
-	vim.api.nvim_create_autocmd("BufWritePre", {
-		pattern = "*.go",
-		callback = function()
-			vim.cmd("GoImports")
-		end,
-		group = vim.api.nvim_create_augroup("GoImports", { clear = true }),
-	})
 
 	-- Update test tags based on the header of the current file
 	if vim.fn.expand("%"):match("_test%.go$") then

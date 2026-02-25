@@ -1,6 +1,7 @@
 local helpers = _G.Config.ftplugin_helpers
 local filetype = vim.bo.filetype
 
+helpers.ensure_treesitter({ 'json' })
 vim.opt_local.conceallevel = 0
 
 if filetype == "json" or filetype == "jsonc" then
