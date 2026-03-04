@@ -1,1 +1,2 @@
-/nix/store/i64pjlhwwdyv196dks1pl0kc109rkj4x-home-manager-files/.config/ghostty/config
+theme = dark:dracula-local,light:alucard-local
+
