@@ -1,4 +1,9 @@
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 {
   home.packages = with pkgs; [
@@ -10,7 +15,7 @@
     enable = true;
     settings = {
       user = {
-        name = "max.farver";
+        name = "max-farver";
         email = "maxwell.farver@gmail.com";
       };
       core = {

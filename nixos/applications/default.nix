@@ -5,7 +5,7 @@
 {
   imports = [
     ./3d-printing.nix
-    ./discord.nix
+    ./messaging.nix
     ./homelab.nix
     ./misc.nix
   ];

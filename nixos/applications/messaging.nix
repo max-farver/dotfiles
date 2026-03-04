@@ -1,8 +1,14 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 {
   home.packages = with pkgs; [
     # vesktop # If you prefer this
+    signal-desktop
 
     (discord.override {
       # withOpenASAR = true; # can do this here too
