@@ -1,0 +1,15 @@
+{
+  "name": "personal",
+  "description": "Personal development workflow skills",
+  "owner": {
+    "name": "Maxwell Farver"
+  },
+  "plugins": [
+    {
+      "name": "personal-workflow",
+      "description": "Lightweight personal development workflow skills",
+      "version": "0.1.0",
+      "source": "./plugins/personal-workflow"
+    }
+  ]
+}
