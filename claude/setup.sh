@@ -12,7 +12,7 @@ IMPORT_BLOCK="# Skills
 # Managed by dotfiles — do not edit this section manually"
 for skill in "$SKILLS_DIR"/*.md; do
   IMPORT_BLOCK="$IMPORT_BLOCK
-@import $skill"
+@$skill"
 done
 IMPORT_BLOCK="$IMPORT_BLOCK
 # End skills"
