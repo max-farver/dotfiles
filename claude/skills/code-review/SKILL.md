@@ -1,3 +1,8 @@
+---
+name: code-review
+description: Use when giving, receiving, or self-reviewing code changes
+---
+
 # Code Review
 
 ## Giving Reviews

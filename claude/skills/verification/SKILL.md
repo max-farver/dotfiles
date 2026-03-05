@@ -1,3 +1,8 @@
+---
+name: verification
+description: Use before claiming work is complete, before committing, pushing, or creating PRs — run verification commands and show evidence before making success claims
+---
+
 # Verification
 
 ## Core Idea

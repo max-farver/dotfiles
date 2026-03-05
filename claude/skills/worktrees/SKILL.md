@@ -1,3 +1,8 @@
+---
+name: worktrees
+description: Use when needing an isolated workspace for feature branches, experiments, or parallel work — defers to WorktreeCreate/WorktreeRemove hooks for setup and teardown
+---
+
 # Git Worktrees
 
 ## When to Use

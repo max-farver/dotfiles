@@ -1,3 +1,8 @@
+---
+name: git-workflow
+description: Use when committing, branching, or creating pull requests — conventions for clean git history
+---
+
 # Git Workflow
 
 ## Commits

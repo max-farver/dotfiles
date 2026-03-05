@@ -1,3 +1,8 @@
+---
+name: tdd
+description: Use when implementing features or fixing bugs — red-green-refactor cycle for test-driven development
+---
+
 # Test-Driven Development
 
 ## Process

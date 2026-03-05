@@ -1,3 +1,8 @@
+---
+name: debugging
+description: Use when encountering bugs, test failures, or unexpected behavior — systematic root cause analysis before fixing
+---
+
 # Debugging
 
 ## Process

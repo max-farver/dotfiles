@@ -1,3 +1,8 @@
+---
+name: feature-dev
+description: Use when building new features, adding functionality, or making non-trivial changes to existing code — understand the problem, consider approaches, build incrementally
+---
+
 # Feature Development
 
 ## Process

@@ -1,3 +1,8 @@
+---
+name: self-improvement
+description: Use after completing tasks to reflect on whether skills helped or got in the way, and propose small improvements
+---
+
 # Self-Improvement
 
 ## When to Trigger
