@@ -6,14 +6,19 @@
   ...
 }:
 
+let
+  username = "mfarver";
+  homeDir = "/home/${username}";
+in
 {
   imports = [
     ../../../terminal/default.nix
     ../../../applications/default.nix
+    ../../../applications/game-dev.nix
     ../../../games/heroic.nix
   ];
-  home.username = "mfarver";
-  home.homeDirectory = "/home/mfarver";
+  home.username = username;
+  home.homeDirectory = homeDir;
 
   xdg.enable = true;
 

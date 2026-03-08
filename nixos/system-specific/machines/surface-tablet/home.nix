@@ -6,13 +6,17 @@
   ...
 }:
 
+let
+  username = "mfarver";
+  homeDir = "/home/${username}";
+in
 {
   imports = [
     ../../../terminal/default.nix
     ../../../applications/default.nix
   ];
-  home.username = "mfarver";
-  home.homeDirectory = "/home/mfarver";
+  home.username = username;
+  home.homeDirectory = homeDir;
 
   # link the configuration file in current directory to the specified location in home directory
   # home.file.".config/i3/wallpaper.jpg".source = ./wallpaper.jpg;

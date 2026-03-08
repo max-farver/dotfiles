@@ -54,10 +54,10 @@
   services.logind.settings.Login.HandlePowerKeyLongPress = "poweroff";
 
   # Define time delay for hibernation
-  systemd.sleep.extraConfig = ''
-    HibernateDelaySec=30m
-    SuspendState=mem
-  '';
+  systemd.sleep.settings.Sleep = {
+    HibernateDelaySec = "30m";
+    SuspendState = "mem";
+  };
 
   # Framework Updates
   services.fwupd.enable = true;

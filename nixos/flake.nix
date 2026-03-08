@@ -6,6 +6,7 @@
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
     flake-utils.url = "github:numtide/flake-utils";
     devshell.url = "github:numtide/devshell";
+    pi-local.url = "path:./pkgs/pi";
 
     nur = {
       url = "github:nix-community/NUR";
@@ -71,6 +72,26 @@
                 inherit inputs;
               };
             }
+          ];
+        };
+      };
+
+      homeConfigurations = {
+        pixel-8-pro = home-manager.lib.homeManagerConfiguration {
+          pkgs = import nixpkgs {
+            system = "aarch64-linux";
+            config.allowUnfree = true;
+            overlays = [
+              nur.overlays.default
+            ];
+          };
+
+          extraSpecialArgs = {
+            inherit inputs;
+          };
+
+          modules = [
+            ./system-specific/machines/pixel-8-pro/home.nix
           ];
         };
       };
