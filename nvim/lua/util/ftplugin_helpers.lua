@@ -39,50 +39,17 @@ function M.setup_lsp(lsp_name, default_config, buffer_var_name)
 	-- Merge with global capabilities and project-specific config
 	local config = default_config or {}
 	if not config.capabilities then
-		config.capabilities = vim.g.lsp_capabilities
+		config.capabilities = _G.Config.lsp_capabilities
 	end
 
 	local final_config = project.merge_lsp_config(lsp_name, config)
 
 	-- Configure and enable the LSP
-	vim.lsp.config(lsp_name, config)
+	vim.lsp.config(lsp_name, final_config)
 	vim.lsp.enable(lsp_name)
 
 	-- Mark as setup for this buffer
 	vim.b[var_name] = true
-end
-
---- Setup an LSP that uses schemastore (for JSON/YAML)
---- @param lsp_name string The name of the LSP (e.g., 'jsonls', 'yamlls')
---- @param extra_config table|nil Additional configuration to merge
-function M.setup_schemastore_lsp(lsp_name, extra_config)
-	local schemastore = require("schemastore")
-
-	-- local config = vim.tbl_deep_extend("force", {
-	-- 	capabilities = vim.g.lsp_capabilities,
-	-- }, extra_config or {})
-	--
-	-- -- Add schemastore schemas based on LSP type
-	-- if lsp_name == "jsonls" then
-	-- 	config.settings = vim.tbl_deep_extend("force", config.settings or {}, {
-	-- 		json = {
-	-- 			schemas = schemastore.json.schemas(),
-	-- 			validate = { enable = true },
-	-- 		},
-	-- 	})
-	-- elseif lsp_name == "yamlls" then
-	-- 	config.settings = vim.tbl_deep_extend("force", config.settings or {}, {
-	-- 		yaml = {
-	-- 			schemaStore = {
-	-- 				enable = false,
-	-- 				url = "",
-	-- 			},
-	-- 			schemas = schemastore.yaml.schemas(),
-	-- 		},
-	-- 	})
-	-- end
-	--
-	M.setup_lsp(lsp_name, extra_config)
 end
 
 --- Setup multiple LSPs with a simple configuration

@@ -3,7 +3,6 @@ vim.g.maplocalleader = ','
 
 local opt = vim.opt
 
-opt.exrc = true
 opt.autowrite = true
 opt.breakindent = true
 -- Do not auto-insert completion items. First item is highlighted, but only
@@ -21,9 +20,15 @@ opt.fillchars = { eob = " ", fold = " ", foldopen = "-", foldclose = "+", foldse
 opt.foldenable = true
 opt.foldlevel = 99
 opt.foldlevelstart = 99
-opt.foldmethod = "indent"
+opt.foldmethod = "expr"
 opt.foldtext = ""
-opt.formatoptions:remove({ "o", "r" })
+vim.api.nvim_create_autocmd("FileType", {
+	group = vim.api.nvim_create_augroup("user_formatoptions", { clear = true }),
+	pattern = "*",
+	callback = function()
+		vim.opt_local.formatoptions:remove({ "o", "r" })
+	end,
+})
 vim.b.disable_autoformat = false
 vim.g.disable_autoformat = false
 opt.grepformat = "%f:%l:%c:%m"
@@ -66,4 +71,4 @@ vim.g.copilot_workspace_folders = { vim.fn.getcwd() }
 vim.g.markdown_recommended_style = 0
 
 -- Treesitter
-vim.wo.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
+opt.foldexpr = 'v:lua.vim.treesitter.foldexpr()'

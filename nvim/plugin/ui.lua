@@ -97,7 +97,7 @@ if not vim.g.vscode then
 					end,
 				},
 			},
-			extensions = { "neo-tree", "lazy", "fzf" },
+			extensions = {},
 		})
 	end)
 end

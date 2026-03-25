@@ -63,7 +63,7 @@ later(function()
 	end, 'Terminate')
 end)
 
-now(function()
+later(function()
 	add({
 		source = "miroshQa/debugmaster.nvim",
 		depends = { "mfussenegger/nvim-dap", "jbyuki/one-small-step-for-vimkind" },
@@ -91,16 +91,13 @@ later(function()
 	})
 end)
 
-now(function()
+later(function()
 	add({
 		source = "nvim-neotest/neotest",
 		depends = {
 			"nvim-neotest/nvim-nio",
 			"nvim-lua/plenary.nvim",
-			"antoinemadec/FixCursorHold.nvim",
 			"nvim-treesitter/nvim-treesitter",
-			"nvim-neotest/neotest-plenary",
-			"nvim-neotest/neotest-vim-test",
 		},
 	})
 

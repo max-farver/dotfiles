@@ -22,8 +22,8 @@ local function setup()
 	helpers.ensure_treesitter({ 'ruby' })
 
 	helpers.setup_lsp("ruby-lsp", {
-		cmd = { '/Users/maxwell.farver/.rbenv/shims/ruby-lsp' },
-		-- cmd = { 'ruby-lsp' },
+		cmd = { 'ruby-lsp' },
+		-- cmd = { '/Users/maxwell.farver/.rbenv/shims/ruby-lsp' },
 		filetypes = { 'ruby', 'eruby' },
 		root_markers = { 'Gemfile', '.git' },
 		init_options = {

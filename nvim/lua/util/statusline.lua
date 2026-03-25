@@ -1,7 +1,7 @@
 local M = {}
 
 local function cwd_name()
-	local cwd = vim.loop.cwd() or vim.fn.getcwd()
+	local cwd = vim.uv.cwd() or vim.fn.getcwd()
 	return vim.fs.basename(cwd)
 end
 
@@ -10,7 +10,7 @@ local function format_path()
 	if bufname == "" then
 		return "[No Name]"
 	end
-	local cwd = (vim.loop.cwd() or vim.fn.getcwd()) .. "/"
+	local cwd = (vim.uv.cwd() or vim.fn.getcwd()) .. "/"
 	if bufname:find(cwd, 1, true) == 1 then
 		bufname = bufname:sub(#cwd + 1)
 	end

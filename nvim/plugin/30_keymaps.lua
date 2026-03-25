@@ -34,7 +34,7 @@ map('n', '<leader>bo', function()
 		vim.cmd [[silent! %bd|e#|bd#]]
 	end
 end, { desc = 'Delete Other Buffers' })
-nmap_leader('bD', '<cmd>:bd<cr>', 'Delete Buffer and Window')
+nmap_leader('bD', '<cmd>bd<cr>', 'Delete Buffer and Window')
 
 -- Better visual indent
 map('v', '<', '<gv')

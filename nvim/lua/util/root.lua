@@ -33,10 +33,10 @@ function M.get()
   }
 
   local cwd = vim.uv.cwd() or vim.fn.getcwd()
-  local path = vim.fs.find(markers, { upward = true, type = "file", path = vim.api.nvim_buf_get_name(0) })[1]
+  local path = vim.fs.find(markers, { upward = true, path = vim.api.nvim_buf_get_name(0) })[1]
   if not path then
     -- try from cwd if buffer has no path
-    path = vim.fs.find(markers, { upward = true, type = "file", path = cwd })[1]
+    path = vim.fs.find(markers, { upward = true, path = cwd })[1]
   end
   if path then
     local root = vim.fs.dirname(path)

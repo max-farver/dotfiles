@@ -56,7 +56,7 @@ later(function()
 	end, { desc = 'Toggle Flash Search' })
 end)
 
-now(function()
+later(function()
 	add("gbprod/yanky.nvim")
 	require("yanky").setup({
 		highlight = { timer = 150 },
@@ -89,12 +89,12 @@ now(function()
 	end, { desc = 'Open Yank History' })
 end)
 
-now(function()
+later(function()
 	add("stevearc/overseer.nvim")
 	require("overseer").setup()
 end)
 
-now(function()
+later(function()
 	add("smjonas/inc-rename.nvim")
 	require("inc_rename").setup()
 end)
@@ -103,68 +103,63 @@ now(function()
 	add({
 		source = "nvim-treesitter/nvim-treesitter",
 		checkout = 'main',
-		-- Update tree-sitter parser after plugin is updated
 		hooks = { post_checkout = function() vim.cmd('TSUpdate') end },
 	})
 
 	_G.Config.nvim_ts = require("nvim-treesitter")
-	_G.Config.nvim_ts.setup()
+
 	add({
 		source = "nvim-treesitter/nvim-treesitter-textobjects",
 		checkout = 'main',
-		hooks = {
-			post_checkout = function()
-				require("nvim-treesitter-textobjects").setup({
-					select = {
-						enable = true,
-						lookahead = true,
-						keymaps = {
-							["af"] = "@function.outer",
-							["if"] = "@function.inner",
-							["ac"] = "@class.outer",
-							["ic"] = "@class.inner",
-							["aa"] = "@parameter.outer",
-							["ia"] = "@parameter.inner",
-							["al"] = "@loop.outer",
-							["il"] = "@loop.inner",
-							["aC"] = "@conditional.outer",
-							["iC"] = "@conditional.inner",
-							["ab"] = "@block.outer",
-							["ib"] = "@block.inner",
-							["as"] = "@statement.outer",
-						},
-					},
-					move = {
-						enable = true,
-						set_jumps = true,
-						goto_next_start = {
-							["]f"] = "@function.outer",
-							["]c"] = "@class.outer",
-						},
-						goto_next_end = {
-							["]F"] = "@function.outer",
-							["]C"] = "@class.outer",
-						},
-						goto_previous_start = {
-							["[f"] = "@function.outer",
-							["[c"] = "@class.outer",
-						},
-						goto_previous_end = {
-							["[F"] = "@function.outer",
-							["[C"] = "@class.outer",
-						},
-					},
-					swap = {
-						enable = true,
-						swap_next = {
-							["]a"] = "@parameter.inner",
-						},
-						swap_previous = {
-							["[a"] = "@parameter.inner",
-						},
-					},
-				})
-			end
-		}
+	})
+	require("nvim-treesitter-textobjects").setup({
+		select = {
+			enable = true,
+			lookahead = true,
+			keymaps = {
+				["af"] = "@function.outer",
+				["if"] = "@function.inner",
+				["ac"] = "@class.outer",
+				["ic"] = "@class.inner",
+				["aa"] = "@parameter.outer",
+				["ia"] = "@parameter.inner",
+				["al"] = "@loop.outer",
+				["il"] = "@loop.inner",
+				["aC"] = "@conditional.outer",
+				["iC"] = "@conditional.inner",
+				["ab"] = "@block.outer",
+				["ib"] = "@block.inner",
+				["as"] = "@statement.outer",
+			},
+		},
+		move = {
+			enable = true,
+			set_jumps = true,
+			goto_next_start = {
+				["]f"] = "@function.outer",
+				["]c"] = "@class.outer",
+			},
+			goto_next_end = {
+				["]F"] = "@function.outer",
+				["]C"] = "@class.outer",
+			},
+			goto_previous_start = {
+				["[f"] = "@function.outer",
+				["[c"] = "@class.outer",
+			},
+			goto_previous_end = {
+				["[F"] = "@function.outer",
+				["[C"] = "@class.outer",
+			},
+		},
+		swap = {
+			enable = true,
+			swap_next = {
+				["]a"] = "@parameter.inner",
+			},
+			swap_previous = {
+				["[a"] = "@parameter.inner",
+			},
+		},
 	})
 end)

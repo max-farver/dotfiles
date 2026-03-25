@@ -7,15 +7,13 @@
 --
 -- ├ init.lua          Initial (this) file executed during startup
 -- ├ plugin/           Files automatically sourced during startup
--- ├── 10_options.lua  Built-in Neovim behavior
--- ├── 20_keymaps.lua  Custom mappings
--- ├── 30_mini.lua     MINI configuration
--- ├── 40_plugins.lua  Plugins outside of MINI
--- ├ snippets/         User defined snippets (has demo file)
+-- ├── 10_options.lua  Built-in Neovim settings
+-- ├── 20_autocmds.lua Autocommands
+-- ├── 30_keymaps.lua  Custom key mappings
+-- ├── mini.lua        mini.nvim module configurations
+-- ├── *.lua           Other plugin configurations
 -- ├ after/            Files to override behavior added by plugins
--- ├── ftplugin/       Files for filetype behavior (has demo file)
--- ├── lsp/            Language server configurations (has demo file)
--- ├── snippets/       Higher priority snippet files (has demo file)
+-- ├── ftplugin/       Filetype-specific configurations
 --
 -- Config files are meant to be read, preferably inside a Neovim instance running
 -- this config and opened at its root. This will help you better understand your
@@ -44,7 +42,7 @@
 
 -- Bootstrap 'mini.nvim' manually in a way that it gets managed by 'mini.deps'
 local mini_path = vim.fn.stdpath('data') .. '/site/pack/deps/start/mini.nvim'
-if not vim.loop.fs_stat(mini_path) then
+if not vim.uv.fs_stat(mini_path) then
 	vim.cmd('echo "Installing `mini.nvim`" | redraw')
 	local origin = 'https://github.com/max-farver/mini.nvim'
 	local clone_cmd = { 'git', 'clone', '--filter=blob:none', origin, mini_path }
@@ -72,28 +70,6 @@ require('mini.deps').setup()
 -- Define config table to be able to pass data between scripts
 _G.Config = {}
 
--- Define custom autocommand group and helper to create an autocommand.
--- Autocommands are Neovim's way to define actions that are executed on events
--- (like creating a buffer, setting an option, etc.).
---
--- See also:
--- - `:h autocommand`
--- - `:h nvim_create_augroup()`
--- - `:h nvim_create_autocmd()`
-local gr = vim.api.nvim_create_augroup('custom-config', {})
--- _G.Config.new_autocmd = function(event, pattern, callback, desc)
--- 	local opts = { group = gr, pattern = pattern, callback = callback, desc = desc }
--- 	vim.api.nvim_create_autocmd(event, opts)
--- end
-
--- Define custom autocommand group and helper to create an autocommand.
--- Autocommands are Neovim's way to define actions that are executed on events
--- (like creating a buffer, setting an option, etc.).
---
--- See also:
--- - `:h autocommand`
--- - `:h nvim_create_augroup()`
--- - `:h nvim_create_autocmd()`
 local gr = vim.api.nvim_create_augroup('custom-config', {})
 _G.Config.new_autocmd = function(event, pattern, callback, desc)
 	local opts = { group = gr, pattern = pattern, callback = callback, desc = desc }
@@ -122,7 +98,6 @@ end
 _G.Config.now_if_args = vim.fn.argc(-1) > 0 and MiniDeps.now or MiniDeps.later
 
 
--- _G.Config.ft_registry = require('util.ft_registry')
 _G.Config.ftplugin_helpers = require('util.ftplugin_helpers')
 _G.Config.os = require('util.os')
 _G.Config.icons = require('util.icons')

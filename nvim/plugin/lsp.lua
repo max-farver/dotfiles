@@ -29,7 +29,7 @@ local function on_attach(client, bufnr)
 
 	vim.bo[bufnr].omnifunc = "v:lua.vim.lsp.omnifunc"
 
-	if client.name == "ruff_lsp" then
+	if client.name == "ruff" then
 		client.server_capabilities.hoverProvider = false
 	end
 end
@@ -39,10 +39,10 @@ local function lspconfig_config()
 	vim.diagnostic.config({ virtual_text = false })
 
 	-- Merge with cmp_nvim_lsp capabilities if available
-	local capabilities = require('blink.cmp').get_lsp_capabilities(capabilities)
+	local capabilities = require('blink.cmp').get_lsp_capabilities()
 
 	-- Store capabilities globally for ftplugin files to access
-	vim.g.lsp_capabilities = capabilities
+	_G.Config.lsp_capabilities = capabilities
 
 	-- Set up LspAttach autocmd for on_attach functionality
 	vim.api.nvim_create_autocmd("LspAttach", {
@@ -122,7 +122,7 @@ end
 now(function()
 	add({
 		source = "neovim/nvim-lspconfig",
-		depends = { "saghen/blink.cmp" }
+		depends = { "saghen/blink.cmp" },
 	})
 	lspconfig_config()
 end)
@@ -169,6 +169,10 @@ later(function()
 				'gofmt',
 				-- 'gci'
 			},
+			terraform = { "terraform_fmt" },
+			tf = { "terraform_fmt" },
+			["terraform-vars"] = { "terraform_fmt" },
+			sql = { "sqlfluff" },
 		},
 	}
 	require("conform").setup(opts)
@@ -192,32 +196,23 @@ end)
 later(function()
 	add("mfussenegger/nvim-lint")
 	local lint = require("lint")
-	lint.linters_by_ft = {}
+	lint.linters_by_ft = {
+		dockerfile = { "hadolint" },
+		markdown = { "markdownlint-cli2" },
+		terraform = { "terraform_validate" },
+	}
 
 	vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "InsertLeave" }, {
 		group = vim.api.nvim_create_augroup("user_linting", { clear = true }),
 		callback = function()
+			-- Use buffer-local linters if set (from ftplugin), otherwise use linters_by_ft
 			local linters = vim.b.linters
 			if linters then
 				lint.try_lint(linters)
+			else
+				lint.try_lint()
 			end
 		end,
 	})
 end)
 
-now(function()
-	add({
-		source = "nvimtools/none-ls.nvim",
-		depends = { "nvim-lua/plenary.nvim" },
-	})
-	local nls = require("null-ls")
-
-	nls.setup({
-		sources = {
-			nls.builtins.diagnostics.markdownlint_cli2,
-			nls.builtins.diagnostics.hadolint,
-			nls.builtins.diagnostics.terraform_validate,
-			nls.builtins.formatting.terraform_fmt,
-			nls.builtins.formatting.sqlfluff, }
-	})
-end)

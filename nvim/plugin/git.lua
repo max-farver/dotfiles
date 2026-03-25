@@ -48,7 +48,7 @@ later(function()
 	-- diff
 	map('n', '<leader>gd', with_gitsigns 'diffthis', { desc = 'Diff This' })
 	map('n', '<leader>gD', function()
-		with_gitsigns 'diffthis' '~'
+		require('gitsigns').diffthis('~')
 	end, { desc = 'Diff This (~)' })
 
 	-- select hunk

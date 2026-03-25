@@ -1,6 +1,7 @@
 local add = MiniDeps.add
 local now = MiniDeps.now
-local os = _G.Config.os
+local os_cfg = _G.Config.os
+local project = _G.Config.project
 
 local function find_notes_by_alias()
 	local Note = require("obsidian.note")
@@ -69,7 +70,7 @@ local function setup_obsidian_keymaps()
 
 	-- Note operations
 	nmap_leader("on", "<cmd>Obsidian new<cr>", "New Note")
-	nmap_leader("ot", "<cmd>Obsidian template<cr>", "Insert Nemplate")
+	nmap_leader("ot", "<cmd>Obsidian template<cr>", "Insert Template")
 	nmap_leader("oN", "<cmd>Obsidian new_from_template<cr>", "New from Template")
 	nmap_leader("or", "<cmd>Obsidian rename<cr>", "Rename Note")
 	nmap_leader("oc", "<cmd>Obsidian toc<cr>", "Table of Contents")
@@ -83,7 +84,7 @@ local function setup_obsidian_keymaps()
 end
 
 now(function()
-	if os.is_linux then
+	if os_cfg.is_linux then
 		add({
 			source = "obsidian-nvim/obsidian.nvim",
 		})

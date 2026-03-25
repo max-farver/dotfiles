@@ -6,7 +6,6 @@ local nmap = _G.Config.nmap
 later(function()
 	add("nvim-lua/plenary.nvim")
 	add("MunifTanjim/nui.nvim")
-	add("antoinemadec/FixCursorHold.nvim")
 	add({
 		source = "folke/todo-comments.nvim",
 		depends = { "nvim-lua/plenary.nvim" },
@@ -27,7 +26,7 @@ end)
 -- 	})
 -- end)
 --
-now(function()
+later(function()
 	add("folke/grug-far.nvim")
 	require("grug-far").setup({})
 
