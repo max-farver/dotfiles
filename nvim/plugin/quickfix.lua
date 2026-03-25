@@ -53,7 +53,6 @@ now(function()
 			vim.keymap.set("n", lhs, rhs, { buffer = buf, silent = true, desc = desc })
 		end
 
-		map("<CR>", function() open_entry("edit") end, "Open entry")
 		map("s", function() open_entry("split") end, "Open in split")
 		map("v", function() open_entry("vsplit") end, "Open in vsplit")
 		map("t", function() open_entry("tabedit") end, "Open in tab")

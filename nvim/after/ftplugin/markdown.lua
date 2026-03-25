@@ -9,12 +9,12 @@ local function ensure_markdown_plugins()
 	end
 	vim.g._markdown_ftplugin_plugins_loaded = true
 
-	-- later(function()
-	-- 	add("iamcco/markdown-preview.nvim")
-	-- 	if vim.fn.exists(":MarkdownPreviewToggle") == 0 then
-	-- 		vim.cmd("silent! call mkdp#util#install()")
-	-- 	end
-	-- end)
+	later(function()
+		add("iamcco/markdown-preview.nvim")
+		if vim.fn.exists(":MarkdownPreviewToggle") == 0 then
+			vim.cmd("silent! call mkdp#util#install()")
+		end
+	end)
 
 	later(function()
 		add({
@@ -68,6 +68,8 @@ local function setup()
 	-- ftplugin_helpers.setup_lsp("marksman")
 
 	vim.b.formatters = project.get_formatters("markdown")
+
+	_G.Config.nmap('<leader>mp', '<cmd>MarkdownPreviewToggle<CR>', 'Markdown Preview Toggle', { buffer = true })
 end
 
 setup()

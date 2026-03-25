@@ -94,14 +94,6 @@ now(function()
 	require("overseer").setup()
 end)
 
--- later(function()
--- 	add({
--- 		source = "ray-x/lsp_signature.nvim",
--- 		checkout = "0.3.1",
--- 	})
--- 	require("lsp_signature").setup()
--- end)
-
 now(function()
 	add("smjonas/inc-rename.nvim")
 	require("inc_rename").setup()

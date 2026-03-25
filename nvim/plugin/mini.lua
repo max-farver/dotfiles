@@ -329,6 +329,7 @@ now(function()
 			return false
 		end
 		pick.default_choose_marked(items, { list_type = "quickfix" })
+		vim.schedule(function() vim.cmd("copen") end)
 		return false
 	end
 
@@ -563,6 +564,42 @@ now(function()
 	pick.builtin = builtin
 
 
+	local function pick_files(opts)
+		opts = opts or {}
+		local show_hidden = true
+
+		local function build_command()
+			local cmd = { "rg", "--files", "--color=never" }
+			if show_hidden then
+				vim.list_extend(cmd, { "--hidden", "--glob", "!.git" })
+			end
+			return cmd
+		end
+
+		local function toggle_hidden()
+			show_hidden = not show_hidden
+			MiniPick.set_picker_items_from_cli(build_command())
+		end
+
+		local show = function(buf_id, items, query)
+			MiniPick.default_show(buf_id, items, query, { show_icons = true })
+		end
+
+		MiniPick.builtin.cli(
+			{ command = build_command(), spawn_opts = { cwd = opts.cwd } },
+			{
+				source = {
+					name = "Files",
+					show = show,
+					cwd = opts.cwd,
+				},
+				mappings = {
+					toggle_hidden = { char = "<M-h>", func = toggle_hidden },
+				},
+			}
+		)
+	end
+
 	local function with_pick(fn, opts)
 		return function()
 			if not MiniPick or not MiniExtra then
@@ -587,8 +624,8 @@ now(function()
 	end
 
 	-- Files
-	nmap_leader('<leader>', with_pick('files', { cwd = root() }), 'Find Files (Root Dir)')
-	map('n', '<leader>fF', with_pick('files', { cwd = vim.uv.cwd() }), { desc = 'Find Files (cwd)' })
+	nmap_leader('<leader>', function() pick_files({ cwd = root() }) end, 'Find Files (Root Dir)')
+	map('n', '<leader>fF', function() pick_files({ cwd = vim.uv.cwd() }) end, { desc = 'Find Files (cwd)' })
 	map('n', '<leader>fb', with_pick 'buffers', { desc = 'Buffers' })
 	map('n', '<leader>fo', with_pick('visit_paths', { cwd = root() }), { desc = 'Visits (Root Dir)' })
 	map('n', '<leader>fV', with_pick('visit_paths', { cwd = '' }), { desc = 'Visits (All)' })

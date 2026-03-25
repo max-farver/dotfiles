@@ -10,8 +10,8 @@ function M.get()
   local bufnr = vim.api.nvim_get_current_buf()
   local clients = vim.lsp.get_clients({ bufnr = bufnr })
   for _, client in ipairs(clients) do
-    if client.name ~= "copilot" and client.config and client.util.root_dir then
-      return client.util.root_dir
+    if client.name ~= "copilot" and client.config and client.config.root_dir then
+      return client.config.root_dir
     end
   end
 

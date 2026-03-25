@@ -19,14 +19,14 @@ later(function()
 	require("persistence").setup({})
 end)
 
-now(function()
-	add("folke/trouble.nvim")
-	require("trouble").setup({
-		use_diagnostic_signs = true,
-		auto_preview = false,
-	})
-end)
-
+-- now(function()
+-- 	add("folke/trouble.nvim")
+-- 	require("trouble").setup({
+-- 		use_diagnostic_signs = true,
+-- 		auto_preview = false,
+-- 	})
+-- end)
+--
 now(function()
 	add("folke/grug-far.nvim")
 	require("grug-far").setup({})

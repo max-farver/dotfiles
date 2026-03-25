@@ -2,6 +2,52 @@ local add = MiniDeps.add
 local now = MiniDeps.now
 local os = _G.Config.os
 
+local function find_notes_by_alias()
+	local Note = require("obsidian.note")
+	local mini_pick = require("mini.pick")
+
+	local vault_dir = tostring(Obsidian.dir)
+	local daily_folder = Obsidian.opts.daily_notes.folder
+	local files = vim.fn.globpath(vault_dir, "**/*.md", false, true)
+
+	local items = {}
+	for _, file in ipairs(files) do
+		local rel_path = file:sub(#vault_dir + 2)
+		if daily_folder and vim.startswith(rel_path, daily_folder .. "/") then
+			goto continue
+		end
+		local ok, note = pcall(Note.from_file, file)
+		if ok then
+			local aliases = note.aliases or {}
+			local text
+			if #aliases > 0 then
+				local dir = vim.fn.fnamemodify(rel_path, ":h")
+				text = "(" .. table.concat(aliases, ", ") .. ") | " .. dir .. "/"
+			else
+				text = rel_path
+			end
+
+			items[#items + 1] = {
+				text = text,
+				path = file,
+			}
+		end
+		::continue::
+	end
+
+	local entry = mini_pick.start({
+		source = {
+			name = "Find Note",
+			items = items,
+			choose = function() end,
+		},
+	})
+
+	if entry then
+		vim.cmd.edit(entry.path)
+	end
+end
+
 local function setup_obsidian_keymaps()
 	local nmap_leader = _G.Config.nmap_leader
 	local map = _G.Config.map
@@ -10,7 +56,7 @@ local function setup_obsidian_keymaps()
 	nmap_leader('o', '<nop>', 'Obsidian')
 	-- Navigation & Search
 	nmap_leader("o/", "<cmd>Obsidian search<cr>", "Search Notes")
-	nmap_leader("of", "<cmd>Obsidian quick_switch<cr>", "Find Note")
+	nmap_leader("of", find_notes_by_alias, "Find Note")
 	nmap_leader("ob", "<cmd>Obsidian backlinks<cr>", "Backlinks")
 	nmap_leader("ol", "<cmd>Obsidian links<cr>", "Links")
 	nmap_leader("oT", "<cmd>Obsidian tags<cr>", "Tags")

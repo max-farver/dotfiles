@@ -36,16 +36,6 @@ later(function()
 	-- group header
 	nmap_leader('g', '<nop>', '+git')
 
-	-- hunk actions
-	map('n', '<leader>gs', with_gitsigns 'stage_hunk', { desc = 'Stage Hunk' })
-	map('n', '<leader>gr', with_gitsigns 'reset_hunk', { desc = 'Reset Hunk' })
-	map('v', '<leader>gs', with_gitsigns 'stage_hunk', { desc = 'Stage Hunk' })
-	map('v', '<leader>gr', with_gitsigns 'reset_hunk', { desc = 'Reset Hunk' })
-	map('n', '<leader>gu', with_gitsigns 'undo_stage_hunk', { desc = 'Undo Stage Hunk' })
-	map('n', '<leader>gS', with_gitsigns 'stage_buffer', { desc = 'Stage Buffer' })
-	map('n', '<leader>gR', with_gitsigns 'reset_buffer', { desc = 'Reset Buffer' })
-	map('n', '<leader>gp', with_gitsigns 'preview_hunk', { desc = 'Preview Hunk' })
-
 	-- navigation
 	map('n', '<leader>gj', with_gitsigns 'next_hunk', { desc = 'Next Hunk' })
 	map('n', '<leader>gk', with_gitsigns 'prev_hunk', { desc = 'Prev Hunk' })
@@ -106,4 +96,9 @@ later(function()
 
 	-- copy remote URL to clipboard
 	map({ 'n', 'x' }, '<leader>gy', gl_action('copy'), { desc = 'Git Browse (copy)' })
+end)
+
+later(function()
+	add({ source = "max-farver/git-review.nvim" })
+	require("git-review").setup()
 end)

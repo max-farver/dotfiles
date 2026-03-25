@@ -92,14 +92,13 @@ local function setup()
 		filetypes = { "go", "gomod", "gowork", "gotmpl" },
 		settings = {
 			gopls = {
-				buildFlags = { "-tags=unit,integration,endtoend" },
+				buildFlags = { "-tags=unit,integration,endtoendtest" },
 				directoryFilters = { "-**/node_modules", "-**/.git" },
 				analyses = {
 					unusedparams = true,
 					shadow = true,
 				},
 				staticcheck = true,
-				usePlaceholders = true,
 				completeUnimported = true,
 			},
 		},

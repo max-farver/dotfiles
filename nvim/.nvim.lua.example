@@ -148,6 +148,10 @@ vim.g.project_linters = {
 -- - Custom autocmds
 -- - etc.
 
+-- Example: Load .env files (available to neotest, DAP, LSP, terminal, etc.)
+-- require("util.dotenv").load(".env.base")
+-- require("util.dotenv").load(".env.test")  -- later files override earlier ones
+
 -- Example: Set project-specific environment variable
 -- vim.env.GOFLAGS = "-tags=custom,project"
 
