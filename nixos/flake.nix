@@ -5,7 +5,6 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
     flake-utils.url = "github:numtide/flake-utils";
-    devshell.url = "github:numtide/devshell";
     pi-local.url = "path:./pkgs/pi";
 
     nur = {
@@ -14,6 +13,10 @@
     };
     ghostty.url = "github:ghostty-org/ghostty";
     affinity-nix.url = "github:mrshmllow/affinity-nix";
+    devenv = {
+      url = "github:cachix/devenv";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     # home-manager, used for managing user configuration
     home-manager = {
@@ -74,6 +77,7 @@
             }
           ];
         };
+
       };
 
       homeConfigurations = {
@@ -94,31 +98,25 @@
             ./system-specific/machines/pixel-8-pro/home.nix
           ];
         };
+
+        ubuntu-vps = home-manager.lib.homeManagerConfiguration {
+          pkgs = import nixpkgs {
+            system = "x86_64-linux";
+            config.allowUnfree = true;
+            overlays = [
+              nur.overlays.default
+            ];
+          };
+
+          extraSpecialArgs = {
+            inherit inputs;
+          };
+
+          modules = [
+            ./system-specific/machines/ubuntu-vps/home.nix
+          ];
+        };
       };
 
-      # Devshell templates for quick project initialization
-      templates = rec {
-        default = python;
-        base = {
-          path = ./devshells/base;
-          description = "Base development environment with common tools";
-        };
-        python = {
-          path = ./devshells/python;
-          description = "Python development environment";
-        };
-        rust = {
-          path = ./devshells/rust;
-          description = "Rust development environment";
-        };
-        go = {
-          path = ./devshells/go;
-          description = "Go development environment";
-        };
-        javascript = {
-          path = ./devshells/javascript;
-          description = "JavaScript/TypeScript development environment";
-        };
-      };
     };
 }

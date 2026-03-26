@@ -38,6 +38,11 @@
     ];
     extraConfig = ''
       set -g status-position top
+      set -g extended-keys on
+      set -g extended-keys-format csi-u
+
+      unbind r
+      bind r source-file ${config.xdg.configHome}/tmux/tmux.conf \; display-message "tmux config reloaded"
     '';
   };
 

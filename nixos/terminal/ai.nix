@@ -12,6 +12,6 @@
     dos2unix
     claude-code
     opencode
-    inputs.pi-local.packages.${pkgs.system}.default
+    inputs.pi-local.packages.${pkgs.stdenv.hostPlatform.system}.default
   ];
 }

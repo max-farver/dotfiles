@@ -34,10 +34,28 @@
         "type": "github"
       }
     },
+    "pi-mono": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1773156519,
+        "narHash": "sha256-JCPBGhNeFV9u+6lQeHboAmFyl5SjS9Qm1qtbRHmeIwA=",
+        "owner": "badlogic",
+        "repo": "pi-mono",
+        "rev": "4535415300f1599cd83807e1d1dd7f2615aabf70",
+        "type": "github"
+      },
+      "original": {
+        "owner": "badlogic",
+        "ref": "main",
+        "repo": "pi-mono",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "pi-mono": "pi-mono"
       }
     },
     "systems": {

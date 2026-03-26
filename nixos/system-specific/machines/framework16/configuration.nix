@@ -18,6 +18,7 @@
     pkgs.docker-compose   # V2 plugin
     pkgs.docker-buildx    # Advanced building with multi-platform support
     pkgs.compose2nix      # Tool to convert docker-compose.yml to NixOS modules
+    pkgs.qmk
   ];
 
   boot.kernelParams = [
@@ -62,6 +63,23 @@
   # Framework Updates
   services.fwupd.enable = true;
 
+  services.keyd = {
+    enable = true;
+    keyboards.voyager = {
+      ids = [ "3297:1977" ];
+      # Do not fully swap the left side: making leftcontrol -> leftmeta
+      # breaks my macro keys that depend on left-ctrl.
+      settings.main = {
+        leftmeta = "leftcontrol";
+        rightcontrol = "rightmeta";
+        rightmeta = "rightcontrol";
+      };
+    };
+  };
+
+  # QMK flashing permissions
+  services.udev.packages = [ pkgs.qmk-udev-rules ];
+
   # Fix waking when lid is closed
   services.udev.extraRules = ''
     SUBSYSTEM=="usb", DRIVERS=="usb", ATTRS{idVendor}=="32ac", ATTRS{idProduct}=="0012", ATTR{power/wakeup}="disabled", ATTR{driver/1-1.1.1.4/power/wakeup}="disabled"
@@ -102,8 +120,5 @@
     extraGroups = [ "docker" ];
   };
 
-  # Docker setup
-  virtualisation.docker = {
-    enable = true;
-  };
+
 }

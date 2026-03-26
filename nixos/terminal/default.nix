@@ -1,5 +1,6 @@
 {
   pkgs,
+  inputs,
   ...
 }:
 
@@ -23,7 +24,8 @@ in
 
   home.packages = with pkgs; [
     csvlens
-    nur.repos.charmbracelet.freeze
+    freeze
+    pandoc
     posting
     postgresql
     sqlite
@@ -37,16 +39,11 @@ in
     jq
     ripgrep
     playwright-test
+    inputs.devenv.packages.${pkgs.stdenv.hostPlatform.system}.default
   ];
 
   programs = {
     ghostty.enable = true;
-
-    direnv = {
-      enable = true;
-      enableBashIntegration = true; # see note on other shells below
-      nix-direnv.enable = true;
-    };
 
     nh = {
       enable = true;
@@ -71,6 +68,12 @@ in
     fzf = {
       enable = true;
       enableZshIntegration = false;
+    };
+
+    direnv = {
+      enable = true;
+      enableZshIntegration = true;
+      nix-direnv.enable = true;
     };
 
     bash.enable = true; # see note on other shells below

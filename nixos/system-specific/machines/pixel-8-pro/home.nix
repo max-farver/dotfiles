@@ -45,15 +45,15 @@ in
   programs = {
     bash.enable = true;
 
-    direnv = {
-      enable = true;
-      enableBashIntegration = true;
-      nix-direnv.enable = true;
-    };
-
     fzf = {
       enable = true;
       enableZshIntegration = false;
+    };
+
+    direnv = {
+      enable = true;
+      enableZshIntegration = true;
+      nix-direnv.enable = true;
     };
 
     nh = {

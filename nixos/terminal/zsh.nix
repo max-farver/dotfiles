@@ -22,6 +22,8 @@
     shellAliases = {
       rebuild_switch = "sudo nixos-rebuild switch --flake ~/.config/nixos";
       rebuild_boot = "sudo nixos-rebuild boot --flake ~/.config/nixos";
+      update_pi = "nix flake lock --update-input pi-mono ~/.config/nixos/pkgs/pi";
+      update_pi_rebuild = "nix flake lock --update-input pi-mono ~/.config/nixos/pkgs/pi && rebuild_switch";
     };
     autosuggestion = {
       enable = true;

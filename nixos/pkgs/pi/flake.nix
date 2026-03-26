@@ -4,9 +4,13 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    pi-mono = {
+      url = "github:badlogic/pi-mono/main";
+      flake = false;
+    };
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
+  outputs = { self, nixpkgs, flake-utils, pi-mono }:
     flake-utils.lib.eachDefaultSystem (
       system:
       let
@@ -14,18 +18,40 @@
           inherit system;
         };
 
-        pi = pkgs.buildNpmPackage rec {
-          pname = "pi";
-          version = "0.50.6";
+        xlsxSrc = pkgs.fetchurl {
+          url = "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz";
+          hash = "sha512-oLDq3jw7AcLqKWH2AhCpVTZl8mf6X2YReP+Neh0SJUzV/BdZYjth94tG5toiMB1PPrYtxOCfaoUCkvtuH+3AJA==";
+        };
 
-          src = pkgs.fetchFromGitHub {
-            owner = "badlogic";
-            repo = "pi-mono";
-            rev = "main";
-            hash = "sha256-yZLU6YvaU1WqqG/m7UdT8u3bpPUKZdT6a+Hq2RLNImk=";
+        piPackageLock =
+          let
+            lock = builtins.fromJSON (builtins.readFile "${pi-mono}/package-lock.json");
+          in
+          lock
+          // {
+            packages = lock.packages // {
+              "packages/web-ui" = lock.packages."packages/web-ui" // {
+                dependencies = lock.packages."packages/web-ui".dependencies // {
+                  xlsx = "file:${xlsxSrc}";
+                };
+              };
+            };
           };
 
-          npmDepsHash = "sha256-f+z+5P/FkRLB7GfH+/aJI9W6PEwDjcUtqXukIQENaI0=";
+        pi = pkgs.buildNpmPackage rec {
+          pname = "pi";
+          version = "main";
+
+          src = pi-mono;
+
+          npmDeps = pkgs.importNpmLock {
+            npmRoot = src;
+            packageLock = piPackageLock;
+            packageSourceOverrides = {
+              "node_modules/xlsx" = xlsxSrc;
+            };
+          };
+          npmConfigHook = pkgs.importNpmLock.npmConfigHook;
 
           nodejs = pkgs.nodejs_22;
 
@@ -46,10 +72,14 @@
 
           npmBuildScript = "build";
 
-          preBuild = ''
+          postPatch = ''
             substituteInPlace packages/ai/package.json \
               --replace-fail '"build": "npm run generate-models && tsgo -p tsconfig.build.json"' \
                               '"build": "tsgo -p tsconfig.build.json"'
+
+            substituteInPlace packages/web-ui/package.json \
+              --replace-fail '"xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"' \
+                              '"xlsx": "file:${xlsxSrc}"'
           '';
 
           dontNpmInstall = true;
@@ -92,15 +122,6 @@
         apps.default = {
           type = "app";
           program = "${pi}/bin/pi";
-        };
-
-        devShells.default = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            nodejs_22
-            ripgrep
-            fd
-            git
-          ];
         };
       }
     );
