@@ -1,6 +1,14 @@
-.cfg
-~/.zshrc
-~/.config/git/config
-~/.config/tmux/tmux.conf
-~/.config/tmux/plugins/
-~/.config/zsh/.z*
+# bare dotfiles repo metadata
+/.cfg
+
+# Home Manager generated files/symlinks under ~/.config
+/git/config
+/zsh/.zshenv
+/zsh/.zshrc
+/zsh/.zcompdump
+/zsh/.zcompdump-*
+/zsh/plugins/vi-mode
+/zsh/plugins/zsh-fzf-tab
+
+# local shell history
+/zsh/.zsh_history
