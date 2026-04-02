@@ -16,8 +16,8 @@ end
 
 local function on_attach(client, bufnr)
 	nmap("K", vim.lsp.buf.hover, "Hover")
-	nmap_leader('cli', '<cmd>LspInfo<cr>', 'LSP Info')
-	nmap_leader('clr', '<cmd>LspRestart<cr>', 'LSP Restart')
+	nmap_leader('cli', '<cmd>checkhealth vim.lsp<cr>', 'LSP Info')
+	nmap_leader('clr', '<cmd>lsp restart<cr>', 'LSP Restart')
 	nmap("<leader>cd", vim.diagnostic.open_float, "Line Diagnostics")
 	nmap("<leader>cf", function()
 		vim.lsp.buf.format({ async = true })
@@ -91,7 +91,7 @@ if not os_cfg.is_linux then
 	now(function()
 		add({
 			source = "williamboman/mason-lspconfig.nvim",
-			depends = { "williamboman/mason.nvim" },
+			depends = { "williamboman/mason.nvim", "neovim/nvim-lspconfig" },
 		})
 		local opts = { ensure_installed = {} }
 		local servers = {
@@ -120,10 +120,6 @@ if not os_cfg.is_linux then
 end
 
 now(function()
-	add({
-		source = "neovim/nvim-lspconfig",
-		depends = { "saghen/blink.cmp" },
-	})
 	lspconfig_config()
 end)
 

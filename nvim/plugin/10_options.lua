@@ -39,6 +39,7 @@ opt.linebreak = true
 opt.smoothscroll = true
 opt.laststatus = 3
 opt.list = false
+opt.pumborder = "rounded"
 opt.pumblend = 10
 opt.pumheight = 16
 opt.scrolloff = 8
@@ -54,6 +55,7 @@ opt.wildoptions = "pum"
 -- Command-line history: size and persistence (ShaDa)
 opt.history = 2000
 opt.shada = "!,'1000,<50,s100,:1000,/1000"
+opt.diffopt:append({ "indent-heuristic", "inline:char" })
 opt.virtualedit = "block"
 opt.winminwidth = 5
 opt.ruler = false

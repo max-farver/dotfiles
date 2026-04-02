@@ -28,7 +28,6 @@ local function ensure_go_plugins()
 			source = "ray-x/go.nvim",
 			depends = {
 				"ray-x/guihua.lua",
-				"neovim/nvim-lspconfig",
 				"nvim-treesitter/nvim-treesitter",
 			},
 			hooks = {
