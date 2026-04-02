@@ -88,7 +88,7 @@ now(function()
 		add({
 			source = "obsidian-nvim/obsidian.nvim",
 		})
-		local obsidian_opts = project.merge_plugin_opts("obsidian-nvim/obsidian.nvim", {
+		local obsidian_opts = {
 			workspaces = {
 				{
 					name = "personal",
@@ -99,7 +99,7 @@ now(function()
 				name = "mini.pick",
 			},
 			legacy_commands = false,
-		})
+		}
 		require("obsidian").setup(obsidian_opts)
 		setup_obsidian_keymaps()
 	else
