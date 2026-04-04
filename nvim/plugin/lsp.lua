@@ -97,6 +97,8 @@ if not os_cfg.is_linux then
 		local servers = {
 			"bashls",
 			"buf_ls",
+			"clangd",
+			"cmake",
 			"dockerls",
 			"docker_compose_language_service",
 			"gopls",
