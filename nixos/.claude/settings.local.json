@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(find:*)",
+      "Bash(nix flake show:*)",
+      "Bash(nixos-option:*)",
+      "Bash(nix eval:*)",
+      "Bash(nixos-version:*)",
+      "Bash(nix search:*)",
+      "Bash(nix-search:*)",
+      "Bash(nix-env:*)",
+      "Bash(nh:*)"
+    ]
+  }
+}

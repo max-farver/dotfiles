@@ -15,7 +15,6 @@
     affinity-nix.url = "github:mrshmllow/affinity-nix";
     devenv = {
       url = "github:cachix/devenv";
-      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # home-manager, used for managing user configuration

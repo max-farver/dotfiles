@@ -23,6 +23,8 @@
 
   boot.kernelParams = [
     "resume_offset=702464"
+    # Framework 16 iGPU glitch workaround (equivalent to modprobe option dcdebugmask=0x410)
+    "amdgpu.dcdebugmask=0x410"
   ];
 
   boot.resumeDevice = "/dev/disk/by-uuid/21d58950-6d40-4862-9dc4-3de2ce8b55b0";

@@ -8,5 +8,6 @@
     ./messaging.nix
     ./homelab.nix
     ./misc.nix
+    ./media-players.nix
   ];
 }

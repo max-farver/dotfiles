@@ -15,15 +15,15 @@
     enableCompletion = true;
     dotDir = "${config.xdg.configHome}/zsh";
     initContent = lib.mkOrder 550 ''
-      		export NH_FLAKE="${config.xdg.configHome}/nixos"
-            source ${config.xdg.configHome}/zsh/extensions/.zshrc.base
+      export NH_FLAKE="${config.xdg.configHome}/nixos"
+      source ${config.xdg.configHome}/zsh/extensions/.zshrc.base
     '';
 
     shellAliases = {
       rebuild_switch = "sudo nixos-rebuild switch --flake ~/.config/nixos";
       rebuild_boot = "sudo nixos-rebuild boot --flake ~/.config/nixos";
-      update_pi = "nix flake lock --update-input pi-mono ~/.config/nixos/pkgs/pi";
-      update_pi_rebuild = "nix flake lock --update-input pi-mono ~/.config/nixos/pkgs/pi && rebuild_switch";
+      update_pi = "nix flake update pi-mono --flake ~/.config/nixos/pkgs/pi";
+      update_pi_rebuild = "nix flake update pi-mono --flake ~/.config/nixos/pkgs/pi && rebuild_switch";
     };
     autosuggestion = {
       enable = true;
