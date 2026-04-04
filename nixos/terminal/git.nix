@@ -7,9 +7,13 @@
 
 {
   home.packages = with pkgs; [
-    gh
     lazygit
   ];
+
+  programs.gh = {
+    enable = true;
+    gitCredentialHelper.enable = true;
+  };
 
   programs.git = {
     enable = true;
