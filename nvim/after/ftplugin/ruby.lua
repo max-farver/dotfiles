@@ -1,4 +1,4 @@
-local add = MiniDeps.add
+local add = _G.Config.pack_add
 local helpers = _G.Config.ftplugin_helpers
 local project = _G.Config.project
 
@@ -9,11 +9,9 @@ local function ensure_ruby_plugins()
 	vim.g._ruby_ftplugin_plugins_loaded = true
 
 	add({
-		source = "tpope/vim-rails",
-		depends = {
-			"tpope/vim-bundler",
-			"tpope/vim-dispatch",
-		},
+		{ src = "https://github.com/tpope/vim-bundler" },
+		{ src = "https://github.com/tpope/vim-dispatch" },
+		{ src = "https://github.com/tpope/vim-rails" },
 	})
 end
 

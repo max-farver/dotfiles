@@ -1,5 +1,5 @@
-local now, later = MiniDeps.now, MiniDeps.later
-local add = MiniDeps.add
+local now, later = _G.Config.now, _G.Config.later
+local add = _G.Config.pack_add
 local now_if_args = _G.Config.now_if_args
 local root = _G.Config.root.get
 
@@ -7,7 +7,7 @@ local map = _G.Config.map
 local nmap_leader = _G.Config.nmap_leader
 
 now(function()
-	add('saghen/blink.cmp')
+	add({ { src = "https://github.com/saghen/blink.cmp" } })
 
 	local opts = {
 		snippets = {

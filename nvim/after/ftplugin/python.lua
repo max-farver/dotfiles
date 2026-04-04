@@ -1,4 +1,4 @@
-local add = MiniDeps.add
+local add = _G.Config.pack_add
 local project = _G.Config.project
 local helpers = _G.Config.ftplugin_helpers
 
@@ -16,14 +16,14 @@ local function ensure_python_plugins()
 	vim.g._python_ftplugin_plugins_loaded = true
 
 	add({
-		source = "linux-cultist/venv-selector.nvim",
+		{ src = "https://github.com/linux-cultist/venv-selector.nvim" },
 	})
 	local venv_opts = project.merge_plugin_opts("linux-cultist/venv-selector.nvim", venv_selector_defaults)
 	require("venv-selector").setup(venv_opts)
 
 	add({
-		source = "nvim-neotest/neotest-python",
-		depends = { "nvim-neotest/neotest" },
+		{ src = "https://github.com/nvim-neotest/neotest" },
+		{ src = "https://github.com/nvim-neotest/neotest-python" },
 	})
 end
 

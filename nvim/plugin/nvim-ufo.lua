@@ -1,10 +1,10 @@
-local add = MiniDeps.add
-local now = MiniDeps.now
+local add = _G.Config.pack_add
+local now = _G.Config.now
 
 now(function()
 	add({
-		source = "kevinhwang91/nvim-ufo",
-		depends = { "kevinhwang91/promise-async" },
+		{ src = "https://github.com/kevinhwang91/promise-async" },
+		{ src = "https://github.com/kevinhwang91/nvim-ufo" },
 	})
 	require("ufo").setup({
 		close_fold_kinds_for_ft = {

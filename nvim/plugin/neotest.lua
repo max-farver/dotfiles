@@ -1,5 +1,5 @@
-local add = MiniDeps.add
-local now, later = MiniDeps.now, MiniDeps.later
+local add = _G.Config.pack_add
+local now, later = _G.Config.now, _G.Config.later
 local icons = _G.Config.icons
 local os_cfg = _G.Config.os
 local project = _G.Config.project
@@ -7,13 +7,13 @@ local nmap = _G.Config.nmap
 local nmap_leader = _G.Config.nmap_leader
 
 later(function()
-	add("mfussenegger/nvim-dap")
-	add("theHamsta/nvim-dap-virtual-text")
+	add({ { src = "https://github.com/mfussenegger/nvim-dap" } })
+	add({ { src = "https://github.com/theHamsta/nvim-dap-virtual-text" } })
 
 	if not os_cfg.is_linux then
 		add({
-			source = "jay-babu/mason-nvim-dap.nvim",
-			depends = { "williamboman/mason.nvim" },
+			{ src = "https://github.com/williamboman/mason.nvim" },
+			{ src = "https://github.com/jay-babu/mason-nvim-dap.nvim" },
 		})
 	end
 
@@ -65,8 +65,9 @@ end)
 
 later(function()
 	add({
-		source = "miroshQa/debugmaster.nvim",
-		depends = { "mfussenegger/nvim-dap", "jbyuki/one-small-step-for-vimkind" },
+		{ src = "https://github.com/mfussenegger/nvim-dap" },
+		{ src = "https://github.com/jbyuki/one-small-step-for-vimkind" },
+		{ src = "https://github.com/miroshQa/debugmaster.nvim" },
 	})
 	local dm = require("debugmaster")
 	dm.plugins.osv_integration.enabled = true
@@ -78,8 +79,8 @@ end)
 
 later(function()
 	add({
-		source = "andythigpen/nvim-coverage",
-		depends = { "nvim-lua/plenary.nvim" },
+		{ src = "https://github.com/nvim-lua/plenary.nvim" },
+		{ src = "https://github.com/andythigpen/nvim-coverage" },
 	})
 	require("coverage").setup({
 		auto_reload = true,
@@ -93,12 +94,10 @@ end)
 
 later(function()
 	add({
-		source = "nvim-neotest/neotest",
-		depends = {
-			"nvim-neotest/nvim-nio",
-			"nvim-lua/plenary.nvim",
-			"nvim-treesitter/nvim-treesitter",
-		},
+		{ src = "https://github.com/nvim-neotest/nvim-nio" },
+		{ src = "https://github.com/nvim-lua/plenary.nvim" },
+		{ src = "https://github.com/nvim-treesitter/nvim-treesitter" },
+		{ src = "https://github.com/nvim-neotest/neotest" },
 	})
 
 	local default_opts = {
@@ -124,17 +123,13 @@ later(function()
 	}, neotest_ns)
 
 	add({
-		source = "fredrikaverpil/neotest-golang",
-		depends = {
-			"leoluz/nvim-dap-go",
-			"uga-rosa/utf8.nvim",
-		},
+		{ src = "https://github.com/leoluz/nvim-dap-go" },
+		{ src = "https://github.com/uga-rosa/utf8.nvim" },
+		{ src = "https://github.com/fredrikaverpil/neotest-golang" },
 	})
 	add({
-		source = "nvim-neotest/neotest",
-		depends = {
-			"olimorris/neotest-rspec",
-		},
+		{ src = "https://github.com/olimorris/neotest-rspec" },
+		{ src = "https://github.com/nvim-neotest/neotest" },
 	})
 	opts.adapters = {
 		require('neotest-golang')({

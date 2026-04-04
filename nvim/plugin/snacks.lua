@@ -2,12 +2,12 @@ if vim.g.vscode then
 	return
 end
 
-local add = MiniDeps.add
-local now = MiniDeps.now
+local add = _G.Config.pack_add
+local now = _G.Config.now
 local nmap_leader = _G.Config.nmap_leader
 
 now(function()
-	add("folke/snacks.nvim")
+	add({ { src = "https://github.com/folke/snacks.nvim" } })
 	local snacks = require('snacks')
 	snacks.setup({
 		statuscolumn = {},

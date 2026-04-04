@@ -1,11 +1,11 @@
-local add = MiniDeps.add
-local now, later = MiniDeps.now, MiniDeps.later
+local add = _G.Config.pack_add
+local now, later = _G.Config.now, _G.Config.later
 local icons = _G.Config.icons
 local nmap_leader = _G.Config.nmap_leader
 local map = _G.Config.map
 
 later(function()
-	add("lewis6991/gitsigns.nvim")
+	add({ { src = "https://github.com/lewis6991/gitsigns.nvim" } })
 	require("gitsigns").setup({
 		signs = {
 			add = { text = icons.git.added },
@@ -56,7 +56,7 @@ later(function()
 end)
 
 later(function()
-	add("sindrets/diffview.nvim")
+	add({ { src = "https://github.com/sindrets/diffview.nvim" } })
 	require("diffview").setup({
 		enhanced_diff_hl = true,
 	})
@@ -64,8 +64,8 @@ end)
 
 later(function()
 	add({
-		source = "ruifm/gitlinker.nvim",
-		depends = { "nvim-lua/plenary.nvim" },
+		{ src = "https://github.com/nvim-lua/plenary.nvim" },
+		{ src = "https://github.com/ruifm/gitlinker.nvim" },
 	})
 	require("gitlinker").setup({
 		mappings = false,
@@ -99,6 +99,6 @@ later(function()
 end)
 
 later(function()
-	add({ source = "max-farver/git-review.nvim" })
+	add({ { src = "https://github.com/max-farver/git-review.nvim" } })
 	require("git-review").setup()
 end)

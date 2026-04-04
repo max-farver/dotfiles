@@ -14,7 +14,7 @@
 -- - Step one enables everything that is needed for first draw with `now()`.
 --   Sometimes is needed only if Neovim is started as `nvim -- path/to/file`.
 -- - Everything else is delayed until the first draw with `later()`.
-local now, later = MiniDeps.now, MiniDeps.later
+local now, later = _G.Config.now, _G.Config.later
 local now_if_args = _G.Config.now_if_args
 local root = _G.Config.root.get
 
@@ -53,8 +53,8 @@ now(function()
 end)
 
 now_if_args(function()
-	-- Makes `:h MiniMisc.put()` and `:h MiniMisc.put_text()` public
-	require('mini.misc').setup()
+	-- `mini.misc` is initialized in `init.lua` so `MiniMisc.safely()` is
+	-- available as early as possible.
 
 	-- Change current working directory based on the current file path. It
 	-- searches up the file tree until the first root marker ('.git' or 'Makefile')
@@ -64,7 +64,6 @@ now_if_args(function()
 
 	-- Restore latest cursor position on file open
 	MiniMisc.setup_restore_cursor()
-
 end)
 
 now(function() require('mini.notify').setup() end)

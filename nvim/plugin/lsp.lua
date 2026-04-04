@@ -1,5 +1,5 @@
-local add = MiniDeps.add
-local now, later = MiniDeps.now, MiniDeps.later
+local add = _G.Config.pack_add
+local now, later = _G.Config.now, _G.Config.later
 local os_cfg = _G.Config.os
 local nmap = _G.Config.nmap
 local nmap_leader = _G.Config.nmap_leader
@@ -58,20 +58,13 @@ local function lspconfig_config()
 end
 
 later(function()
-	add("b0o/SchemaStore.nvim")
+	add({ { src = "https://github.com/b0o/SchemaStore.nvim" } })
 end)
 
 if not os_cfg.is_linux then
 	now(function()
 		add({
-			source = "williamboman/mason.nvim",
-			hooks = {
-				post_checkout = function()
-					vim.schedule(function()
-						pcall(vim.cmd, "MasonUpdate")
-					end)
-				end,
-			},
+			{ src = "https://github.com/williamboman/mason.nvim" },
 		})
 		local opts = { ensure_installed = {} }
 		local tools = {
@@ -90,8 +83,8 @@ if not os_cfg.is_linux then
 
 	now(function()
 		add({
-			source = "williamboman/mason-lspconfig.nvim",
-			depends = { "williamboman/mason.nvim", "neovim/nvim-lspconfig" },
+			{ src = "https://github.com/neovim/nvim-lspconfig" },
+			{ src = "https://github.com/williamboman/mason-lspconfig.nvim" },
 		})
 		local opts = { ensure_installed = {} }
 		local servers = {
@@ -126,7 +119,7 @@ now(function()
 end)
 
 later(function()
-	add("stevearc/conform.nvim")
+	add({ { src = "https://github.com/stevearc/conform.nvim" } })
 	local opts = {
 		format_on_save = function(bufnr)
 			-- Disable autoformat on certain filetypes
@@ -192,7 +185,7 @@ later(function()
 end)
 
 later(function()
-	add("mfussenegger/nvim-lint")
+	add({ { src = "https://github.com/mfussenegger/nvim-lint" } })
 	local lint = require("lint")
 	lint.linters_by_ft = {
 		dockerfile = { "hadolint" },

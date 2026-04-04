@@ -1,11 +1,11 @@
-local add = MiniDeps.add
-local now, later = MiniDeps.now, MiniDeps.later
+local add = _G.Config.pack_add
+local now, later = _G.Config.now, _G.Config.later
 local now_if_args = _G.Config.now_if_args
 local map = _G.Config.map
 local nmap_leader = _G.Config.nmap_leader
 
 now(function()
-	add("christoomey/vim-tmux-navigator")
+	add({ { src = "https://github.com/christoomey/vim-tmux-navigator" } })
 
 	map('n', '<c-Left>', '<cmd>TmuxNavigateLeft<cr>', { desc = 'Tmux Left' })
 	map('n', '<c-h>', '<cmd>TmuxNavigateLeft<cr>', { desc = 'Tmux Left' })
@@ -19,7 +19,7 @@ now(function()
 end)
 
 later(function()
-	add("folke/flash.nvim")
+	add({ { src = "https://github.com/folke/flash.nvim" } })
 	require("flash").setup()
 
 
@@ -57,7 +57,7 @@ later(function()
 end)
 
 later(function()
-	add("gbprod/yanky.nvim")
+	add({ { src = "https://github.com/gbprod/yanky.nvim" } })
 	require("yanky").setup({
 		highlight = { timer = 150 },
 	})
@@ -90,27 +90,24 @@ later(function()
 end)
 
 later(function()
-	add("stevearc/overseer.nvim")
+	add({ { src = "https://github.com/stevearc/overseer.nvim" } })
 	require("overseer").setup()
 end)
 
 later(function()
-	add("smjonas/inc-rename.nvim")
+	add({ { src = "https://github.com/smjonas/inc-rename.nvim" } })
 	require("inc_rename").setup()
 end)
 
 now(function()
 	add({
-		source = "nvim-treesitter/nvim-treesitter",
-		checkout = 'main',
-		hooks = { post_checkout = function() vim.cmd('TSUpdate') end },
+		{ src = "https://github.com/nvim-treesitter/nvim-treesitter", version = 'main' },
 	})
 
 	_G.Config.nvim_ts = require("nvim-treesitter")
 
 	add({
-		source = "nvim-treesitter/nvim-treesitter-textobjects",
-		checkout = 'main',
+		{ src = "https://github.com/nvim-treesitter/nvim-treesitter-textobjects", version = 'main' },
 	})
 	require("nvim-treesitter-textobjects").setup({
 		select = {

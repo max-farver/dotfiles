@@ -1,5 +1,5 @@
-local add = MiniDeps.add
-local later = MiniDeps.later
+local add = _G.Config.pack_add
+local later = _G.Config.later
 local project = _G.Config.project
 local helpers = _G.Config.ftplugin_helpers
 
@@ -25,23 +25,14 @@ local function ensure_go_plugins()
 
 	later(function()
 		add({
-			source = "ray-x/go.nvim",
-			depends = {
-				"ray-x/guihua.lua",
-				"nvim-treesitter/nvim-treesitter",
-			},
-			hooks = {
-				post_checkout = function()
-					pcall(function()
-						require("go.install").update_all_sync()
-					end)
-				end,
-			},
+			{ src = "https://github.com/ray-x/guihua.lua" },
+			{ src = "https://github.com/nvim-treesitter/nvim-treesitter" },
+			{ src = "https://github.com/ray-x/go.nvim" },
 		})
 		local go_opts = project.merge_plugin_opts("ray-x/go.nvim", go_nvim_defaults)
 		require("go").setup(go_opts)
 
-		add("TheNoeTrevino/no-go.nvim")
+		add({ { src = "https://github.com/TheNoeTrevino/no-go.nvim" } })
 		require("no-go").setup({ -- required w/o lazy.nvim
 			-- Enable the plugin behavior by default
 			enabled = true,

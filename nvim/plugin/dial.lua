@@ -1,5 +1,5 @@
-local add = MiniDeps.add
-local now = MiniDeps.now
+local add = _G.Config.pack_add
+local now = _G.Config.now
 
 local M = {}
 
@@ -128,7 +128,7 @@ function M.setup(opts)
 end
 
 now(function()
-  add("monaqa/dial.nvim")
+  add({ { src = "https://github.com/monaqa/dial.nvim" } })
   M.setup()
 end)
 

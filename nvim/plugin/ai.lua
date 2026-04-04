@@ -1,10 +1,10 @@
-local add = MiniDeps.add
-local now, later = MiniDeps.now, MiniDeps.later
+local add = _G.Config.pack_add
+local now, later = _G.Config.now, _G.Config.later
 
 later(function()
 	add({
-		source = "folke/sidekick.nvim",
-		-- depends = { "copilot-nvim/copilot-lsp" },
+		{ src = "https://github.com/folke/sidekick.nvim" },
+		-- { src = "https://github.com/copilot-nvim/copilot-lsp" },
 	})
 	require("sidekick").setup({
 		nes = {

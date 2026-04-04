@@ -1,5 +1,5 @@
-local add = MiniDeps.add
-local now = MiniDeps.now
+local add = _G.Config.pack_add
+local now = _G.Config.now
 local os_cfg = _G.Config.os
 local project = _G.Config.project
 
@@ -86,7 +86,7 @@ end
 now(function()
 	if os_cfg.is_linux then
 		add({
-			source = "obsidian-nvim/obsidian.nvim",
+			{ src = "https://github.com/obsidian-nvim/obsidian.nvim" },
 		})
 		local obsidian_opts = {
 			workspaces = {
@@ -104,7 +104,7 @@ now(function()
 		setup_obsidian_keymaps()
 	else
 		add({
-			source = "obsidian-nvim/obsidian.nvim",
+			{ src = "https://github.com/obsidian-nvim/obsidian.nvim" },
 		})
 		local obsidian_opts = {
 			workspaces = {

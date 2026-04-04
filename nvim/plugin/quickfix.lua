@@ -1,9 +1,9 @@
-local add = MiniDeps.add
-local now, later = MiniDeps.now, MiniDeps.later
+local add = _G.Config.pack_add
+local now, later = _G.Config.now, _G.Config.later
 
 -- Enhanced quickfix window with preview, filtering, and more.
 later(function()
-	add("kevinhwang91/nvim-bqf")
+	add({ { src = "https://github.com/kevinhwang91/nvim-bqf" } })
 	require("bqf").setup({
 		auto_resize_height = true,
 		preview = {
@@ -16,7 +16,7 @@ end)
 
 -- Faster, nicer quickfix/location list UI & actions.
 later(function()
-	add("stevearc/quicker.nvim")
+	add({ { src = "https://github.com/stevearc/quicker.nvim" } })
 	require("quicker").setup({})
 end)
 

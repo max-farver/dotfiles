@@ -40,35 +40,102 @@
 -- - "See 'path/to/file'" means see open file at described path and read it.
 -- - `:SomeCommand ...` or `:lua ...` means execute mentioned command.
 
--- Bootstrap 'mini.nvim' manually in a way that it gets managed by 'mini.deps'
-local mini_path = vim.fn.stdpath('data') .. '/site/pack/deps/start/mini.nvim'
-if not vim.uv.fs_stat(mini_path) then
-	vim.cmd('echo "Installing `mini.nvim`" | redraw')
-	local origin = 'https://github.com/max-farver/mini.nvim'
-	local clone_cmd = { 'git', 'clone', '--filter=blob:none', origin, mini_path }
-	vim.fn.system(clone_cmd)
-	vim.cmd('packadd mini.nvim | helptags ALL')
-	vim.cmd('echo "Installed `mini.nvim`" | redraw')
-end
-
 -- Set this immediately so that project level options are loaded correctly
 vim.opt.exrc = true
 
-
--- Plugin manager. Set up immediately for `now()`/`later()` helpers.
--- Example usage:
--- - `MiniDeps.add('...')` - use inside config to add a plugin
--- - `:DepsUpdate` - update all plugins
--- - `:DepsSnapSave` - save a snapshot of currently active plugins
---
--- See also:
--- - `:h MiniDeps-overview` - how to use it
--- - `:h MiniDeps-commands` - all available commands
--- - 'plugin/30_mini.lua' - more details about 'mini.nvim' in general
-require('mini.deps').setup()
-
 -- Define config table to be able to pass data between scripts
 _G.Config = {}
+
+-- `vim.pack` helpers
+_G.Config.pack_add = function(specs)
+	vim.pack.add(specs, { confirm = false })
+end
+
+vim.api.nvim_create_autocmd('PackChanged', {
+	group = vim.api.nvim_create_augroup('pack-hooks', { clear = true }),
+	callback = function(ev)
+		if ev.data.kind ~= 'install' and ev.data.kind ~= 'update' then return end
+		local name = ev.data.spec and ev.data.spec.name
+		if not name then return end
+		if name == 'nvim-treesitter' then
+			if not ev.data.active then pcall(vim.cmd.packadd, name) end
+			pcall(vim.cmd, 'TSUpdate')
+		elseif name == 'mason.nvim' then
+			if not ev.data.active then pcall(vim.cmd.packadd, name) end
+			vim.schedule(function() pcall(vim.cmd, 'MasonUpdate') end)
+		elseif name == 'go.nvim' then
+			if not ev.data.active then pcall(vim.cmd.packadd, name) end
+			pcall(function() require('go.install').update_all_sync() end)
+		elseif name == 'markdown-preview.nvim' then
+			if not ev.data.active then pcall(vim.cmd.packadd, name) end
+			pcall(vim.cmd, 'silent! call mkdp#util#install()')
+		end
+	end,
+})
+
+local function safely(fn)
+	if _G.MiniMisc and type(MiniMisc.safely) == 'function' then
+		return MiniMisc.safely('now', fn)
+	end
+	local ok, err = xpcall(fn, debug.traceback)
+	if not ok then
+		vim.schedule(function() vim.notify(err, vim.log.levels.ERROR) end)
+	end
+end
+
+local later_queue, later_scheduled = {}, false
+local function later(fn)
+	if _G.MiniMisc and type(MiniMisc.safely) == 'function' then
+		return MiniMisc.safely('later', fn)
+	end
+	if vim.v.vim_did_enter == 1 then return safely(fn) end
+	table.insert(later_queue, fn)
+	if later_scheduled then return end
+	later_scheduled = true
+	vim.api.nvim_create_autocmd('VimEnter', {
+		once = true,
+		callback = function()
+			for _, f in ipairs(later_queue) do
+				safely(f)
+			end
+			later_queue = {}
+		end,
+	})
+end
+
+_G.Config.now = safely
+_G.Config.later = later
+
+-- Ensure `mini.nvim` is managed by `vim.pack` and available during startup.
+_G.Config.pack_add({ { src = 'https://github.com/nvim-mini/mini.nvim' } })
+
+-- Use MiniMisc.safely() as a startup-safe execution primitive.
+require('mini.misc').setup()
+if type(MiniMisc.safely) ~= 'function' then
+	MiniMisc.safely = function(when, fn)
+		if type(when) == 'function' and fn == nil then
+			fn = when
+			when = 'now'
+		end
+		if when == 'later' then
+			vim.schedule(function()
+				local ok, err = xpcall(fn, debug.traceback)
+				if not ok then
+					vim.notify(err, vim.log.levels.ERROR)
+				end
+			end)
+			return
+		end
+		local ok, err = xpcall(fn, debug.traceback)
+		if not ok then
+			vim.schedule(function() vim.notify(err, vim.log.levels.ERROR) end)
+		end
+	end
+end
+
+vim.api.nvim_create_user_command('PackUpdate', function()
+	vim.pack.update()
+end, { desc = 'Update plugins via vim.pack' })
 
 local gr = vim.api.nvim_create_augroup('custom-config', {})
 _G.Config.new_autocmd = function(event, pattern, callback, desc)
@@ -95,7 +162,7 @@ end
 
 -- Some plugins and 'mini.nvim' modules only need setup during startup if Neovim
 -- is started like `nvim -- path/to/file`, otherwise delaying setup is fine
-_G.Config.now_if_args = vim.fn.argc(-1) > 0 and MiniDeps.now or MiniDeps.later
+_G.Config.now_if_args = vim.fn.argc(-1) > 0 and _G.Config.now or _G.Config.later
 
 
 _G.Config.ftplugin_helpers = require('util.ftplugin_helpers')
