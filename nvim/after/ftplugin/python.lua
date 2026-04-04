@@ -1,4 +1,4 @@
-local add = _G.Config.pack_add
+local add_once = _G.Config.pack_add_once or _G.Config.pack_add
 local project = _G.Config.project
 local helpers = _G.Config.ftplugin_helpers
 
@@ -15,21 +15,29 @@ local function ensure_python_plugins()
 	end
 	vim.g._python_ftplugin_plugins_loaded = true
 
-	add({
+	add_once({
 		{ src = "https://github.com/linux-cultist/venv-selector.nvim" },
 	})
 	local venv_opts = project.merge_plugin_opts("linux-cultist/venv-selector.nvim", venv_selector_defaults)
 	require("venv-selector").setup(venv_opts)
 
-	add({
+	add_once({
+		{ src = "https://github.com/nvim-neotest/nvim-nio" },
+		{ src = "https://github.com/nvim-lua/plenary.nvim" },
+		{ src = "https://github.com/nvim-treesitter/nvim-treesitter" },
 		{ src = "https://github.com/nvim-neotest/neotest" },
 		{ src = "https://github.com/nvim-neotest/neotest-python" },
 	})
+
+	local neotest_python_opts = project.merge_plugin_opts("nvim-neotest/neotest-python", {})
+	require("util.neotest").register_adapter("neotest-python", function()
+		return require("neotest-python")(neotest_python_opts)
+	end)
 end
 
 local function setup()
 	ensure_python_plugins()
-	helpers.ensure_treesitter({ 'python' })
+	helpers.ensure_treesitter({ "python" })
 
 	helpers.setup_lsps({
 		pyright = {},

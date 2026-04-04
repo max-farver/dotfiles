@@ -30,6 +30,7 @@ Start Neovim. Plugins are installed automatically by `vim.pack`.
 This config exposes a tiny helper:
 
 - `_G.Config.pack_add(specs)` → `vim.pack.add(specs, { confirm = false })`
+- `_G.Config.pack_add_once(specs)` → add only unseen specs (dedup by `name`/`src`)
 
 and a command:
 
@@ -65,11 +66,16 @@ add({
 Do the same inside the ftplugin loader function so first open has everything in order.
 
 ```lua
-add({
+local add_once = _G.Config.pack_add_once or _G.Config.pack_add
+
+add_once({
   { src = "https://github.com/nvim-neotest/neotest" },
   { src = "https://github.com/nvim-neotest/neotest-python" },
 })
 ```
+
+For Neotest adapters, keep core setup centralized and register adapters from ftplugins
+(e.g. `after/ftplugin/python.lua`, `after/ftplugin/go.lua`, `after/ftplugin/ruby.lua`).
 
 ### Post-install/update actions (hooks)
 

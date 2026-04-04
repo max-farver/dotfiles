@@ -1,4 +1,3 @@
-local helpers = _G.Config.ftplugin_helpers
 local project = _G.Config.project
 
 local formatters = project.get_formatters("zshrc")

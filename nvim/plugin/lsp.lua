@@ -1,8 +1,6 @@
-local add = _G.Config.pack_add
+local add_once = _G.Config.pack_add_once or _G.Config.pack_add
 local now, later = _G.Config.now, _G.Config.later
 local os_cfg = _G.Config.os
-local nmap = _G.Config.nmap
-local nmap_leader = _G.Config.nmap_leader
 
 local function ensure(list, value)
 	if not vim.tbl_contains(list, value) then
@@ -15,17 +13,25 @@ end
 -- ============================================================================
 
 local function on_attach(client, bufnr)
-	nmap("K", vim.lsp.buf.hover, "Hover")
-	nmap_leader('cli', '<cmd>checkhealth vim.lsp<cr>', 'LSP Info')
-	nmap_leader('clr', '<cmd>lsp restart<cr>', 'LSP Restart')
-	nmap("<leader>cd", vim.diagnostic.open_float, "Line Diagnostics")
-	nmap("<leader>cf", function()
+	local function bmap(mode, lhs, rhs, desc, opts)
+		opts = opts or {}
+		opts.buffer = bufnr
+		opts.silent = opts.silent ~= false
+		opts.desc = desc or opts.desc
+		vim.keymap.set(mode, lhs, rhs, opts)
+	end
+
+	bmap("n", "K", vim.lsp.buf.hover, "Hover")
+	bmap("n", "<leader>cli", "<cmd>checkhealth vim.lsp<cr>", "LSP Info")
+	bmap("n", "<leader>clr", "<cmd>lsp restart<cr>", "LSP Restart")
+	bmap("n", "<leader>cd", vim.diagnostic.open_float, "Line Diagnostics")
+	bmap("n", "<leader>cf", function()
 		vim.lsp.buf.format({ async = true })
 	end, "Format Buffer")
-	nmap("<leader>ca", vim.lsp.buf.code_action, "Code Actions")
-	nmap_leader('cn', function()
+	bmap("n", "<leader>ca", vim.lsp.buf.code_action, "Code Actions")
+	bmap("n", "<leader>cn", function()
 		return ':IncRename ' .. vim.fn.expand('<cword>')
-	end, 'Rename Symbol', { expr = true })
+	end, "Rename Symbol", { expr = true })
 
 	vim.bo[bufnr].omnifunc = "v:lua.vim.lsp.omnifunc"
 
@@ -38,8 +44,11 @@ local function lspconfig_config()
 	-- Disable diagnostic virtual_text in favor of tiny-inline-diagnostic
 	vim.diagnostic.config({ virtual_text = false })
 
-	-- Merge with cmp_nvim_lsp capabilities if available
-	local capabilities = require('blink.cmp').get_lsp_capabilities()
+	local capabilities = vim.lsp.protocol.make_client_capabilities()
+	local ok_blink, blink = pcall(require, "blink.cmp")
+	if ok_blink and type(blink.get_lsp_capabilities) == "function" then
+		capabilities = blink.get_lsp_capabilities(capabilities)
+	end
 
 	-- Store capabilities globally for ftplugin files to access
 	_G.Config.lsp_capabilities = capabilities
@@ -58,12 +67,12 @@ local function lspconfig_config()
 end
 
 later(function()
-	add({ { src = "https://github.com/b0o/SchemaStore.nvim" } })
+	add_once({ { src = "https://github.com/b0o/SchemaStore.nvim" } })
 end)
 
 if not os_cfg.is_linux then
 	now(function()
-		add({
+		add_once({
 			{ src = "https://github.com/williamboman/mason.nvim" },
 		})
 		local opts = { ensure_installed = {} }
@@ -82,7 +91,7 @@ if not os_cfg.is_linux then
 	end)
 
 	now(function()
-		add({
+		add_once({
 			{ src = "https://github.com/neovim/nvim-lspconfig" },
 			{ src = "https://github.com/williamboman/mason-lspconfig.nvim" },
 		})
@@ -119,7 +128,7 @@ now(function()
 end)
 
 later(function()
-	add({ { src = "https://github.com/stevearc/conform.nvim" } })
+	add_once({ { src = "https://github.com/stevearc/conform.nvim" } })
 	local opts = {
 		format_on_save = function(bufnr)
 			-- Disable autoformat on certain filetypes
@@ -185,7 +194,7 @@ later(function()
 end)
 
 later(function()
-	add({ { src = "https://github.com/mfussenegger/nvim-lint" } })
+	add_once({ { src = "https://github.com/mfussenegger/nvim-lint" } })
 	local lint = require("lint")
 	lint.linters_by_ft = {
 		dockerfile = { "hadolint" },

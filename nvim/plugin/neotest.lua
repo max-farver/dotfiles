@@ -1,17 +1,32 @@
-local add = _G.Config.pack_add
-local now, later = _G.Config.now, _G.Config.later
+local add_once = _G.Config.pack_add_once or _G.Config.pack_add
+local later = _G.Config.later
 local icons = _G.Config.icons
 local os_cfg = _G.Config.os
 local project = _G.Config.project
 local nmap = _G.Config.nmap
 local nmap_leader = _G.Config.nmap_leader
 
+local neotest_registry = require("util.neotest")
+
+local function with_neotest(fn)
+	return function()
+		local ok, neotest = pcall(require, "neotest")
+		if not ok then
+			vim.notify("neotest is not available", vim.log.levels.WARN)
+			return
+		end
+		fn(neotest)
+	end
+end
+
 later(function()
-	add({ { src = "https://github.com/mfussenegger/nvim-dap" } })
-	add({ { src = "https://github.com/theHamsta/nvim-dap-virtual-text" } })
+	add_once({
+		{ src = "https://github.com/mfussenegger/nvim-dap" },
+		{ src = "https://github.com/theHamsta/nvim-dap-virtual-text" },
+	})
 
 	if not os_cfg.is_linux then
-		add({
+		add_once({
 			{ src = "https://github.com/williamboman/mason.nvim" },
 			{ src = "https://github.com/jay-babu/mason-nvim-dap.nvim" },
 		})
@@ -44,27 +59,26 @@ later(function()
 		})
 	end
 
-
-	local dap = require('dap')
-	nmap('<leader>dB', function()
-		dap.set_breakpoint(vim.fn.input 'Breakpoint condition: ')
-	end, 'Breakpoint Condition')
-	nmap('<leader>db', function()
+	local dap = require("dap")
+	nmap("<leader>dB", function()
+		dap.set_breakpoint(vim.fn.input("Breakpoint condition: "))
+	end, "Breakpoint Condition")
+	nmap("<leader>db", function()
 		dap.toggle_breakpoint()
-	end, 'Toggle Breakpoint')
-	nmap('<leader>dl', function()
+	end, "Toggle Breakpoint")
+	nmap("<leader>dl", function()
 		dap.run_last()
-	end, 'Run Last')
-	nmap('<leader>ds', function()
+	end, "Run Last")
+	nmap("<leader>ds", function()
 		dap.session()
-	end, 'Session')
-	nmap('<leader>dt', function()
+	end, "Session")
+	nmap("<leader>dt", function()
 		dap.terminate()
-	end, 'Terminate')
+	end, "Terminate")
 end)
 
 later(function()
-	add({
+	add_once({
 		{ src = "https://github.com/mfussenegger/nvim-dap" },
 		{ src = "https://github.com/jbyuki/one-small-step-for-vimkind" },
 		{ src = "https://github.com/miroshQa/debugmaster.nvim" },
@@ -72,13 +86,13 @@ later(function()
 	local dm = require("debugmaster")
 	dm.plugins.osv_integration.enabled = true
 
-	nmap_leader('dd', function()
+	nmap_leader("dd", function()
 		dm.mode.toggle()
-	end, 'Toggle Debug Mode')
+	end, "Toggle Debug Mode")
 end)
 
 later(function()
-	add({
+	add_once({
 		{ src = "https://github.com/nvim-lua/plenary.nvim" },
 		{ src = "https://github.com/andythigpen/nvim-coverage" },
 	})
@@ -93,7 +107,7 @@ later(function()
 end)
 
 later(function()
-	add({
+	add_once({
 		{ src = "https://github.com/nvim-neotest/nvim-nio" },
 		{ src = "https://github.com/nvim-lua/plenary.nvim" },
 		{ src = "https://github.com/nvim-treesitter/nvim-treesitter" },
@@ -103,7 +117,6 @@ later(function()
 	local default_opts = {
 		discovery = { enabled = false, concurrent = 0 },
 		running = { concurrent = true },
-		-- summary = { animated = true },
 		log_level = vim.log.levels.WARN,
 		status = { virtual_text = true },
 		output = { open_on_run = false },
@@ -122,71 +135,36 @@ later(function()
 		},
 	}, neotest_ns)
 
-	add({
-		{ src = "https://github.com/leoluz/nvim-dap-go" },
-		{ src = "https://github.com/uga-rosa/utf8.nvim" },
-		{ src = "https://github.com/fredrikaverpil/neotest-golang" },
-	})
-	add({
-		{ src = "https://github.com/olimorris/neotest-rspec" },
-		{ src = "https://github.com/nvim-neotest/neotest" },
-	})
-	opts.adapters = {
-		require('neotest-golang')({
-			go_test_args = function()
-				return {
-					'-v',
-					'-race',
-					'-coverprofile=' .. vim.fn.getcwd() .. '/coverage.out',
-					vim.env.GO_TEST_FLAGS or '',
-				}
-			end,
-			dap_go_opts = {
-				delve = {
-					build_flags = { '-tags=unit,integration,endtoendtest' },
-				},
-			},
-			runner = 'gotestsum',
-			gotestsum_args = { '--format=standard-verbose' },
-			testify_enabled = true,
-			log_level = vim.log.levels.TRACE,
+	neotest_registry.setup(opts)
 
-			-- experimental
-			dev_notifications = true,
-		}),
-		require("neotest-rspec")
-	}
-	require('neotest').setup(opts)
-
-
-	nmap_leader('tt', function()
-		require('neotest').run.run(vim.fn.expand '%')
-	end, 'Run File')
-	nmap_leader('tT', function()
-		require('neotest').run.run(vim.uv.cwd())
-	end, 'Run All Files')
-	nmap_leader('tr', function()
-		require('neotest').run.run()
-	end, 'Run Nearest')
-	nmap_leader('tl', function()
-		require('neotest').run.run_last()
-	end, 'Run Last')
-	nmap_leader('ts', function()
-		require('neotest').summary.toggle()
-	end, 'Toggle Summary')
-	nmap_leader('to', function()
-		require('neotest').output.open { enter = true, auto_close = true }
-	end, 'Show Output')
-	nmap_leader('tO', function()
-		require('neotest').output_panel.toggle()
-	end, 'Toggle Output Panel')
-	nmap_leader('tS', function()
-		require('neotest').run.stop()
-	end, 'Stop Tests')
-	nmap_leader('tw', function()
-		require('neotest').watch.toggle(vim.fn.expand '%')
-	end, 'Toggle Watch')
-	nmap_leader('td', function()
-		require('neotest').run.run { strategy = 'dap' }
-	end, 'Debug Nearest')
+	nmap_leader("tt", with_neotest(function(neotest)
+		neotest.run.run(vim.fn.expand("%"))
+	end), "Run File")
+	nmap_leader("tT", with_neotest(function(neotest)
+		neotest.run.run(vim.uv.cwd())
+	end), "Run All Files")
+	nmap_leader("tr", with_neotest(function(neotest)
+		neotest.run.run()
+	end), "Run Nearest")
+	nmap_leader("tl", with_neotest(function(neotest)
+		neotest.run.run_last()
+	end), "Run Last")
+	nmap_leader("ts", with_neotest(function(neotest)
+		neotest.summary.toggle()
+	end), "Toggle Summary")
+	nmap_leader("to", with_neotest(function(neotest)
+		neotest.output.open({ enter = true, auto_close = true })
+	end), "Show Output")
+	nmap_leader("tO", with_neotest(function(neotest)
+		neotest.output_panel.toggle()
+	end), "Toggle Output Panel")
+	nmap_leader("tS", with_neotest(function(neotest)
+		neotest.run.stop()
+	end), "Stop Tests")
+	nmap_leader("tw", with_neotest(function(neotest)
+		neotest.watch.toggle(vim.fn.expand("%"))
+	end), "Toggle Watch")
+	nmap_leader("td", with_neotest(function(neotest)
+		neotest.run.run({ strategy = "dap" })
+	end), "Debug Nearest")
 end)

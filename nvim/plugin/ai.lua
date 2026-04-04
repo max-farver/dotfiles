@@ -1,8 +1,8 @@
-local add = _G.Config.pack_add
-local now, later = _G.Config.now, _G.Config.later
+local add_once = _G.Config.pack_add_once or _G.Config.pack_add
+local later = _G.Config.later
 
 later(function()
-	add({
+	add_once({
 		{ src = "https://github.com/folke/sidekick.nvim" },
 		-- { src = "https://github.com/copilot-nvim/copilot-lsp" },
 	})

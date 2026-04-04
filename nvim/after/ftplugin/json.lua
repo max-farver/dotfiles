@@ -5,10 +5,16 @@ helpers.ensure_treesitter({ 'json' })
 vim.opt_local.conceallevel = 0
 
 if filetype == "json" or filetype == "jsonc" then
+	local schemas = {}
+	local ok_schemastore, schemastore = pcall(require, "schemastore")
+	if ok_schemastore and schemastore.json and type(schemastore.json.schemas) == "function" then
+		schemas = schemastore.json.schemas()
+	end
+
 	helpers.setup_lsp("jsonls", {
 		settings = {
 			json = {
-				schemas = require("schemastore").json.schemas(),
+				schemas = schemas,
 				validate = { enable = true },
 			},
 		},

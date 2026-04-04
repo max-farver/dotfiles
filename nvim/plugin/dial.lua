@@ -1,4 +1,4 @@
-local add = _G.Config.pack_add
+local add_once = _G.Config.pack_add_once or _G.Config.pack_add
 local now = _G.Config.now
 
 local M = {}
@@ -128,7 +128,7 @@ function M.setup(opts)
 end
 
 now(function()
-  add({ { src = "https://github.com/monaqa/dial.nvim" } })
+  add_once({ { src = "https://github.com/monaqa/dial.nvim" } })
   M.setup()
 end)
 

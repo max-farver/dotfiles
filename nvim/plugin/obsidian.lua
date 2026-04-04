@@ -1,7 +1,5 @@
-local add = _G.Config.pack_add
-local now = _G.Config.now
+local add_once = _G.Config.pack_add_once or _G.Config.pack_add
 local os_cfg = _G.Config.os
-local project = _G.Config.project
 
 local function find_notes_by_alias()
 	local Note = require("obsidian.note")
@@ -53,8 +51,7 @@ local function setup_obsidian_keymaps()
 	local nmap_leader = _G.Config.nmap_leader
 	local map = _G.Config.map
 
-
-	nmap_leader('o', '<nop>', 'Obsidian')
+	nmap_leader("o", "<nop>", "Obsidian")
 	-- Navigation & Search
 	nmap_leader("o/", "<cmd>Obsidian search<cr>", "Search Notes")
 	nmap_leader("of", find_notes_by_alias, "Find Note")
@@ -75,7 +72,6 @@ local function setup_obsidian_keymaps()
 	nmap_leader("or", "<cmd>Obsidian rename<cr>", "Rename Note")
 	nmap_leader("oc", "<cmd>Obsidian toc<cr>", "Table of Contents")
 	nmap_leader("ox", "<cmd>Obsidian toggle_checkbox<cr>", "Toggle Checkbox")
-	-- nmap_leader("op", "<cmd>Obsidian paste_img<cr>", "Paste image")
 
 	-- Visual mode
 	map("v", "<leader>oe", "<cmd>Obsidian extract_note<cr>", { desc = "Extract to Note" })
@@ -83,12 +79,9 @@ local function setup_obsidian_keymaps()
 	map("v", "<leader>oK", "<cmd>Obsidian link_new<cr>", { desc = "Link New Note" })
 end
 
-now(function()
+local function build_obsidian_opts()
 	if os_cfg.is_linux then
-		add({
-			{ src = "https://github.com/obsidian-nvim/obsidian.nvim" },
-		})
-		local obsidian_opts = {
+		return {
 			workspaces = {
 				{
 					name = "personal",
@@ -100,53 +93,68 @@ now(function()
 			},
 			legacy_commands = false,
 		}
-		require("obsidian").setup(obsidian_opts)
-		setup_obsidian_keymaps()
-	else
-		add({
-			{ src = "https://github.com/obsidian-nvim/obsidian.nvim" },
-		})
-		local obsidian_opts = {
-			workspaces = {
-				{
-					name = "personal",
-					path = vim.fn.expand("~") .. "/Documents/misc/obsidian/Default",
-				},
-			},
-			picker = {
-				name = "mini.pick",
-			},
-			legacy_commands = false,
-			templates = {
-				folder = "Templates/nvim",
-				date_format = "%Y-%m-%d",
-				time_format = "%H:%M",
-				substitutions = {
-					yesterday = function()
-						return os.date("%Y-%m-%d", os.time() - 86400)
-					end,
-					tomorrow = function()
-						return os.date("%Y-%m-%d", os.time() + 86400)
-					end,
-					weekday = function()
-						return os.date("%A")
-					end,
-				},
-				customizations = {
-					["Meeting Note"] = { notes_subdir = "Spaces/Meetings" },
-					["Thought"] = { notes_subdir = "Spaces/Random" },
-					["Person"] = { notes_subdir = "Spaces/People" },
-					["Jira Ticket"] = { notes_subdir = "Spaces/Jira" },
-					["Interview"] = { notes_subdir = "Spaces/Docs" },
-					["TDD"] = { notes_subdir = "Spaces/Docs" },
-					["User Guide"] = { notes_subdir = "Spaces/Docs" },
-					["Setup Guide"] = { notes_subdir = "Spaces/Docs" },
-					["Operation Guide"] = { notes_subdir = "Spaces/Docs" },
-					["Runbook"] = { notes_subdir = "Spaces/Docs" },
-				},
-			},
-		}
-		require("obsidian").setup(obsidian_opts)
-		setup_obsidian_keymaps()
 	end
-end)
+
+	return {
+		workspaces = {
+			{
+				name = "personal",
+				path = vim.fn.expand("~") .. "/Documents/misc/obsidian/Default",
+			},
+		},
+		picker = {
+			name = "mini.pick",
+		},
+		legacy_commands = false,
+		templates = {
+			folder = "Templates/nvim",
+			date_format = "%Y-%m-%d",
+			time_format = "%H:%M",
+			substitutions = {
+				yesterday = function()
+					return os.date("%Y-%m-%d", os.time() - 86400)
+				end,
+				tomorrow = function()
+					return os.date("%Y-%m-%d", os.time() + 86400)
+				end,
+				weekday = function()
+					return os.date("%A")
+				end,
+			},
+			customizations = {
+				["Meeting Note"] = { notes_subdir = "Spaces/Meetings" },
+				["Thought"] = { notes_subdir = "Spaces/Random" },
+				["Person"] = { notes_subdir = "Spaces/People" },
+				["Jira Ticket"] = { notes_subdir = "Spaces/Jira" },
+				["Interview"] = { notes_subdir = "Spaces/Docs" },
+				["TDD"] = { notes_subdir = "Spaces/Docs" },
+				["User Guide"] = { notes_subdir = "Spaces/Docs" },
+				["Setup Guide"] = { notes_subdir = "Spaces/Docs" },
+				["Operation Guide"] = { notes_subdir = "Spaces/Docs" },
+				["Runbook"] = { notes_subdir = "Spaces/Docs" },
+			},
+		},
+	}
+end
+
+local obsidian_loaded = false
+local function ensure_obsidian_loaded()
+	if obsidian_loaded then
+		return
+	end
+	obsidian_loaded = true
+
+	add_once({ { src = "https://github.com/obsidian-nvim/obsidian.nvim" } })
+	require("obsidian").setup(build_obsidian_opts())
+	setup_obsidian_keymaps()
+end
+
+vim.api.nvim_create_autocmd({ "BufReadPre", "BufNewFile" }, {
+	group = vim.api.nvim_create_augroup("obsidian_lazy_loader", { clear = true }),
+	pattern = { "*.md", "*.markdown", "*.mdx" },
+	callback = ensure_obsidian_loaded,
+})
+
+vim.api.nvim_create_user_command("ObsidianLoad", ensure_obsidian_loaded, {
+	desc = "Load obsidian.nvim manually",
+})

@@ -1,8 +1,10 @@
 -- Add custom file types here that aren't automatically detected
 vim.filetype.add({
 	filename = {
-		['*.nix'] = 'nix',
-		vifmrc = 'vim'
+		vifmrc = 'vim',
+	},
+	extension = {
+		nix = 'nix',
 	},
 	pattern = {
 		['%.env%.[%w_.-]+'] = 'sh',

@@ -1,4 +1,4 @@
-local add = _G.Config.pack_add
+local add_once = _G.Config.pack_add_once or _G.Config.pack_add
 local now = _G.Config.now
 local nmap_leader = _G.Config.nmap_leader
 
@@ -27,12 +27,12 @@ local function darken(hex, amount, bg)
 end
 
 now(function()
-	add({ { src = "https://github.com/projekt0n/github-nvim-theme", name = "github-theme" } })
+	add_once({ { src = "https://github.com/projekt0n/github-nvim-theme", name = "github-theme" } })
 	require("github-theme").setup({})
 end)
 
 now(function()
-	add({ { src = "https://github.com/max-farver/dracula.nvim" } })
+	add_once({ { src = "https://github.com/max-farver/dracula.nvim" } })
 	local dracula = require("dracula")
 	local colors = dracula.colors()
 	dracula.setup({

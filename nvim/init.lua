@@ -43,12 +43,34 @@
 -- Set this immediately so that project level options are loaded correctly
 vim.opt.exrc = true
 
+-- Disable built-in plugins we don't use (startup win)
+vim.g.loaded_netrw = 1
+vim.g.loaded_netrwPlugin = 1
+vim.g.loaded_matchit = 1
+
 -- Define config table to be able to pass data between scripts
 _G.Config = {}
 
 -- `vim.pack` helpers
 _G.Config.pack_add = function(specs)
 	vim.pack.add(specs, { confirm = false })
+end
+
+local pack_seen = {}
+_G.Config.pack_add_once = function(specs)
+	local filtered = {}
+	for _, spec in ipairs(specs or {}) do
+		local key = spec.src or spec.name
+		if not key then
+			table.insert(filtered, spec)
+		elseif not pack_seen[key] then
+			pack_seen[key] = true
+			table.insert(filtered, spec)
+		end
+	end
+	if #filtered > 0 then
+		vim.pack.add(filtered, { confirm = false })
+	end
 end
 
 vim.api.nvim_create_autocmd('PackChanged', {

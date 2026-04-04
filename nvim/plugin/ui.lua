@@ -1,4 +1,4 @@
-local add = _G.Config.pack_add
+local add_once = _G.Config.pack_add_once or _G.Config.pack_add
 local later = _G.Config.later
 local icons = _G.Config.icons
 local statusline = _G.Config.statusline
@@ -22,13 +22,13 @@ end
 init_lualine()
 
 later(function()
-	add({ { src = "https://github.com/rachartier/tiny-inline-diagnostic.nvim" } })
+	add_once({ { src = "https://github.com/rachartier/tiny-inline-diagnostic.nvim" } })
 	require("tiny-inline-diagnostic").setup()
 end)
 
 if not vim.g.vscode then
 	later(function()
-		add({ { src = "https://github.com/nvim-lualine/lualine.nvim" } })
+		add_once({ { src = "https://github.com/nvim-lualine/lualine.nvim" } })
 
 		local lualine_require = require("lualine_require")
 		lualine_require.require = require

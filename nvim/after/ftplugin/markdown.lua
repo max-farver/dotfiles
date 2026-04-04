@@ -1,4 +1,4 @@
-local add = _G.Config.pack_add
+local add_once = _G.Config.pack_add_once or _G.Config.pack_add
 local later = _G.Config.later
 local ftplugin_helpers = _G.Config.ftplugin_helpers
 local project = _G.Config.project
@@ -10,13 +10,13 @@ local function ensure_markdown_plugins()
 	vim.g._markdown_ftplugin_plugins_loaded = true
 
 	later(function()
-		add({
+		add_once({
 			{ src = "https://github.com/iamcco/markdown-preview.nvim" },
 		})
 	end)
 
 	later(function()
-		add({
+		add_once({
 			{ src = "https://github.com/OXY2DEV/markview.nvim" },
 		})
 		vim.g.markview_lazy_loaded = true

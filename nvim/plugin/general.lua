@@ -1,11 +1,9 @@
-local add = _G.Config.pack_add
+local add_once = _G.Config.pack_add_once or _G.Config.pack_add
 local now, later = _G.Config.now, _G.Config.later
-local now_if_args = _G.Config.now_if_args
 local map = _G.Config.map
-local nmap_leader = _G.Config.nmap_leader
 
 now(function()
-	add({ { src = "https://github.com/christoomey/vim-tmux-navigator" } })
+	add_once({ { src = "https://github.com/christoomey/vim-tmux-navigator" } })
 
 	map('n', '<c-Left>', '<cmd>TmuxNavigateLeft<cr>', { desc = 'Tmux Left' })
 	map('n', '<c-h>', '<cmd>TmuxNavigateLeft<cr>', { desc = 'Tmux Left' })
@@ -19,7 +17,7 @@ now(function()
 end)
 
 later(function()
-	add({ { src = "https://github.com/folke/flash.nvim" } })
+	add_once({ { src = "https://github.com/folke/flash.nvim" } })
 	require("flash").setup()
 
 
@@ -57,7 +55,7 @@ later(function()
 end)
 
 later(function()
-	add({ { src = "https://github.com/gbprod/yanky.nvim" } })
+	add_once({ { src = "https://github.com/gbprod/yanky.nvim" } })
 	require("yanky").setup({
 		highlight = { timer = 150 },
 	})
@@ -90,23 +88,23 @@ later(function()
 end)
 
 later(function()
-	add({ { src = "https://github.com/stevearc/overseer.nvim" } })
+	add_once({ { src = "https://github.com/stevearc/overseer.nvim" } })
 	require("overseer").setup()
 end)
 
 later(function()
-	add({ { src = "https://github.com/smjonas/inc-rename.nvim" } })
+	add_once({ { src = "https://github.com/smjonas/inc-rename.nvim" } })
 	require("inc_rename").setup()
 end)
 
 now(function()
-	add({
+	add_once({
 		{ src = "https://github.com/nvim-treesitter/nvim-treesitter", version = 'main' },
 	})
 
 	_G.Config.nvim_ts = require("nvim-treesitter")
 
-	add({
+	add_once({
 		{ src = "https://github.com/nvim-treesitter/nvim-treesitter-textobjects", version = 'main' },
 	})
 	require("nvim-treesitter-textobjects").setup({

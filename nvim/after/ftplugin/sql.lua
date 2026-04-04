@@ -1,4 +1,4 @@
-local add = _G.Config.pack_add
+local add_once = _G.Config.pack_add_once or _G.Config.pack_add
 local project = _G.Config.project
 local helpers = _G.Config.ftplugin_helpers
 
@@ -8,11 +8,9 @@ local function ensure_sql_plugins()
 	end
 	vim.g._sql_ftplugin_plugins_loaded = true
 
-	add({ { src = "https://github.com/tpope/vim-dadbod" } })
-	add({
+	add_once({
+		{ src = "https://github.com/tpope/vim-dadbod" },
 		{ src = "https://github.com/kristijanhusak/vim-dadbod-completion" },
-	})
-	add({
 		{ src = "https://github.com/kristijanhusak/vim-dadbod-ui" },
 	})
 

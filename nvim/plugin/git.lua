@@ -1,11 +1,11 @@
-local add = _G.Config.pack_add
-local now, later = _G.Config.now, _G.Config.later
+local add_once = _G.Config.pack_add_once or _G.Config.pack_add
+local later = _G.Config.later
 local icons = _G.Config.icons
 local nmap_leader = _G.Config.nmap_leader
 local map = _G.Config.map
 
 later(function()
-	add({ { src = "https://github.com/lewis6991/gitsigns.nvim" } })
+	add_once({ { src = "https://github.com/lewis6991/gitsigns.nvim" } })
 	require("gitsigns").setup({
 		signs = {
 			add = { text = icons.git.added },
@@ -56,14 +56,14 @@ later(function()
 end)
 
 later(function()
-	add({ { src = "https://github.com/sindrets/diffview.nvim" } })
+	add_once({ { src = "https://github.com/sindrets/diffview.nvim" } })
 	require("diffview").setup({
 		enhanced_diff_hl = true,
 	})
 end)
 
 later(function()
-	add({
+	add_once({
 		{ src = "https://github.com/nvim-lua/plenary.nvim" },
 		{ src = "https://github.com/ruifm/gitlinker.nvim" },
 	})
@@ -99,6 +99,6 @@ later(function()
 end)
 
 later(function()
-	add({ { src = "https://github.com/max-farver/git-review.nvim" } })
+	add_once({ { src = "https://github.com/max-farver/git-review.nvim" } })
 	require("git-review").setup()
 end)

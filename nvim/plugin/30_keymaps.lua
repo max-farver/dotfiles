@@ -1,5 +1,4 @@
 local map = _G.Config.map
-local nmap = _G.Config.nmap
 local nmap_leader = _G.Config.nmap_leader
 
 map({ 'n', 'x' }, '<C-d>', '<C-d>zz', { desc = 'Half page down centered' })
