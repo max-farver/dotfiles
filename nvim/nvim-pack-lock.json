@@ -33,8 +33,8 @@
       "src": "https://github.com/folke/flash.nvim"
     },
     "git-review.nvim": {
-      "rev": "42201a0ca5e954ea6eb4fb1ca90a1c7159386266",
-      "src": "https://github.com/max-farver/git-review.nvim"
+      "rev": "870eef6c1b1a0a4662b53daf1b58f537d91c7e4e",
+      "src": "/home/mfarver/Documents/repos/git-review.nvim"
     },
     "github-theme": {
       "rev": "c106c9472154d6b2c74b74565616b877ae8ed31d",

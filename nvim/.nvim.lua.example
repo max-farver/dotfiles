@@ -137,6 +137,34 @@ vim.g.project_linters = {
 }
 
 -- ============================================================================
+-- Local Plugin Source Overrides (for plugin development)
+-- ============================================================================
+-- Override plugin sources managed by vim.pack without editing your main config.
+-- Keys can be plugin name (preferred) or original src URL.
+
+-- vim.g.plugin_src_overrides = {
+-- 	["my-plugin"] = "/home/you/dev/my-plugin",
+-- 	["https://github.com/you/another-plugin"] = "/home/you/dev/another-plugin",
+-- }
+
+-- ============================================================================
+-- Optional: Obsidian Configuration
+-- ============================================================================
+-- The shared config keeps Obsidian optional by default.
+-- Configure a vault path here (or set OBSIDIAN_VAULT in your shell):
+
+-- vim.g.obsidian_workspace = "~/Documents/obsidian"
+
+-- Optional advanced overrides passed directly to `require("obsidian").setup(...)`
+-- vim.g.obsidian_opts = {
+-- 	workspaces = {
+-- 		{ name = "main", path = "~/Documents/obsidian" },
+-- 	},
+-- 	daily_notes = { folder = "Daily" },
+-- 	templates = { folder = "Templates" },
+-- }
+
+-- ============================================================================
 -- Additional Project-Specific Configuration
 -- ============================================================================
 -- You can add any other Neovim configuration here that should be specific

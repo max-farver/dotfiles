@@ -1,0 +1,5 @@
+# Local/project-specific overrides (keep out of shared config)
+.nvim.lua
+
+# Temporary logs
+*.log

@@ -1,6 +1,6 @@
-# MiniMax-style Neovim config (vim.pack)
+# Reference Neovim config (vim.pack)
 
-Personal Neovim configuration centered on `mini.nvim` and Neovim 0.12's built-in plugin manager, `vim.pack`.
+A shareable Neovim configuration centered on `mini.nvim` and Neovim 0.12's built-in plugin manager, `vim.pack`.
 
 ## Highlights
 
@@ -24,6 +24,18 @@ git clone <your-fork-or-copy> "${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
 ```
 
 Start Neovim. Plugins are installed automatically by `vim.pack`.
+
+## Local-only overrides (recommended)
+
+Keep machine/project-specific settings in a local `.nvim.lua` file:
+
+```sh
+cp .nvim.lua.example .nvim.lua
+```
+
+Then customize paths and per-project overrides there (LSP, formatters, linters, plugin options, local plugin sources).
+
+> If you share this config publicly, do **not** commit `.nvim.lua`.
 
 ## Plugin management
 
@@ -101,6 +113,17 @@ If adding a plugin that needs a post-update step, add a case there.
    - `:PackUpdate`
    - commit `nvim-pack-lock.json`
 
+## Optional integrations
+
+Some plugins are intentionally optional and need local configuration:
+
+- **Obsidian** (`plugin/obsidian.lua`) only loads when a vault is configured via:
+  - `vim.g.obsidian_workspace` (recommended in `.nvim.lua`), or
+  - `OBSIDIAN_VAULT` environment variable, or
+  - `vim.g.obsidian_opts.workspaces`.
+
+This keeps the shared config portable across machines.
+
 ## Project overrides
 
 Project-local `.nvim.lua` can provide overrides via globals:
@@ -109,12 +132,15 @@ Project-local `.nvim.lua` can provide overrides via globals:
 - `vim.g.project_lsp_servers`
 - `vim.g.project_formatters`
 - `vim.g.project_linters`
+- `vim.g.plugin_src_overrides` (map plugin name/src -> local git repo path)
 
 Merged by helpers in `lua/util/project.lua` and consumed by ftplugin helpers.
+`vim.g.plugin_src_overrides` is consumed by `init.lua` pack helpers.
 
 ## Useful commands
 
 - `:PackUpdate` – update plugins.
+- `:PackSrc[ {name}]` – show resolved source/path for all or one `vim.pack` plugin.
 - `:FormatDisable[!]` / `:FormatEnable` / `:Format` – formatting controls.
 - `:ThemeDark` / `:ThemeLight` / `:ThemeToggle` – theme switching.
 
@@ -124,3 +150,10 @@ Merged by helpers in `lua/util/project.lua` and consumed by ftplugin helpers.
 - `plugin/` – core options, keymaps, plugin configs.
 - `after/ftplugin/` – filetype-specific plugin/LSP behavior.
 - `lua/util/` – shared utilities (project overrides, root detection, statusline, etc.).
+
+## Sharing checklist
+
+- Keep `README.md`, `.nvim.lua.example`, and `nvim-pack-lock.json` up to date.
+- Keep personal paths/secrets in local `.nvim.lua` only.
+- Run a quick startup check before publishing:
+  - `nvim --headless '+q'`

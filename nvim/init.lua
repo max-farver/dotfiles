@@ -1,6 +1,7 @@
--- ┌────────────────────┐
--- │ Welcome to MiniMax │
--- └────────────────────┘
+-- ┌────────────────────────────┐
+-- │ Welcome to this reference  │
+-- │ Neovim config (mini-first) │
+-- └────────────────────────────┘
 --
 -- This is a config designed to mostly use MINI. It provides out of the box
 -- a stable, polished, and feature rich Neovim experience. Its structure:
@@ -52,15 +53,67 @@ vim.g.loaded_matchit = 1
 _G.Config = {}
 
 -- `vim.pack` helpers
+vim.g.plugin_src_overrides = vim.g.plugin_src_overrides or {}
+
+local function infer_plugin_name(src)
+	if type(src) ~= 'string' or src == '' then
+		return nil
+	end
+	local normalized = src:gsub('/+$', '')
+	local tail = normalized:match('([^/:]+)$')
+	if not tail or tail == '' then
+		return nil
+	end
+	return tail:gsub('%.git$', '')
+end
+
+local function resolve_pack_specs(specs)
+	local overrides = vim.g.plugin_src_overrides or {}
+	local resolved = {}
+
+	for _, spec in ipairs(specs or {}) do
+		local out = spec
+
+		if type(spec) == 'string' then
+			local inferred_name = infer_plugin_name(spec)
+			local override = overrides[spec] or (inferred_name and overrides[inferred_name])
+			if override then
+				out = { src = override, name = inferred_name }
+			end
+		elseif type(spec) == 'table' then
+			local inferred_name = spec.name or infer_plugin_name(spec.src)
+			local override = (spec.name and overrides[spec.name]) or (spec.src and overrides[spec.src]) or
+				(inferred_name and overrides[inferred_name])
+			if override then
+				out = vim.deepcopy(spec)
+				out.src = override
+				out.name = out.name or inferred_name
+			end
+		end
+
+		table.insert(resolved, out)
+	end
+
+	return resolved
+end
+
+_G.Config.resolve_pack_specs = resolve_pack_specs
+
 _G.Config.pack_add = function(specs)
-	vim.pack.add(specs, { confirm = false })
+	vim.pack.add(resolve_pack_specs(specs), { confirm = false })
 end
 
 local pack_seen = {}
 _G.Config.pack_add_once = function(specs)
 	local filtered = {}
-	for _, spec in ipairs(specs or {}) do
-		local key = spec.src or spec.name
+	for _, spec in ipairs(resolve_pack_specs(specs)) do
+		local key = nil
+		if type(spec) == 'string' then
+			key = spec
+		elseif type(spec) == 'table' then
+			key = spec.name or spec.src
+		end
+
 		if not key then
 			table.insert(filtered, spec)
 		elseif not pack_seen[key] then
@@ -158,6 +211,60 @@ end
 vim.api.nvim_create_user_command('PackUpdate', function()
 	vim.pack.update()
 end, { desc = 'Update plugins via vim.pack' })
+
+vim.api.nvim_create_user_command('PackSrc', function(args)
+	local name = vim.trim(args.args or '')
+	local names = name ~= '' and { name } or nil
+	local plugins = vim.pack.get(names, { info = false }) or {}
+
+	if #plugins == 0 then
+		vim.notify(name ~= '' and ("No plugin found: " .. name) or 'No vim.pack plugins found', vim.log.levels.WARN)
+		return
+	end
+
+	table.sort(plugins, function(a, b)
+		return (a.spec.name or '') < (b.spec.name or '')
+	end)
+
+	local lines = {
+		'vim.pack plugin sources',
+		string.rep('=', 22),
+	}
+
+	for _, plug in ipairs(plugins) do
+		local spec = plug.spec or {}
+		local status = plug.active and '[active]' or '[inactive]'
+		table.insert(lines, string.format('%s %s', status, spec.name or '<unknown>'))
+		table.insert(lines, '  src:  ' .. tostring(spec.src))
+		table.insert(lines, '  path: ' .. tostring(plug.path))
+	end
+
+	vim.cmd('new')
+	local buf = vim.api.nvim_get_current_buf()
+	vim.bo[buf].buftype = 'nofile'
+	vim.bo[buf].bufhidden = 'wipe'
+	vim.bo[buf].swapfile = false
+	vim.bo[buf].modifiable = true
+	vim.bo[buf].filetype = 'packsrc'
+	vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+	vim.bo[buf].modifiable = false
+	vim.bo[buf].readonly = true
+	vim.api.nvim_buf_set_name(buf, 'PackSrc')
+end, {
+	nargs = '?',
+	desc = 'Show resolved vim.pack source/path for plugins',
+	complete = function(arglead)
+		local out = {}
+		for _, plug in ipairs(vim.pack.get(nil, { info = false }) or {}) do
+			local n = plug.spec and plug.spec.name
+			if type(n) == 'string' and n:sub(1, #arglead) == arglead then
+				table.insert(out, n)
+			end
+		end
+		table.sort(out)
+		return out
+	end,
+})
 
 local gr = vim.api.nvim_create_augroup('custom-config', {})
 _G.Config.new_autocmd = function(event, pattern, callback, desc)
