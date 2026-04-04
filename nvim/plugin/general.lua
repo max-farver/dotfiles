@@ -97,7 +97,7 @@ later(function()
 	require("inc_rename").setup()
 end)
 
-now(function()
+later(function()
 	add_once({
 		{ src = "https://github.com/nvim-treesitter/nvim-treesitter", version = 'main' },
 	})

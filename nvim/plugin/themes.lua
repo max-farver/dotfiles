@@ -1,5 +1,5 @@
 local add_once = _G.Config.pack_add_once or _G.Config.pack_add
-local now = _G.Config.now
+local now, later = _G.Config.now, _G.Config.later
 local nmap_leader = _G.Config.nmap_leader
 
 local Theme = require("util.theme")
@@ -26,7 +26,7 @@ local function darken(hex, amount, bg)
 	return blend(hex, bg, amount)
 end
 
-now(function()
+later(function()
 	add_once({ { src = "https://github.com/projekt0n/github-nvim-theme", name = "github-theme" } })
 	require("github-theme").setup({})
 end)

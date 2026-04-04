@@ -18,8 +18,18 @@ function M.ensure_treesitter(parsers)
 			end
 		end
 	end
-	if #to_install > 0 and _G.Config.nvim_ts then
-		_G.Config.nvim_ts.install(to_install)
+	if #to_install > 0 then
+		local nvim_ts = _G.Config.nvim_ts
+		if not nvim_ts then
+			local ok, mod = pcall(require, "nvim-treesitter")
+			if ok then
+				nvim_ts = mod
+				_G.Config.nvim_ts = mod
+			end
+		end
+		if nvim_ts and type(nvim_ts.install) == "function" then
+			nvim_ts.install(to_install)
+		end
 	end
 	pcall(vim.treesitter.start)
 end
