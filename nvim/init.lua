@@ -52,6 +52,20 @@ vim.g.loaded_matchit = 1
 -- Define config table to be able to pass data between scripts
 _G.Config = {}
 
+-- Load machine-local config (gitignored), if present.
+do
+	local local_config = vim.fn.stdpath('config') .. '/config.lua'
+	local chunk = loadfile(local_config)
+	if type(chunk) == 'function' then
+		local ok, err = pcall(chunk)
+		if not ok then
+			vim.schedule(function()
+				vim.notify('Error loading config.lua:\n' .. tostring(err), vim.log.levels.ERROR)
+			end)
+		end
+	end
+end
+
 -- `vim.pack` helpers
 vim.g.plugin_src_overrides = vim.g.plugin_src_overrides or {}
 

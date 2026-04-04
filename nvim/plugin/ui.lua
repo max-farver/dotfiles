@@ -1,5 +1,5 @@
 local add_once = _G.Config.pack_add_once or _G.Config.pack_add
-local later = _G.Config.later
+local now, later = _G.Config.now, _G.Config.later
 local icons = _G.Config.icons
 local statusline = _G.Config.statusline
 
@@ -20,6 +20,73 @@ local function init_lualine()
 end
 
 init_lualine()
+
+now(function()
+	local clue = require("mini.clue")
+
+	local triggers = {
+		{ mode = "n", keys = "<Leader>" },
+		{ mode = "x", keys = "<Leader>" },
+		{ mode = "o", keys = "<Leader>" },
+		{ mode = "n", keys = "[" },
+		{ mode = "n", keys = "]" },
+		{ mode = "n", keys = "g" },
+		{ mode = "x", keys = "g" },
+		{ mode = "n", keys = "z" },
+		{ mode = "x", keys = "z" },
+		{ mode = "n", keys = "<C-w>" },
+		{ mode = "i", keys = "<C-x>" },
+	}
+
+	local clues = {
+		clue.gen_clues.builtin_completion(),
+		clue.gen_clues.marks(),
+		clue.gen_clues.registers(),
+		clue.gen_clues.windows(),
+		clue.gen_clues.z(),
+		clue.gen_clues.g(),
+		{ mode = "n", keys = "<Leader>a", desc = "AI" },
+		{ mode = "n", keys = "<Leader>b", desc = "Buffers" },
+		{ mode = "n", keys = "<Leader>c", desc = "Code" },
+		{ mode = "n", keys = "<Leader>d", desc = "Debug" },
+		{ mode = "n", keys = "<Leader>f", desc = "Find" },
+		{ mode = "x", keys = "<Leader>f", desc = "Find" },
+		{ mode = "n", keys = "<Leader>g", desc = "Git" },
+		{ mode = "x", keys = "<Leader>g", desc = "Git" },
+		{ mode = "n", keys = "<Leader>cl", desc = "LSP" },
+		{ mode = "n", keys = "<Leader>o", desc = "Obsidian" },
+		{ mode = "n", keys = "<Leader>x", desc = "Quickfix" },
+		{ mode = "n", keys = "<Leader>s", desc = "Search" },
+		{ mode = "n", keys = "<Leader><Tab>", desc = "Tab" },
+		{ mode = "n", keys = "<Leader>t", desc = "Terminal/Test" },
+		{ mode = "n", keys = "<Leader>u", desc = "UI" },
+		{ mode = "n", keys = "<Leader>w", desc = "Windows" },
+	}
+
+	local max_desc = 0
+	for _, entry in ipairs(clues) do
+		if type(entry) == "table" and type(entry.desc) == "string" then
+			if #entry.desc > max_desc then
+				max_desc = #entry.desc
+			end
+		end
+	end
+
+	local cols = vim.o.columns
+	local computed = max_desc + 22
+	local width = math.max(40, math.min(math.floor(cols * 0.6), math.min(100, computed)))
+
+	vim.o.timeoutlen = vim.o.timeoutlen > 0 and vim.o.timeoutlen or 300
+
+	clue.setup({
+		window = {
+			delay = 100,
+			config = { width = width, border = "rounded" },
+		},
+		triggers = triggers,
+		clues = clues,
+	})
+end)
 
 later(function()
 	add_once({ { src = "https://github.com/rachartier/tiny-inline-diagnostic.nvim" } })

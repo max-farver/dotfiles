@@ -5,7 +5,7 @@
       "src": "https://github.com/b0o/SchemaStore.nvim"
     },
     "blink.cmp": {
-      "rev": "6731979aa370be0e5c7cc73258ce945730a515c9",
+      "rev": "c271a5a8f2a0864fcf820798e0674dcaecb93989",
       "src": "https://github.com/saghen/blink.cmp"
     },
     "conform.nvim": {
@@ -33,7 +33,7 @@
       "src": "https://github.com/folke/flash.nvim"
     },
     "git-review.nvim": {
-      "rev": "870eef6c1b1a0a4662b53daf1b58f537d91c7e4e",
+      "rev": "e8405d8a49f4aff4046b99741b60dc17e0ad4ee7",
       "src": "/home/mfarver/Documents/repos/git-review.nvim"
     },
     "github-theme": {
@@ -57,7 +57,7 @@
       "src": "https://github.com/smjonas/inc-rename.nvim"
     },
     "lualine.nvim": {
-      "rev": "74114f0df664f14d7c228945693ba68a3b70a794",
+      "rev": "8811f3f3f4dc09d740c67e9ce399e7a541e2e5b2",
       "src": "https://github.com/nvim-lualine/lualine.nvim"
     },
     "markdown-preview.nvim": {
@@ -135,7 +135,7 @@
       "src": "https://github.com/kevinhwang91/nvim-ufo"
     },
     "obsidian.nvim": {
-      "rev": "6d71af427ceb72ae9c16e3b359bac56d508a019b",
+      "rev": "47f018f1258be2cb263982648d4dae93321448c8",
       "src": "https://github.com/obsidian-nvim/obsidian.nvim"
     },
     "one-small-step-for-vimkind": {

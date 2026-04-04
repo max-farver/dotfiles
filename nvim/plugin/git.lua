@@ -99,6 +99,19 @@ later(function()
 end)
 
 later(function()
+	if not _G.MiniDiff then
+		local ok_mini_diff, mini_diff = pcall(require, "mini.diff")
+		if ok_mini_diff and type(mini_diff.setup) == "function" then
+			mini_diff.setup({
+				view = { style = "number" },
+			})
+		end
+	end
+
 	add_once({ { src = "https://github.com/max-farver/git-review.nvim" } })
-	require("git-review").setup()
+	require("git-review").setup({
+		render = {
+			backend = "mini_diff",
+		},
+	})
 end)
