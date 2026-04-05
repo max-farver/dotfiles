@@ -30,32 +30,33 @@ main() {
   abs_start_dir=$(cd "${start_dir}" && pwd)
 
   local session_name=${2:-$(basename "${abs_start_dir}")}
+  local target_session="=${session_name}" # exact tmux target match
 
-  if tmux has-session -t "${session_name}" 2>/dev/null; then
-    echo "Session '${session_name}' already exists, attaching…" >&2
-    attach_to_session "${session_name}"
+  if tmux has-session -t "${target_session}" 2>/dev/null; then
+    echo "Session '${session_name}' already exists, switching…" >&2
+    switch_or_attach "${target_session}"
     exit 0
   fi
 
   tmux new-session -d -s "${session_name}" -c "${abs_start_dir}"
-  tmux rename-window -t "${session_name}:0" "nvim"
-  tmux new-window -d -t "${session_name}:" -n "git" -c "${abs_start_dir}"
-  tmux new-window -d -t "${session_name}:" -n "term" -c "${abs_start_dir}"
+  tmux rename-window -t "${target_session}:0" "nvim"
+  tmux new-window -d -t "${target_session}:" -n "git" -c "${abs_start_dir}"
+  tmux new-window -d -t "${target_session}:" -n "term" -c "${abs_start_dir}"
 
-  tmux send-keys -t "${session_name}:0" "nvim" C-m
-  tmux send-keys -t "${session_name}:1" "lg" C-m
-  tmux select-window -t "${session_name}:0"
+  tmux send-keys -t "${target_session}:0" "nvim" C-m
+  tmux send-keys -t "${target_session}:1" "lg" C-m
+  tmux select-window -t "${target_session}:0"
 
-  attach_to_session "${session_name}"
+  switch_or_attach "${target_session}"
 }
 
-attach_to_session() {
-  local session_name=$1
+switch_or_attach() {
+  local target_session=$1
 
-  if [[ -n ${TMUX:-} ]]; then
-    tmux switch-client -t "${session_name}"
+  if [[ -n ${TMUX:-} ]] && tmux display-message -p '#{client_name}' >/dev/null 2>&1; then
+    tmux switch-client -t "${target_session}"
   else
-    tmux attach -t "${session_name}"
+    tmux attach-session -t "${target_session}"
   fi
 }
 
