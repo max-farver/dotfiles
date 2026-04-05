@@ -11,6 +11,7 @@
     codex
     dos2unix
     claude-code
+    litellm
     opencode
     inputs.pi-local.packages.${pkgs.stdenv.hostPlatform.system}.default
   ];

@@ -32,9 +32,11 @@
   # networking.proxy.default = "http://user:password@proxy:port/";
   # networking.proxy.noProxy = "127.0.0.1,localhost,internal.domain";
 
-  # Enable networking
+  # Enable networking (NetworkManager-only)
   networking.networkmanager.enable = true;
-  networking.wireless.userControlled = true;
+  networking.wireless.userControlled = false;
+  networking.networkmanager.wifi.powersave = false;
+  # networking.networkmanager.wifi.scanRandMacAddress = false; # optional troubleshooting knob
   # networking.wireless.iwd.enable = true;
   # networking.networkmanager.wifi.backend = "iwd";
 

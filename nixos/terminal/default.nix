@@ -17,6 +17,7 @@ in
   imports = [
     ./ai.nix
     ./git.nix
+    ./litellm.nix
     ./neovim.nix
     ./tmux.nix
     ./zsh.nix

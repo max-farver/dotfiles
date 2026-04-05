@@ -1,0 +1,12 @@
+model_list:
+  - model_name: codex
+    model_info:
+      mode: responses
+    litellm_params:
+      model: chatgpt/gpt-5.3-codex
+
+litellm_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  callbacks:
+    - callbacks.proxy_handler_instance
+  drop_params: true
