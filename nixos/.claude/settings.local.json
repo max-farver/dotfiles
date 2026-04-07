@@ -10,7 +10,11 @@
       "Bash(nix search:*)",
       "Bash(nix-search:*)",
       "Bash(nix-env:*)",
-      "Bash(nh:*)"
+      "Bash(nh:*)",
+      "Bash(litellm-check:*)",
+      "Bash(litellm-probe-models:*)",
+      "Bash(litellm:*)",
+      "Bash(journalctl:*)"
     ]
   }
 }

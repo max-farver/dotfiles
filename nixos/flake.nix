@@ -17,6 +17,9 @@
       url = "github:cachix/devenv";
     };
 
+    # Pin to last known-good Hermes before upstream issue #5502
+    hermes-agent.url = "github:NousResearch/hermes-agent/v2026.4.3";
+
     # home-manager, used for managing user configuration
     home-manager = {
       url = "github:nix-community/home-manager";
@@ -36,6 +39,7 @@
       nur,
       ghostty,
       affinity-nix,
+      hermes-agent,
       ...
     }:
     {
@@ -51,6 +55,7 @@
             ./system-specific/machines/framework16/configuration.nix
             nixos-hardware.nixosModules.framework-16-7040-amd
             nur.modules.nixos.default
+            hermes-agent.nixosModules.default
             (
               { pkgs, ... }:
               {

@@ -1,4 +1,9 @@
-{ pkgs, config, ... }:
+{
+  pkgs,
+  config,
+  inputs,
+  ...
+}:
 
 {
   imports = [
@@ -15,10 +20,11 @@
     kdePackages.plasma-thunderbolt
     pkgs.dmidecode
     wl-clipboard
-    pkgs.docker-compose   # V2 plugin
-    pkgs.docker-buildx    # Advanced building with multi-platform support
-    pkgs.compose2nix      # Tool to convert docker-compose.yml to NixOS modules
+    pkgs.docker-compose # V2 plugin
+    pkgs.docker-buildx # Advanced building with multi-platform support
+    pkgs.compose2nix # Tool to convert docker-compose.yml to NixOS modules
     pkgs.qmk
+    inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.default
   ];
 
   boot.kernelParams = [
@@ -121,6 +127,5 @@
     shell = pkgs.zsh;
     extraGroups = [ "docker" ];
   };
-
 
 }

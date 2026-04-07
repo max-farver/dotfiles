@@ -13,6 +13,7 @@ in
 {
   imports = [
     ../../../terminal/default.nix
+    ../../../terminal/misc.nix
     ../../../applications/default.nix
     ../../../applications/game-dev.nix
     ../../../games/heroic.nix
