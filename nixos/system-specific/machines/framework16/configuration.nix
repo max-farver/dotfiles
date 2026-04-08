@@ -9,6 +9,7 @@
   imports = [
     ./hardware-configuration.nix
     ../../../desktop-environments/plasma.nix
+    ../../../desktop-environments/hyprland.nix
     ../../x86_64-linux/linux.nix
     ../../../games/steam.nix
   ];

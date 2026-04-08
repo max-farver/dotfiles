@@ -11,7 +11,6 @@
       url = "github:nix-community/NUR";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    ghostty.url = "github:ghostty-org/ghostty";
     affinity-nix.url = "github:mrshmllow/affinity-nix";
     devenv = {
       url = "github:cachix/devenv";
@@ -19,6 +18,7 @@
 
     # Pin to last known-good Hermes before upstream issue #5502
     hermes-agent.url = "github:NousResearch/hermes-agent/v2026.4.3";
+
 
     # home-manager, used for managing user configuration
     home-manager = {
@@ -37,7 +37,6 @@
       nixos-hardware,
       home-manager,
       nur,
-      ghostty,
       affinity-nix,
       hermes-agent,
       ...
@@ -56,15 +55,6 @@
             nixos-hardware.nixosModules.framework-16-7040-amd
             nur.modules.nixos.default
             hermes-agent.nixosModules.default
-            (
-              { pkgs, ... }:
-              {
-                environment.systemPackages = [
-                  ghostty.packages.${pkgs.stdenv.hostPlatform.system}.default
-                ];
-              }
-            )
-
             # make home-manager as a module of nixos
             # so that home-manager configuration will be deployed automatically when executing `nixos-rebuild switch`
             home-manager.nixosModules.home-manager

@@ -17,6 +17,7 @@ in
     ../../../applications/default.nix
     ../../../applications/game-dev.nix
     ../../../games/heroic.nix
+    ../../../desktop-environments/hyprland-home.nix
   ];
   home.username = username;
   home.homeDirectory = homeDir;
