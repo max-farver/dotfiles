@@ -2,7 +2,7 @@ if vim.g.vscode then
 	return
 end
 
-local add_once = _G.Config.pack_add_once or _G.Config.pack_add
+local add_once = _G.Config.add_once
 local now = _G.Config.now
 local nmap_leader = _G.Config.nmap_leader
 

@@ -1,4 +1,4 @@
-local add_once = _G.Config.pack_add_once or _G.Config.pack_add
+local add_once = _G.Config.add_once
 local now = _G.Config.now
 
 local M = {}

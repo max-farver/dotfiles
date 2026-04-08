@@ -6,6 +6,11 @@
 -- This is a config designed to mostly use MINI. It provides out of the box
 -- a stable, polished, and feature rich Neovim experience. Its structure:
 --
+-- Files:
+-- ├ nvim-pack-lock.json  Plugin version pinning for vim.pack (auto-managed)
+-- ├ config.lua           Local machine-specific overrides (gitignored)
+--
+-- Structure:
 -- ├ init.lua          Initial (this) file executed during startup
 -- ├ plugin/           Files automatically sourced during startup
 -- ├── 10_options.lua  Built-in Neovim settings
@@ -298,6 +303,19 @@ _G.Config.nmap = function(lhs, rhs, desc, opts)
 	opts.desc = desc or opts.desc
 	_G.Config.map('n', lhs, rhs, opts)
 end
+
+-- Safe module call helper
+_G.Config.safe_call = function(module_name, fn_name, ...)
+	local ok, mod = pcall(require, module_name)
+	if not ok then return nil end
+	if type(mod[fn_name]) == 'function' then
+		return mod[fn_name](...)
+	end
+	return nil
+end
+
+-- Centralized add_once to reduce repetition
+_G.Config.add_once = _G.Config.pack_add_once or _G.Config.pack_add
 
 _G.Config.nmap_leader = function(keys, rhs, desc, opts)
 	_G.Config.nmap('<leader>' .. keys, rhs, desc, opts)

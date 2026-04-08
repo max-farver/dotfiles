@@ -1,4 +1,5 @@
-local add_once = _G.Config.pack_add_once or _G.Config.pack_add
+local add_once = _G.Config.add_once
+local safe_call = _G.Config.safe_call
 local later = _G.Config.later
 local icons = _G.Config.icons
 local nmap_leader = _G.Config.nmap_leader
@@ -22,14 +23,7 @@ later(function()
 
 	local function with_gitsigns(fn)
 		return function(...)
-			local ok, gs = pcall(require, 'gitsigns')
-			if not ok then
-				vim.notify('gitsigns not available', vim.log.levels.WARN)
-				return
-			end
-			if type(gs[fn]) == 'function' then
-				gs[fn](...)
-			end
+			return safe_call('gitsigns', fn, ...)
 		end
 	end
 

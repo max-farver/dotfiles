@@ -1,4 +1,4 @@
-local add_once = _G.Config.pack_add_once or _G.Config.pack_add
+local add_once = _G.Config.add_once
 local now, later = _G.Config.now, _G.Config.later
 local os_cfg = _G.Config.os
 
@@ -29,9 +29,7 @@ local function on_attach(client, bufnr)
 		vim.lsp.buf.format({ async = true })
 	end, "Format Buffer")
 	bmap("n", "<leader>ca", vim.lsp.buf.code_action, "Code Actions")
-	bmap("n", "<leader>cn", function()
-		return ':IncRename ' .. vim.fn.expand('<cword>')
-	end, "Rename Symbol", { expr = true })
+	bmap("n", "<leader>cn", vim.lsp.buf.rename, "Rename Symbol")
 
 	vim.bo[bufnr].omnifunc = "v:lua.vim.lsp.omnifunc"
 

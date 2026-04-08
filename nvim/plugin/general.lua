@@ -1,4 +1,4 @@
-local add_once = _G.Config.pack_add_once or _G.Config.pack_add
+local add_once = _G.Config.add_once
 local now, later = _G.Config.now, _G.Config.later
 local map = _G.Config.map
 local nmap_leader = _G.Config.nmap_leader
@@ -320,34 +320,19 @@ later(function()
 
 	-- Flash (jump/search)
 	map({ 'n', 'x', 'o' }, 's', function()
-		local ok, f = pcall(require, 'flash')
-		if ok then
-			f.jump()
-		end
+		_G.Config.safe_call('flash', 'jump')
 	end, { desc = 'Flash' })
 	map({ 'n', 'x', 'o' }, 'S', function()
-		local ok, f = pcall(require, 'flash')
-		if ok then
-			f.treesitter()
-		end
+		_G.Config.safe_call('flash', 'treesitter')
 	end, { desc = 'Flash Treesitter' })
 	map('o', 'r', function()
-		local ok, f = pcall(require, 'flash')
-		if ok then
-			f.remote()
-		end
+		_G.Config.safe_call('flash', 'remote')
 	end, { desc = 'Remote Flash' })
 	map({ 'o', 'x' }, 'R', function()
-		local ok, f = pcall(require, 'flash')
-		if ok then
-			f.treesitter_search()
-		end
+		_G.Config.safe_call('flash', 'treesitter_search')
 	end, { desc = 'Treesitter Search' })
 	map('c', '<c-s>', function()
-		local ok, f = pcall(require, 'flash')
-		if ok then
-			f.toggle()
-		end
+		_G.Config.safe_call('flash', 'toggle')
 	end, { desc = 'Toggle Flash Search' })
 end)
 
@@ -389,10 +374,7 @@ later(function()
 	require("overseer").setup()
 end)
 
-later(function()
-	add_once({ { src = "https://github.com/smjonas/inc-rename.nvim" } })
-	require("inc_rename").setup()
-end)
+-- inc-rename.nvim removed: Neovim 0.10+ has built-in vim.lsp.buf.rename()
 
 later(function()
 	add_once({

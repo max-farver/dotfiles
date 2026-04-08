@@ -1,4 +1,4 @@
-local add_once = _G.Config.pack_add_once or _G.Config.pack_add
+local add_once = _G.Config.add_once
 local now, later = _G.Config.now, _G.Config.later
 local now_if_args = _G.Config.now_if_args
 local nmap = _G.Config.nmap
@@ -44,7 +44,6 @@ end)
 -- Plugins that previously used `lazy = true` or `event = ...`
 later(function()
 	add_once({ { src = "https://github.com/nvim-lua/plenary.nvim" } })
-	add_once({ { src = "https://github.com/MunifTanjim/nui.nvim" } })
 	add_once({
 		{ src = "https://github.com/folke/todo-comments.nvim" },
 	})

@@ -3,6 +3,9 @@ vim.g.maplocalleader = ','
 
 local opt = vim.opt
 
+-- Confirm before closing unsaved buffers
+opt.confirm = true
+
 opt.autowrite = true
 opt.breakindent = true
 -- Do not auto-insert completion items. First item is highlighted, but only
@@ -16,11 +19,13 @@ opt.clipboard = "unnamedplus"
 opt.cmdheight = 0
 -- Show command feedback in the statusline instead of taking cmdline space
 opt.showcmdloc = 'statusline'
+-- Fold configuration (grouped together)
 opt.fillchars = { eob = " ", fold = " ", foldopen = "-", foldclose = "+", foldsep = " " }
 opt.foldenable = true
 opt.foldlevel = 99
 opt.foldlevelstart = 99
 opt.foldmethod = "expr"
+opt.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
 opt.foldtext = ""
 vim.api.nvim_create_autocmd("FileType", {
 	group = vim.api.nvim_create_augroup("user_formatoptions", { clear = true }),
@@ -69,8 +74,14 @@ opt.autoread = true
 
 vim.g.copilot_workspace_folders = { vim.fn.getcwd() }
 
+-- Update copilot workspace when changing directories
+vim.api.nvim_create_autocmd('DirChanged', {
+	callback = function()
+		vim.g.copilot_workspace_folders = { vim.fn.getcwd() }
+	end,
+})
+
 -- Markdown indentation behavior fix
 vim.g.markdown_recommended_style = 0
 
--- Treesitter
-opt.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
+-- Treesitter foldexpr is already set in the fold configuration section above

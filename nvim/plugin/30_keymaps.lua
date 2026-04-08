@@ -7,8 +7,7 @@ map('n', '<Esc>', '<cmd>nohlsearch<CR>', { desc = 'Clear highlight' })
 nmap_leader('qq', '<cmd>confirm qa<CR>', 'Quit all')
 nmap_leader('ww', '<cmd>w<CR>', 'Save')
 nmap_leader('bd', '<cmd>bd<CR>', 'Delete buffer')
-nmap_leader('bn', '<cmd>bnext<CR>', 'Next buffer')
-nmap_leader('bp', '<cmd>bprevious<CR>', 'Previous buffer')
+-- Note: Buffer navigation via <S-h>/<S-l> and [b/]b (defined below)
 
 -- Save file
 map({ 'i', 'x', 'n', 's' }, '<C-s>', '<cmd>w<cr><esc>', { desc = 'Save File' })
@@ -49,7 +48,14 @@ map('i', ';', ';<c-g>u')
 local function diagnostic_goto(next, severity)
 	severity = severity and vim.diagnostic.severity[severity] or nil
 	return function()
-		vim.diagnostic.jump({ count = next and 1 or -1, severity = severity })
+		if vim.diagnostic.jump then
+			-- Neovim 0.10+
+			vim.diagnostic.jump({ count = next and 1 or -1, severity = severity })
+		else
+			-- Fallback for older Neovim
+			local fn = next and vim.diagnostic.goto_next or vim.diagnostic.goto_prev
+			fn({ severity = severity })
+		end
 	end
 end
 map('n', ']d', diagnostic_goto(true), { desc = 'Next Diagnostic' })
@@ -61,15 +67,19 @@ map('n', '[w', diagnostic_goto(false, 'WARN'), { desc = 'Prev Warning' })
 
 -- Quickfix / Location list toggles
 map('n', '<leader>xl', function()
-	local ok, err = pcall(vim.fn.getloclist(0, { winid = 0 }).winid ~= 0 and vim.cmd.lclose or vim.cmd.lopen)
-	if not ok and err then
-		vim.notify(err, vim.log.levels.ERROR)
+	local winid = vim.fn.getloclist(0, { winid = 0 }).winid
+	if winid ~= 0 then
+		vim.cmd.lclose()
+	else
+		vim.cmd.lopen()
 	end
 end, { desc = 'Location List' })
 map('n', '<leader>xq', function()
-	local ok, err = pcall(vim.fn.getqflist({ winid = 0 }).winid ~= 0 and vim.cmd.cclose or vim.cmd.copen)
-	if not ok and err then
-		vim.notify(err, vim.log.levels.ERROR)
+	local winid = vim.fn.getqflist({ winid = 0 }).winid
+	if winid ~= 0 then
+		vim.cmd.cclose()
+	else
+		vim.cmd.copen()
 	end
 end, { desc = 'Quickfix List' })
 
