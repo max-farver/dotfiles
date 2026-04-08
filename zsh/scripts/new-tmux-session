@@ -53,7 +53,7 @@ main() {
 switch_or_attach() {
   local target_session=$1
 
-  if [[ -n ${TMUX:-} ]] && tmux display-message -p '#{client_name}' >/dev/null 2>&1; then
+  if [[ -n ${TMUX:-} ]]; then
     tmux switch-client -t "${target_session}"
   else
     tmux attach-session -t "${target_session}"
