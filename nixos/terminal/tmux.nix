@@ -37,6 +37,10 @@
       }
     ];
     extraConfig = ''
+      # Use Ctrl-b so physical Super+b works with the Voyager keyd swap.
+      set -g prefix C-b
+      bind C-b send-prefix
+
       set -g status-position top
       set -g extended-keys on
       set -g extended-keys-format csi-u

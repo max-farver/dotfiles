@@ -29,6 +29,7 @@
       # to avoid problems caused by different versions of nixpkgs.
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    agenix.url = "github:ryantm/agenix";
   };
 
   outputs =
@@ -39,6 +40,7 @@
       nur,
       affinity-nix,
       hermes-agent,
+      agenix,
       ...
     }:
     {
@@ -55,11 +57,15 @@
             nixos-hardware.nixosModules.framework-16-7040-amd
             nur.modules.nixos.default
             hermes-agent.nixosModules.default
+            agenix.nixosModules.default
             # make home-manager as a module of nixos
             # so that home-manager configuration will be deployed automatically when executing `nixos-rebuild switch`
             home-manager.nixosModules.home-manager
             {
               # home-manager.useGlobalPkgs = true;
+              home-manager.sharedModules = [
+                agenix.homeManagerModules.default
+              ];
               home-manager.useUserPackages = true;
 
               home-manager.users.mfarver = import ./system-specific/machines/framework16/home.nix;
@@ -89,6 +95,7 @@
           };
 
           modules = [
+            agenix.homeManagerModules.default
             ./system-specific/machines/pixel-8-pro/home.nix
           ];
         };
@@ -107,6 +114,7 @@
           };
 
           modules = [
+            agenix.homeManagerModules.default
             ./system-specific/machines/ubuntu-vps/home.nix
           ];
         };

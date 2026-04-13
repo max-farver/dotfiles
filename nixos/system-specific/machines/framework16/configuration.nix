@@ -80,6 +80,7 @@
       # breaks my macro keys that depend on left-ctrl.
       settings.main = {
         leftmeta = "leftcontrol";
+        leftcontrol = "leftmeta";
         rightcontrol = "rightmeta";
         rightmeta = "rightcontrol";
       };

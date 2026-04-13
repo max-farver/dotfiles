@@ -13,6 +13,13 @@ let
     red = "#FF5555";
     yellow = "#F1FA8C";
   };
+  draculaWallpapers = pkgs.fetchFromGitHub {
+    owner = "dracula";
+    repo = "wallpaper";
+    rev = "f2b8cc4223bcc2dfd5f165ab80f701bbb84e3303";
+    hash = "sha256-P0MfGkVap8wDd6eSMwmLhvQ4/7Z+pNmgY7O+qt9C1bg=";
+  };
+  wallpaperDir = "$HOME/.local/share/wallpapers/dracula";
 in
 {
   home.packages = with pkgs; [
@@ -66,10 +73,27 @@ in
 
   home.sessionVariables = {
     NIXOS_OZONE_WL = "1";
-    OPENWEATHER_KEY = lib.mkDefault "";
     OPENWEATHER_CITY_ID = lib.mkDefault "";
     OPENWEATHER_UNIT = lib.mkDefault "imperial";
   };
+
+  home.activation.syncDraculaWallpapers = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    src="${draculaWallpapers}"
+    dst="${wallpaperDir}"
+
+    mkdir -p "$dst"
+
+    ${pkgs.findutils}/bin/find "$dst" -maxdepth 1 -type f -name 'dracula__*' -delete
+
+    ${pkgs.findutils}/bin/find "$src" -type f | while IFS= read -r file; do
+      if ! printf '%s\n' "$file" | ${pkgs.gnugrep}/bin/grep -Eiq '\.(jpg|jpeg|png|webp|gif|mp4|mkv|mov|webm)$'; then
+        continue
+      fi
+      rel=$(printf '%s\n' "$file" | sed "s#^$src/##")
+      safe_rel=$(printf '%s' "$rel" | tr '/' '__')
+      cp -f "$file" "$dst/dracula__$safe_rel"
+    done
+  '';
 
   xdg.configFile = {
     "hypr/scripts" = {
@@ -239,7 +263,6 @@ in
         "quickshell -p ~/.config/hypr/scripts/quickshell/Main.qml"
         "quickshell -p ~/.config/hypr/scripts/quickshell/TopBar.qml"
         "python3 ~/.config/hypr/scripts/quickshell/focustime/focus_daemon.py &"
-        "swaync"
         "swayosd-server"
         "${pkgs.hyprpolkitagent}/libexec/hyprpolkitagent"
       ];
@@ -268,7 +291,6 @@ in
       bind = [
         "$mod, Return, exec, $terminal"
         "CTRL ALT, T, exec, $terminal"
-        "$mod, B, exec, $browser"
         "$mod, E, exec, $fileManager"
         "$mod SHIFT, V, exec, pavucontrol"
 
@@ -338,7 +360,7 @@ in
 
       input = {
         kb_layout = "us";
-        kb_options = "caps:swapescape";
+        kb_options = "caps:escape";
         follow_mouse = 1;
         touchpad = {
           natural_scroll = true;
@@ -349,6 +371,7 @@ in
       general = {
         gaps_in = 5;
         gaps_out = 10;
+        layout = "master";
         border_size = 2;
         "col.active_border" = "rgba(bd93f9ee) rgba(ff79c6ee) 45deg";
         "col.inactive_border" = "rgba(44475aaa)";

@@ -25,8 +25,10 @@
       core = {
         excludesFile = "~/.config/git/ignore";
       };
+      init = {
+        defaultBranch = "main";
+      };
     };
-    # defaultBranch = "main";
     # lfs.enable = true;
   };
 }

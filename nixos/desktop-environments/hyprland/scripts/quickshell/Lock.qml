@@ -49,6 +49,7 @@ ShellRoot {
     // System Authentication hook
     PamContext {
         id: pam
+        config: "quickshell-lock"
         
         Component.onCompleted: pam.start()
 

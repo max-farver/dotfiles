@@ -10,17 +10,35 @@ env_tracker_file="${cache_dir}/.env_tracker"
 ENV_FILE="$(dirname "$0")/.env"
 
 # API Settings
-if { [ -z "${OPENWEATHER_KEY:-}" ] || [ -z "${OPENWEATHER_CITY_ID:-}" ] || [ -z "${OPENWEATHER_UNIT:-}" ]; } && [ -f "$ENV_FILE" ]; then
+resolve_openweather_key() {
+    if [ -n "${OPENWEATHER_KEY:-}" ]; then
+        printf '%s' "$OPENWEATHER_KEY"
+        return
+    fi
+
+    if [ -n "${OPENWEATHER_KEY_FILE:-}" ] && [ -r "$OPENWEATHER_KEY_FILE" ]; then
+        # Secret files are single-line tokens; trim trailing CR/LF safely.
+        tr -d '\r\n' < "$OPENWEATHER_KEY_FILE"
+        return
+    fi
+
+    printf '%s' "${OPENWEATHER_KEY:-}"
+}
+
+KEY="$(resolve_openweather_key)"
+ID="${OPENWEATHER_CITY_ID:-}"
+UNIT="${OPENWEATHER_UNIT:-metric}" # Default to metric if not set
+
+if { [ -z "$KEY" ] || [ -z "$ID" ] || [ -z "${OPENWEATHER_UNIT:-}" ]; } && [ -f "$ENV_FILE" ]; then
     # Fallback for non-interactive sessions: load local .env only when needed.
     set -a
     . "$ENV_FILE"
     set +a
-fi
 
-# Prefer inherited environment (e.g., user session), fallback remains .env values.
-KEY="${OPENWEATHER_KEY:-}"
-ID="${OPENWEATHER_CITY_ID:-}"
-UNIT="${OPENWEATHER_UNIT:-metric}" # Default to metric if not set
+    KEY="$(resolve_openweather_key)"
+    ID="${OPENWEATHER_CITY_ID:-}"
+    UNIT="${OPENWEATHER_UNIT:-metric}"
+fi
 
 mkdir -p "${cache_dir}"
 
