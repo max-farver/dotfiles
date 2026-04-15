@@ -9,7 +9,6 @@
   imports = [
     ./hardware-configuration.nix
     ../../../desktop-environments/plasma.nix
-    ../../../desktop-environments/hyprland.nix
     ../../x86_64-linux/linux.nix
     ../../../games/steam.nix
   ];
@@ -72,20 +71,20 @@
   # Framework Updates
   services.fwupd.enable = true;
 
-  services.keyd = {
-    enable = true;
-    keyboards.voyager = {
-      ids = [ "3297:1977" ];
-      # Do not fully swap the left side: making leftcontrol -> leftmeta
-      # breaks my macro keys that depend on left-ctrl.
-      settings.main = {
-        leftmeta = "leftcontrol";
-        leftcontrol = "leftmeta";
-        rightcontrol = "rightmeta";
-        rightmeta = "rightcontrol";
-      };
-    };
-  };
+  # services.keyd = {
+  #   enable = true;
+  #   keyboards.voyager = {
+  #     ids = [ "3297:1977" ];
+  #     # Do not fully swap the left side: making leftcontrol -> leftmeta
+  #     # breaks my macro keys that depend on left-ctrl.
+  #     settings.main = {
+  #       # leftmeta = "leftcontrol";
+  #       # leftcontrol = "leftmeta";
+  #       # rightcontrol = "rightmeta";
+  #       # rightmeta = "rightcontrol";
+  #     };
+  #   };
+  # };
 
   # QMK flashing permissions
   services.udev.packages = [ pkgs.qmk-udev-rules ];

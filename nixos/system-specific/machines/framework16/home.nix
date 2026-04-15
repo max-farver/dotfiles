@@ -17,18 +17,11 @@ in
     ../../../applications/default.nix
     ../../../applications/game-dev.nix
     ../../../games/heroic.nix
-    ../../../desktop-environments/hyprland-home.nix
   ];
   home.username = username;
   home.homeDirectory = homeDir;
 
 
-  age = {
-    identityPaths = [
-      "${homeDir}/.config/agenix/key.txt"
-    ];
-    secrets.openweather-key.file = ../../../secrets/openweather-key.age;
-  };
 
   xdg.enable = true;
 
@@ -87,5 +80,4 @@ in
   home.stateVersion = "25.11";
   home.enableNixpkgsReleaseCheck = false;
 
-  home.sessionVariables.OPENWEATHER_KEY_FILE = config.age.secrets.openweather-key.path;
 }

@@ -100,11 +100,6 @@
     #media-session.enable = true;
   };
 
-  # Quickshell lockscreen: force password PAM flow (avoid pam_fprintd crash path).
-  security.pam.services.quickshell-lock = {
-    fprintAuth = false;
-    unixAuth = true;
-  };
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
