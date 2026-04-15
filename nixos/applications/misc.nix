@@ -10,7 +10,7 @@
     pkgs.gimp
     # pkgs.krita
     # pkgs.winboat
-    inputs.affinity-nix.packages.${pkgs.stdenv.hostPlatform.system}.v3
+    # inputs.affinity-nix.packages.${pkgs.stdenv.hostPlatform.system}.v3
     # pkgs.openscad
   ];
 }

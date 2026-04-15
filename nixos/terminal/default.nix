@@ -68,6 +68,11 @@
       nix-direnv.enable = true;
     };
 
+    # zoxide = {
+    #   enable = true;
+    #   enableZshIntegration = true;
+    # };
+
     bash.enable = true; # see note on other shells below
   };
 
