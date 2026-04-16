@@ -24,6 +24,7 @@
     pkgs.docker-buildx # Advanced building with multi-platform support
     pkgs.compose2nix # Tool to convert docker-compose.yml to NixOS modules
     pkgs.qmk
+    pkgs.attic-client
     inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.default
   ];
 
@@ -70,6 +71,29 @@
 
   # Framework Updates
   services.fwupd.enable = true;
+
+  # Follow Attic NixOS deployment docs: keep the signing secret out of the Nix store.
+  # Create this file once as root before switching:
+  #   install -m 0600 /dev/null /etc/atticd.env
+  #   nix run nixpkgs#openssl -- genrsa -traditional 4096 | base64 -w0 |
+  #     xargs -I{} sh -c 'printf "ATTIC_SERVER_TOKEN_RS256_SECRET_BASE64=\"%s\"\n" "$1" > /etc/atticd.env' _ {}
+  services.atticd = {
+    enable = true;
+    environmentFile = "/etc/atticd.env";
+    settings = {
+      # Local-first rollout: do not expose Attic beyond loopback yet.
+      listen = "127.0.0.1:8080";
+      api-endpoint = "http://127.0.0.1:8080/";
+    };
+  };
+
+
+  nix.settings = {
+    # Ensure nix-daemon (used by nixos-rebuild) can substitute from local Attic automatically.
+    extra-substituters = [ "http://127.0.0.1:8080/nixos-local" ];
+    extra-trusted-public-keys = [ "nixos-local:s9NQtkqtj3u0mp4gBRLisbkDNC1KYbhEkQvxnQfXaoU=" ];
+  };
+
 
   # services.keyd = {
   #   enable = true;
