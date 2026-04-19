@@ -16,6 +16,11 @@
       url = "github:cachix/devenv";
     };
 
+    agenix = {
+      url = "github:ryantm/agenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # Pin to last known-good Hermes before upstream issue #5502
     hermes-agent.url = "github:NousResearch/hermes-agent/v2026.4.3";
 
@@ -39,6 +44,7 @@
       nur,
       affinity-nix,
       hermes-agent,
+      agenix,
       ...
     }:
     {
@@ -55,6 +61,7 @@
             nixos-hardware.nixosModules.framework-16-7040-amd
             nur.modules.nixos.default
             hermes-agent.nixosModules.default
+            agenix.nixosModules.default
             # make home-manager as a module of nixos
             # so that home-manager configuration will be deployed automatically when executing `nixos-rebuild switch`
             home-manager.nixosModules.home-manager

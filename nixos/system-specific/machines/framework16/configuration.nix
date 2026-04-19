@@ -26,8 +26,9 @@
     pkgs.qmk
     pkgs.attic-client
     inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.default
-  ];
+    inputs.agenix.packages.${pkgs.stdenv.hostPlatform.system}.default
 
+  ];
   boot.kernelParams = [
     "resume_offset=702464"
     # Framework 16 iGPU glitch workaround (equivalent to modprobe option dcdebugmask=0x410)
@@ -72,14 +73,22 @@
   # Framework Updates
   services.fwupd.enable = true;
 
-  # Follow Attic NixOS deployment docs: keep the signing secret out of the Nix store.
-  # Create this file once as root before switching:
-  #   install -m 0600 /dev/null /etc/atticd.env
-  #   nix run nixpkgs#openssl -- genrsa -traditional 4096 | base64 -w0 |
-  #     xargs -I{} sh -c 'printf "ATTIC_SERVER_TOKEN_RS256_SECRET_BASE64=\"%s\"\n" "$1" > /etc/atticd.env' _ {}
+  # OpenSSH is disabled, so set an explicit identity for agenix decryption.
+  # This must match a recipient in secrets/framework16.age.
+  age = {
+    identityPaths = [ "/home/mfarver/.ssh/id_ed25519" ];
+
+    secrets.framework16 = {
+      file = ../../../secrets/framework16.age;
+      mode = "0400";
+      owner = "root";
+      group = "root";
+    };
+  };
+
   services.atticd = {
     enable = true;
-    environmentFile = "/etc/atticd.env";
+    environmentFile = config.age.secrets.framework16.path;
     settings = {
       # Local-first rollout: do not expose Attic beyond loopback yet.
       listen = "127.0.0.1:8080";
@@ -87,13 +96,15 @@
     };
   };
 
-
   nix.settings = {
     # Ensure nix-daemon (used by nixos-rebuild) can substitute from local Attic automatically.
     extra-substituters = [ "http://127.0.0.1:8080/nixos-local" ];
     extra-trusted-public-keys = [ "nixos-local:s9NQtkqtj3u0mp4gBRLisbkDNC1KYbhEkQvxnQfXaoU=" ];
+    trusted-users = [
+      "root"
+      "mfarver"
+    ];
   };
-
 
   # services.keyd = {
   #   enable = true;
