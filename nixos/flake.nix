@@ -100,23 +100,6 @@
           ];
         };
 
-        ubuntu-vps = home-manager.lib.homeManagerConfiguration {
-          pkgs = import nixpkgs {
-            system = "x86_64-linux";
-            config.allowUnfree = true;
-            overlays = [
-              nur.overlays.default
-            ];
-          };
-
-          extraSpecialArgs = {
-            inherit inputs;
-          };
-
-          modules = [
-            ./system-specific/machines/ubuntu-vps/home.nix
-          ];
-        };
       };
 
     };
