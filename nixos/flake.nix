@@ -38,6 +38,7 @@
 
   outputs =
     inputs@{
+      self,
       nixpkgs,
       nixos-hardware,
       home-manager,
@@ -79,6 +80,18 @@
           ];
         };
 
+        do-server = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+
+          specialArgs = {
+            inherit inputs;
+          };
+
+          modules = [
+            ./system-specific/machines/do-server/configuration.nix
+          ];
+        };
+
       };
 
       homeConfigurations = {
@@ -100,6 +113,10 @@
           ];
         };
 
+      };
+
+      packages.x86_64-linux = {
+        do-server-do-image = self.nixosConfigurations.do-server.config.system.build.images."digital-ocean";
       };
 
     };
