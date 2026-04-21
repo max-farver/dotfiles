@@ -89,6 +89,7 @@
 
           modules = [
             ./system-specific/machines/do-server/configuration.nix
+            agenix.nixosModules.default
           ];
         };
 

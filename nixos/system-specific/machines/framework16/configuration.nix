@@ -155,6 +155,11 @@
     enable = true;
   };
 
+  services.tailscale = {
+    enable = true;
+    openFirewall = true;
+  };
+
   # Set up ZSH
   programs.zsh = {
     enable = true;
