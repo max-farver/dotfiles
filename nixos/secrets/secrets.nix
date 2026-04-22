@@ -7,7 +7,7 @@ let
 
   # Current recipient set: local user key and do-server host key.
   mfarver = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINhwd1Jc8J4Kf3EzV39VZzHeiSSP7iU87vwfec4ebV1f mfarver@nixos";
-  doServer = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILMEptGgNTD7UxWcWiqgh8e+Z4LPZNSPzn6diw1/c3Sj root@do-server";
+  doServer = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOL4ugtjT3hEg/UJ2N2EAL45XI9aoSoNv9c+Duvb237W root@do-server";
 in
 {
   # Example mapping used by the agenix CLI from the `secrets/` directory:
