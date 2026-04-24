@@ -88,7 +88,7 @@ in
       openFirewall = false;
       environment = {
         HUB_URL = "http://127.0.0.1:8090";
-        LISTEN = "127.0.0.1:45876";
+        LISTEN = "0.0.0.0:45876";
         KEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBXVLydaYfu79T2qdDxKyL6pyLGdHu/RnqZcjCTao+6V mfarver@nixos";
       };
     };

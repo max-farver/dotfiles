@@ -97,9 +97,11 @@
   };
 
   nix.settings = {
-    # Ensure nix-daemon (used by nixos-rebuild) can substitute from local Attic automatically.
-    extra-substituters = [ "http://127.0.0.1:8080/nixos-local" ];
-    extra-trusted-public-keys = [ "nixos-local:s9NQtkqtj3u0mp4gBRLisbkDNC1KYbhEkQvxnQfXaoU=" ];
+    # Local Attic cache is currently unavailable (atticd env secret missing).
+    # Keep the daemon on public substituters so rebuilds don't hit localhost failures.
+    # Re-enable these once atticd is healthy again:
+    # extra-substituters = [ "http://127.0.0.1:8080/nixos-local" ];
+    # extra-trusted-public-keys = [ "nixos-local:s9NQtkqtj3u0mp4gBRLisbkDNC1KYbhEkQvxnQfXaoU=" ];
     trusted-users = [
       "root"
       "mfarver"
