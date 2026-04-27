@@ -6,6 +6,11 @@
         "tcp:443": "http://127.0.0.1:8090"
       }
     },
+    "svc:linkwarden": {
+      "endpoints": {
+        "tcp:443": "http://127.0.0.1:3000"
+      }
+    },
     "svc:glance": {
       "endpoints": {
         "tcp:443": "http://127.0.0.1:8080"

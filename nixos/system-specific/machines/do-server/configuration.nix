@@ -23,6 +23,13 @@ in
     group = "root";
   };
 
+  age.secrets.linkwarden-env = {
+    file = ../../../secrets/linkwarden.env.age;
+    mode = "0400";
+    owner = "root";
+    group = "root";
+  };
+
   services.openssh = {
     enable = true;
     settings = {
@@ -91,6 +98,19 @@ in
         LISTEN = "0.0.0.0:45876";
         KEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBXVLydaYfu79T2qdDxKyL6pyLGdHu/RnqZcjCTao+6V mfarver@nixos";
       };
+    };
+  };
+
+  services.linkwarden = {
+    enable = true;
+    host = "127.0.0.1";
+    port = 3000;
+    openFirewall = false;
+    enableRegistration = false;
+    database.createLocally = true;
+    environmentFile = config.age.secrets.linkwarden-env.path;
+    environment = {
+      NEXTAUTH_URL = "https://linkwarden.tailf2b6d7.ts.net";
     };
   };
 

@@ -20,4 +20,9 @@ in
     mfarver
     doServer
   ];
+
+  "linkwarden.env.age".publicKeys = [
+    mfarver
+    doServer
+  ];
 }
