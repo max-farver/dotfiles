@@ -1,12 +1,16 @@
-{ config, pkgs, ... }:
-
+{ pkgs, ... }:
 {
   # Enable the X11 windowing system.
-  # You can disable this if you're only using the Wayland session.
   services.xserver.enable = true;
   services.xserver.xkb.options = "caps:escape";
 
-  # Enable the KDE Plasma Desktop Environment.
+  # Local login via SDDM and KDE Plasma.
   services.displayManager.sddm.enable = true;
   services.desktopManager.plasma6.enable = true;
+  services.displayManager.autoLogin.enable = false;
+
+  # Remote GUI via XRDP, forcing a Plasma X11 session.
+  services.xrdp.enable = true;
+  services.xrdp.openFirewall = false;
+  services.xrdp.defaultWindowManager = "${pkgs.kdePackages.plasma-workspace}/bin/startplasma-x11";
 }

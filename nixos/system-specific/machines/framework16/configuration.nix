@@ -73,10 +73,10 @@
   # Framework Updates
   services.fwupd.enable = true;
 
-  # OpenSSH is disabled, so set an explicit identity for agenix decryption.
-  # This must match a recipient in secrets/framework16.age.
+  # Use a passphrase-less age identity for boot-time agenix decryption.
+  # The interactive SSH key cannot be used during system activation.
   age = {
-    identityPaths = [ "/home/mfarver/.ssh/id_ed25519" ];
+    identityPaths = [ "/home/mfarver/.config/agenix/framework16-attic.agekey" ];
 
     secrets.framework16 = {
       file = ../../../secrets/framework16.age;
@@ -97,11 +97,8 @@
   };
 
   nix.settings = {
-    # Local Attic cache is currently unavailable (atticd env secret missing).
-    # Keep the daemon on public substituters so rebuilds don't hit localhost failures.
-    # Re-enable these once atticd is healthy again:
-    # extra-substituters = [ "http://127.0.0.1:8080/nixos-local" ];
-    # extra-trusted-public-keys = [ "nixos-local:s9NQtkqtj3u0mp4gBRLisbkDNC1KYbhEkQvxnQfXaoU=" ];
+    extra-substituters = [ "http://127.0.0.1:8080/nixos-local" ];
+    extra-trusted-public-keys = [ "nixos-local:s9NQtkqtj3u0mp4gBRLisbkDNC1KYbhEkQvxnQfXaoU=" ];
     trusted-users = [
       "root"
       "mfarver"
@@ -123,14 +120,31 @@
   #   };
   # };
 
-  # QMK flashing permissions
+  # QMK flashing permissions and keyboard bootloader automount
   services.udev.packages = [ pkgs.qmk-udev-rules ];
-
-  # Fix waking when lid is closed
   services.udev.extraRules = ''
+    # Mount XIAO/RP2040 bootloader volumes as soon as the keyboard enters flash mode.
+    SUBSYSTEM=="block", ENV{ID_FS_LABEL}=="XIAO-BOOT", TAG+="systemd", ENV{SYSTEMD_WANTS}+="xiao-boot-mount.service"
+
     SUBSYSTEM=="usb", DRIVERS=="usb", ATTRS{idVendor}=="32ac", ATTRS{idProduct}=="0012", ATTR{power/wakeup}="disabled", ATTR{driver/1-1.1.1.4/power/wakeup}="disabled"
     SUBSYSTEM=="usb", DRIVERS=="usb", ATTRS{idVendor}=="32ac", ATTRS{idProduct}=="0014", ATTR{power/wakeup}="disabled", ATTR{driver/1-1.1.1.4/power/wakeup}="disabled"
   '';
+
+  systemd.services.xiao-boot-mount = {
+    description = "Mount XIAO-BOOT keyboard bootloader volume";
+    path = with pkgs; [
+      coreutils
+      systemd
+    ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = false;
+    };
+    script = ''
+      mkdir -p /run/media/mfarver/XIAO-BOOT
+      systemd-mount --no-block --collect --bind-device --owner=mfarver --options=rw,noatime /dev/disk/by-label/XIAO-BOOT /run/media/mfarver/XIAO-BOOT
+    '';
+  };
 
   hardware.graphics = {
     enable = true;

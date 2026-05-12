@@ -22,18 +22,6 @@ in
   home.username = username;
   home.homeDirectory = homeDir;
 
-  age = {
-    identityPaths = [
-      "${homeDir}/.ssh/id_ed25519"
-    ];
-
-    # Scaffold secret: present for wiring validation only.
-    # Replace `framework16.age` with a real encrypted file when ready, then
-    # reference the decrypted path from consuming program options.
-    secrets.framework16 = {
-      file = ../../../secrets/framework16.age;
-    };
-  };
 
   xdg.enable = true;
 

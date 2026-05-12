@@ -93,6 +93,19 @@
           ];
         };
 
+        homelab = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+
+          specialArgs = {
+            inherit inputs;
+          };
+
+          modules = [
+            ./system-specific/machines/homelab/configuration.nix
+            agenix.nixosModules.default
+          ];
+        };
+
       };
 
       homeConfigurations = {
