@@ -1185,11 +1185,11 @@
     },
     "nixpkgs_12": {
       "locked": {
-        "lastModified": 1775423009,
-        "narHash": "sha256-vPKLpjhIVWdDrfiUM8atW6YkIggCEKdSAlJPzzhkQlw=",
+        "lastModified": 1778443072,
+        "narHash": "sha256-zi7/fsqM/kFdNuED//4WOCUtezGtKKqRNORjMvfwjnA=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "68d8aa3d661f0e6bd5862291b5bb263b2a6595c9",
+        "rev": "da5ad661ba4e5ef59ba743f0d112cbc30e474f32",
         "type": "github"
       },
       "original": {
@@ -1345,23 +1345,6 @@
         "type": "github"
       }
     },
-    "oh-my-pi-src": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1775405109,
-        "narHash": "sha256-Gf287WU40iQUTHZ1uP4g6ndXl4Re+6gh5vT/8eRul3o=",
-        "owner": "can1357",
-        "repo": "oh-my-pi",
-        "rev": "e52535c51cc2147f8d1ae2d6e25f92a771ce1df6",
-        "type": "github"
-      },
-      "original": {
-        "owner": "can1357",
-        "ref": "v13.19.0",
-        "repo": "oh-my-pi",
-        "type": "github"
-      }
-    },
     "on-linux": {
       "flake": false,
       "locked": {
@@ -1381,8 +1364,7 @@
     "pi-local": {
       "inputs": {
         "flake-utils": "flake-utils_2",
-        "nixpkgs": "nixpkgs_12",
-        "oh-my-pi-src": "oh-my-pi-src"
+        "nixpkgs": "nixpkgs_12"
       },
       "locked": {
         "path": "./pkgs/pi",

@@ -22,8 +22,8 @@
     shellAliases = {
       rebuild_switch = "sudo nixos-rebuild switch --flake ~/.config/nixos";
       rebuild_boot = "sudo nixos-rebuild boot --flake ~/.config/nixos";
-      update_oh_my_pi = "nix flake update oh-my-pi-src --flake ~/.config/nixos/pkgs/pi";
-      update_oh_my_pi_rebuild = "nix flake update oh-my-pi-src --flake ~/.config/nixos/pkgs/pi && rebuild_switch";
+      update_oh_my_pi = "~/.config/nixos/scripts/update-oh-my-pi.sh";
+      update_oh_my_pi_rebuild = "~/.config/nixos/scripts/update-oh-my-pi.sh && rebuild_switch";
     };
     autosuggestion = {
       enable = true;
