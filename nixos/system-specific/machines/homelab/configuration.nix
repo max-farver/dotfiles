@@ -17,6 +17,7 @@ in
   networking.hostName = "homelab";
 
   boot.loader.systemd-boot.enable = true;
+  boot.loader.systemd-boot.configurationLimit = 10;
   boot.loader.efi.canTouchEfiVariables = true;
 
   # Bootstrap secret decryption with operator key until homelab host SSH key is enrolled in secrets.nix.
