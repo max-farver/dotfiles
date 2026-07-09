@@ -8,6 +8,8 @@
 
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
+  hardware.enableRedistributableFirmware = true;
+
 
   # List packages installed in system profile. To search, run:
   environment.systemPackages = with pkgs; [
@@ -26,7 +28,6 @@
 
   services.hardware.bolt.enable = true;
 
-  networking.hostName = "nixos"; # Define your hostname.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
 
   # Configure network proxy if necessary

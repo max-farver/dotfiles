@@ -41,7 +41,7 @@
       enable = true;
       clean.enable = true;
       clean.extraArgs = "--keep-since 4d --keep 3";
-      flake = "/home/mfarver/.config/nixos"; # sets NH_OS_FLAKE variable for you
+      flake = "/home/mfarver/.config/nixos#framework16"; # sets NH_OS_FLAKE variable for you
     };
 
     atuin = {
@@ -60,6 +60,8 @@
     fzf = {
       enable = true;
       enableZshIntegration = false;
+      # Atuin owns Ctrl-R; keep fzf enabled without installing its bash history widget binding.
+      historyWidget.bash.command = "";
     };
 
     direnv = {

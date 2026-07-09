@@ -8,5 +8,6 @@
     ./messaging.nix
     ./misc.nix
     ./media-players.nix
+    ./utilities.nix
   ];
 }

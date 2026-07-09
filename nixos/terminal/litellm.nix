@@ -9,6 +9,7 @@ let
   litellmConfigDir = "${config.xdg.configHome}/litellm";
   litellmConfigPath = "${litellmConfigDir}/config.yaml";
   litellmEnvPath = "${litellmConfigDir}/litellm.env";
+  placeholderMasterKey = "sk-your-generated-master-key";
 in
 {
   xdg.configFile."litellm/config.yaml".text = ''
@@ -305,11 +306,21 @@ in
     chmod 700 "${litellmConfigDir}/chatgpt-tokens"
 
     env_file="${litellmEnvPath}"
+    if [ -f "$env_file" ] && ${pkgs.gnugrep}/bin/grep -qx 'LITELLM_MASTER_KEY=sk-your-generated-master-key' "$env_file"; then
+      generated_key="sk-litellm-$(${pkgs.openssl}/bin/openssl rand -hex 32)"
+      tmp_file="$env_file.tmp"
+      ${pkgs.gnused}/bin/sed "s|^LITELLM_MASTER_KEY=sk-your-generated-master-key$|LITELLM_MASTER_KEY=$generated_key|" "$env_file" > "$tmp_file"
+      install -m 600 "$tmp_file" "$env_file"
+      rm -f "$tmp_file"
+      echo "Replaced placeholder LiteLLM master key in $env_file."
+    fi
+
     if [ ! -f "$env_file" ]; then
       mkdir -p "$(dirname "$env_file")"
-      cat > "$env_file" <<'EOF'
+      generated_key="sk-litellm-$(${pkgs.openssl}/bin/openssl rand -hex 32)"
+      cat > "$env_file" <<EOF
 # Required
-LITELLM_MASTER_KEY=sk-your-generated-master-key
+LITELLM_MASTER_KEY=$generated_key
 
 # Optional ChatGPT OAuth token storage overrides
 # CHATGPT_TOKEN_DIR=/home/mfarver/.config/litellm/chatgpt-tokens
@@ -320,7 +331,7 @@ LITELLM_MASTER_KEY=sk-your-generated-master-key
 # LITELLM_LOG_SYSTEM_REWRITE=1
 EOF
       chmod 600 "$env_file"
-      echo "Created $env_file with placeholders."
+      echo "Created $env_file with generated local master key."
       echo "Then run: systemctl --user restart litellm-proxy && litellm-check"
       echo "If prompted, complete OAuth device flow from: journalctl --user -u litellm-proxy -f"
       echo "Use this to inspect mapped models: curl -sS -H \"Authorization: Bearer \$LITELLM_MASTER_KEY\" http://127.0.0.1:4000/v1/models | jq"
@@ -341,7 +352,10 @@ EOF
       source "$env_file"
       set +a
 
-      : "''${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY is required in $env_file}"
+      if [[ -z "''${LITELLM_MASTER_KEY:-}" || "''${LITELLM_MASTER_KEY:-}" == "${placeholderMasterKey}" ]]; then
+        echo "LITELLM_MASTER_KEY in $env_file must be a generated key, not ${placeholderMasterKey}." >&2
+        exit 1
+      fi
 
       # Use stream=true because LiteLLM 1.82.x has a known non-stream parse issue
       # on chatgpt/* responses routes (output=[] parser failure).
@@ -378,7 +392,10 @@ EOF
       source "$env_file"
       set +a
 
-      : "''${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY is required in $env_file}"
+      if [[ -z "''${LITELLM_MASTER_KEY:-}" || "''${LITELLM_MASTER_KEY:-}" == "${placeholderMasterKey}" ]]; then
+        echo "LITELLM_MASTER_KEY in $env_file must be a generated key, not ${placeholderMasterKey}." >&2
+        exit 1
+      fi
 
       curl -sS -H "Authorization: Bearer $LITELLM_MASTER_KEY" \
         "http://127.0.0.1:4000/v1/models" | jq -r '.data[].id' | while read -r model; do
@@ -424,7 +441,7 @@ EOF
       source "${litellmEnvPath}"
       set +a
 
-      if [[ -n "''${LITELLM_MASTER_KEY:-}" ]]; then
+      if [[ -n "''${LITELLM_MASTER_KEY:-}" && "''${LITELLM_MASTER_KEY}" != "${placeholderMasterKey}" ]]; then
         export ANTHROPIC_BASE_URL="''${ANTHROPIC_BASE_URL:-http://127.0.0.1:4000}"
         # Prefer API key auth only to avoid token+key conflict warnings.
         unset ANTHROPIC_AUTH_TOKEN

@@ -12,7 +12,7 @@ set -euo pipefail
 #   ./scripts/bootstrap-attic-local.sh [options]
 #
 # Options:
-#   --flake <flake-ref>        NixOS flake target (default: $HOME/.config/nixos#nixos)
+#   --flake <flake-ref>        NixOS flake target (default: $HOME/.config/nixos#framework16)
 #   --server <server-alias>    Attic server alias for `attic login` (default: local)
 #   --endpoint <url>           Attic API endpoint (default: http://127.0.0.1:8080)
 #   --cache <cache-name>       Cache name to create/use (default: nixos-local)
@@ -20,7 +20,7 @@ set -euo pipefail
 #   --no-smoke-test            Skip push/pull smoke test
 #   -h, --help                 Show help
 
-FLAKE_REF="${HOME}/.config/nixos#nixos"
+FLAKE_REF="${HOME}/.config/nixos#framework16"
 SERVER_ALIAS="local"
 ENDPOINT="http://127.0.0.1:8080"
 CACHE_NAME="nixos-local"

@@ -1,6 +1,7 @@
 {
   pkgs,
   config,
+  lib,
   inputs,
   ...
 }:
@@ -12,6 +13,8 @@
     ../../x86_64-linux/linux.nix
     ../../../games/steam.nix
   ];
+  networking.hostName = "framework16";
+
   environment.systemPackages = with pkgs; [
     pkgs.amdgpu_top
     pkgs.virtualglLib
@@ -29,24 +32,20 @@
     inputs.agenix.packages.${pkgs.stdenv.hostPlatform.system}.default
 
   ];
-  boot.kernelParams = [
+  virtualisation.docker.enable = true;
+  # systemd 258 provides Android device uaccess rules; keep adbusers as an explicit login group for existing workflows.
+  users.groups.adbusers = { };
+
+  boot.kernelParams = lib.mkForce [
     "resume_offset=702464"
-    # Framework 16 iGPU glitch workaround (equivalent to modprobe option dcdebugmask=0x410)
+    # Framework 16 iGPU glitch workaround: keep the local 0x410 value so PSR and Panel Replay are disabled once, instead of also inheriting nixos-hardware's narrower 0x10 value.
     "amdgpu.dcdebugmask=0x410"
   ];
 
   boot.resumeDevice = "/dev/disk/by-uuid/21d58950-6d40-4862-9dc4-3de2ce8b55b0";
+  hardware.framework.enableKmod = true;
 
-  hardware.framework.enableKmod = false;
-  boot = {
-    kernelModules = [
-      "cros_ec"
-      "cros_ec_lpcs"
-    ];
-    extraModulePackages = with config.boot.kernelPackages; [
-      framework-laptop-kmod
-    ];
-  };
+
 
   powerManagement.enable = true;
 
@@ -57,7 +56,6 @@
     }
   ];
 
-  services.power-profiles-daemon.enable = true;
   # Suspend first then hibernate when closing the lid
   services.logind.settings.Login.HandleLidSwitch = "suspend-then-hibernate";
   # Hibernate on power button pressed
@@ -70,8 +68,6 @@
     SuspendState = "mem";
   };
 
-  # Framework Updates
-  services.fwupd.enable = true;
 
   # Use a passphrase-less age identity for boot-time agenix decryption.
   # The interactive SSH key cannot be used during system activation.
@@ -97,8 +93,6 @@
   };
 
   nix.settings = {
-    extra-substituters = [ "http://127.0.0.1:8080/nixos-local" ];
-    extra-trusted-public-keys = [ "nixos-local:s9NQtkqtj3u0mp4gBRLisbkDNC1KYbhEkQvxnQfXaoU=" ];
     trusted-users = [
       "root"
       "mfarver"
@@ -156,16 +150,15 @@
     ];
   };
 
-  # # Firewall for KDE Connect
-  # networking.firewall = rec {
-  #   allowedTCPPortRanges = [
-  #     {
-  #       from = 1714;
-  #       to = 1764;
-  #     }
-  #   ];
-  #   allowedUDPPortRanges = allowedTCPPortRanges;
-  # };
+  networking.firewall = rec {
+    allowedTCPPortRanges = [
+      {
+        from = 1714;
+        to = 1764;
+      }
+    ];
+    allowedUDPPortRanges = allowedTCPPortRanges;
+  };
 
   services.resolved = {
     enable = true;
@@ -182,7 +175,11 @@
   };
   users.users.mfarver = {
     shell = pkgs.zsh;
-    extraGroups = [ "docker" ];
+    extraGroups = [
+      "adbusers"
+      "docker"
+      "kvm"
+    ];
   };
 
 }

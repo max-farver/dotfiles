@@ -10,7 +10,7 @@ let
   };
   appimagePath = "${srcZipped}/${appimageName}";
   bambu-studio = pkgs.appimageTools.wrapType2 {
-    name = "BambuStudio";
+    name = "bambustudio";
     pname = "bambustudio";
     inherit version;
     appimageContents = pkgs.appimageTools.extract {
@@ -30,7 +30,6 @@ let
       gst_all_1.gst-plugins-base
       gst_all_1.gst-plugins-good
       webkitgtk_4_1
-      pkgs.linuxPackages.nvidia_x11
       libglvnd
       fontconfig
       dejavu_fonts
@@ -47,7 +46,7 @@ in
     Name=BambuStudio
     GenericName=3D Printing Software
     Icon=BambuStudio
-    Exec=GBM_BACKEND=dri bambustudio
+    Exec=env GBM_BACKEND=dri bambustudio
     Terminal=false
     Type=Application
     MimeType=model/stl;model/3mf;application/vnd.ms-3mfdocument;application/prs.wavefront-obj;application/x-amf;x-scheme-handler/bambustudio;

@@ -15,13 +15,14 @@
     enableCompletion = true;
     dotDir = "${config.xdg.configHome}/zsh";
     initContent = lib.mkOrder 550 ''
-      export NH_FLAKE="${config.xdg.configHome}/nixos"
-      source ${config.xdg.configHome}/zsh/extensions/.zshrc.base
+      export NH_FLAKE="${config.xdg.configHome}/nixos#framework16"
+      local_zsh_base="${config.xdg.configHome}/zsh/extensions/.zshrc.base"
+      [[ -r "$local_zsh_base" ]] && source "$local_zsh_base"
     '';
 
     shellAliases = {
-      rebuild_switch = "sudo nixos-rebuild switch --flake ~/.config/nixos";
-      rebuild_boot = "sudo nixos-rebuild boot --flake ~/.config/nixos";
+      rebuild_switch = "sudo nixos-rebuild switch --flake ~/.config/nixos#framework16";
+      rebuild_boot = "sudo nixos-rebuild boot --flake ~/.config/nixos#framework16";
       update_oh_my_pi = "~/.config/nixos/scripts/update-oh-my-pi.sh";
       update_oh_my_pi_rebuild = "~/.config/nixos/scripts/update-oh-my-pi.sh && rebuild_switch";
     };

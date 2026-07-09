@@ -32,9 +32,10 @@ in
 
   programs.ssh = {
     enable = true;
-    matchBlocks."*" = {
-      addKeysToAgent = "yes";
-      identityFile = [ "${homeDir}/.ssh/id_ed25519" ];
+    enableDefaultConfig = false;
+    settings."*" = {
+      AddKeysToAgent = "yes";
+      IdentityFile = [ "${homeDir}/.ssh/id_ed25519" ];
     };
   };
 
@@ -80,7 +81,6 @@ in
 
   ];
 
-  # services.kdeconnect.enable = true;
 
   # This value determines the home Manager release that your
   # configuration is compatible with. This helps avoid breakage

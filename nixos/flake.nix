@@ -4,14 +4,12 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
-    flake-utils.url = "github:numtide/flake-utils";
     pi-local.url = "path:./pkgs/pi";
 
     nur = {
       url = "github:nix-community/NUR";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    affinity-nix.url = "github:mrshmllow/affinity-nix";
     devenv = {
       url = "github:cachix/devenv";
     };
@@ -43,14 +41,13 @@
       nixos-hardware,
       home-manager,
       nur,
-      affinity-nix,
       hermes-agent,
       agenix,
       ...
     }:
     {
       nixosConfigurations = {
-        nixos = nixpkgs.lib.nixosSystem {
+        framework16 = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
 
           specialArgs = {

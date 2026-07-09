@@ -7,6 +7,20 @@
 {
   home.packages = with pkgs; [
     gum
+    (pkgs.writeShellScriptBin "tmux-new-session" ''
+      set -eu
+
+      name="$(gum input --placeholder "New tmux session name")"
+      [ -n "$name" ] || exit 0
+
+      if tmux has-session -t "=$name" 2>/dev/null; then
+        tmux switch-client -t "=$name"
+        exit 0
+      fi
+
+      tmux new-session -d -s "$name" -c "$PWD"
+      tmux switch-client -t "=$name"
+    '')
   ];
 
   programs.tmux = {
@@ -56,8 +70,8 @@
       bind s display-popup -E -w 90% -h 90% -d '#{pane_current_path}' "sh -c 'selected=\$(tmux list-sessions -F \"#{session_name}\" | gum filter --fuzzy --limit 1 --header \"Switch to session\"); [ -n \"\$selected\" ] && tmux switch-client -t \"\$selected\"'"
       # Bulk session delete popup (Prefix+S); never deletes current session.
       bind S display-popup -E -w 90% -h 90% -d '#{pane_current_path}' "sh -c 'client=\"#{client_tty}\"; current=\"#{session_name}\"; selected=\$(tmux list-sessions -F \"#{session_name}\" | gum filter --fuzzy --no-limit --header \"Delete sessions\"); [ -z \"\$selected\" ] && exit 0; skipped_current=0; if printf \"%s\\n\" \"\$selected\" | grep -Fxq \"\$current\"; then skipped_current=1; fi; printf \"%s\\n\" \"\$selected\" | while IFS= read -r session; do [ -z \"\$session\" ] && continue; [ \"\$session\" = \"\$current\" ] && continue; tmux kill-session -t \"\$session\"; done; if [ \"\$skipped_current\" -eq 1 ]; then tmux display-message -c \"\$client\" \"Deleted selected sessions; skipped current session: \$current\"; else tmux display-message -c \"\$client\" \"Deleted selected sessions\"; fi'"
-      # Create a new session via existing tmuxsess workflow (Prefix+n).
-      bind n display-popup -E -w 90% -h 90% -d '#{pane_current_path}' "${pkgs.zsh}/bin/zsh -ic 'tmuxsess'"
+      # Create a new session (Prefix+n).
+      bind n display-popup -E -w 90% -h 90% -d '#{pane_current_path}' "tmux-new-session"
       unbind r
       bind r source-file ${config.xdg.configHome}/tmux/tmux.conf \; display-message "tmux config reloaded"
     '';

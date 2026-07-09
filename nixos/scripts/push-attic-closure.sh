@@ -8,13 +8,13 @@ set -euo pipefail
 #
 # Options:
 #   --installable <ref>   Nix installable to publish
-#                         (default: $HOME/.config/nixos#nixosConfigurations.nixos.config.system.build.toplevel)
+#                         (default: $HOME/.config/nixos#<flake attribute> nixosConfigurations.framework16.config.system.build.toplevel)
 #   --cache <name>        Attic cache name (default: nixos-local)
 #   --no-build            Skip `nix build` and only push existing closure
 #   --dry-run             Print what would run, but do not push
 #   -h, --help            Show help
 
-INSTALLABLE="${HOME}/.config/nixos#nixosConfigurations.nixos.config.system.build.toplevel"
+INSTALLABLE="${HOME}/.config/nixos#""nixosConfigurations.framework16.config.system.build.toplevel"
 CACHE_NAME="nixos-local"
 DO_BUILD=true
 DRY_RUN=false
