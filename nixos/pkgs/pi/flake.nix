@@ -18,7 +18,7 @@
         pkgs = import nixpkgs { inherit system; };
         lib = pkgs.lib;
 
-        version = "14.9.8";
+        version = "16.3.12";
         tag = "v${version}";
 
         assetNames = {
@@ -29,10 +29,10 @@
         };
 
         binaryHashes = {
-          x86_64-linux = "sha256-Td8qnJ6WBQCrqHH07B8UAXUpYNVnetmE1j4mYYd+hN0=";
-          aarch64-linux = "sha256-+Z1b5f7aWIDMg/e7LyZnnuC1oowJIAyiDRkjjeyj5lE=";
-          x86_64-darwin = "sha256-RGMPNv6YSuV1j6Oc9W/TxTUnyV4pBrkM9wLQNAWTH1M=";
-          aarch64-darwin = "sha256-y3EH3lP+7sGO34qSlVX/q1JZunDRRZ6MkZojhX0qLTA=";
+          x86_64-linux = "sha256-x8sBV2xpbZa5bCHWkegpRRGb87u3MW4+ifxbF+IH27c=";
+          aarch64-linux = "sha256-96AcQhttqbKFqhO2xtjl84c0e7QbBH6LnCzxrM4gsJg=";
+          x86_64-darwin = "sha256-WDmI3I/rnBloIz9cD9+9oIfhjkg8pJZrKw1k2cS448I=";
+          aarch64-darwin = "sha256-l7x4f75QMjWQKc7fw7lspCh9FoXJXguElLZLeXmkZvc=";
         };
 
         assetName = assetNames.${system} or (throw "Oh My Pi binary package does not support ${system}");
