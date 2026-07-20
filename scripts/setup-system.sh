@@ -6,6 +6,7 @@ DEFAULT_REPO_URL="https://github.com/max-farver/dotfiles"
 DEFAULT_GIT_DIR='${HOME}/.cfg'
 DEFAULT_WORK_TREE='${HOME}/.config'
 DEFAULT_HARDWARE_SRC="/etc/nixos/hardware-configuration.nix"
+NIX_EXPERIMENTAL_FEATURES="nix-command flakes"
 
 SYSTEM="${DOTFILES_SYSTEM:-$DEFAULT_SYSTEM}"
 REPO_URL="${DOTFILES_REPO_URL:-$DEFAULT_REPO_URL}"
@@ -87,6 +88,37 @@ run_as_root() {
   else
     run sudo "$@"
   fi
+}
+
+nix_cmd() {
+  run nix --extra-experimental-features "$NIX_EXPERIMENTAL_FEATURES" "$@"
+}
+
+nixos_rebuild_switch() {
+  run sudo nixos-rebuild switch --flake "$NIXOS_FLAKE#$SYSTEM" --option experimental-features "$NIX_EXPERIMENTAL_FEATURES"
+}
+
+ensure_host_key() {
+  local key_path="/etc/ssh/ssh_host_ed25519_key.pub"
+
+  if (( DRY_RUN )); then
+    run sudo test -r "$key_path"
+    run sudo ssh-keygen -A
+    return 0
+  fi
+
+  if (( EUID == 0 )); then
+    if [[ ! -r "$key_path" ]]; then
+      run ssh-keygen -A
+    fi
+    [[ -r "$key_path" ]] || die "SSH host ed25519 public key is unavailable after ssh-keygen -A: $key_path"
+    return 0
+  fi
+
+  if ! sudo test -r "$key_path"; then
+    run sudo ssh-keygen -A
+  fi
+  sudo test -r "$key_path" || die "SSH host ed25519 public key is unavailable after ssh-keygen -A: $key_path"
 }
 
 need_cmd() {
@@ -193,7 +225,7 @@ printf '[i] Work tree: %s\n' "$WORK_TREE"
 
 if ! command -v git >/dev/null 2>&1; then
   if command -v nix >/dev/null 2>&1; then
-    run nix profile install nixpkgs#git
+    nix_cmd profile install nixpkgs#git
   else
     die "Install git first or run from a NixOS environment with nix available."
   fi
@@ -232,6 +264,7 @@ if (( SYNC_HARDWARE )); then
 fi
 
 if (( PRINT_HOST_KEY )); then
+  ensure_host_key
   printf '[i] Host SSH key for agenix recipient enrollment:\n'
   run_as_root cat /etc/ssh/ssh_host_ed25519_key.pub
 
@@ -247,11 +280,11 @@ fi
 need_cmd nix "nix is required; run this from NixOS or install Nix before using this bootstrap script."
 
 if [[ -f "$NIXOS_FLAKE/flake.nix" ]]; then
-  run nix flake show --no-write-lock-file "$NIXOS_FLAKE"
-  run nix eval --raw "$NIXOS_FLAKE#nixosConfigurations.$SYSTEM.config.networking.hostName"
+  nix_cmd flake show --no-write-lock-file "$NIXOS_FLAKE"
+  nix_cmd eval --raw "$NIXOS_FLAKE#nixosConfigurations.$SYSTEM.config.networking.hostName"
 elif (( DRY_RUN )); then
-  run nix flake show --no-write-lock-file "$NIXOS_FLAKE"
-  run nix eval --raw "$NIXOS_FLAKE#nixosConfigurations.$SYSTEM.config.networking.hostName"
+  nix_cmd flake show --no-write-lock-file "$NIXOS_FLAKE"
+  nix_cmd eval --raw "$NIXOS_FLAKE#nixosConfigurations.$SYSTEM.config.networking.hostName"
   printf '[i] Skipping flake validation because dry-run did not check out %s\n' "$NIXOS_FLAKE"
 else
   die "Missing NixOS flake at $NIXOS_FLAKE/flake.nix after checkout"
@@ -259,10 +292,8 @@ fi
 
 if (( SKIP_REBUILD )); then
   printf '[i] Skipping nixos-rebuild\n'
-elif (( DRY_RUN )); then
-  run sudo nixos-rebuild switch --flake "$NIXOS_FLAKE#$SYSTEM"
 else
-  run sudo nixos-rebuild switch --flake "$NIXOS_FLAKE#$SYSTEM"
+  nixos_rebuild_switch
 fi
 
 if (( RUN_CHECKS )); then
