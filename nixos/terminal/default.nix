@@ -4,6 +4,37 @@
   ...
 }:
 
+let
+  vercel-cli = pkgs.buildNpmPackage rec {
+    pname = "vercel";
+    version = "55.0.0";
+
+    src = ./vercel-cli;
+    npmDepsHash = "sha256-j9eNz2hQ0mRfFed8ESlG2lywHL1Y1iCIpq5qe+xu4y0=";
+    npmDepsFetcherVersion = 2;
+
+    npmFlags = [
+      "--omit=dev"
+      "--legacy-peer-deps"
+    ];
+    dontNpmBuild = true;
+
+    nativeBuildInputs = [ pkgs.makeWrapper ];
+
+    installPhase = ''
+      runHook preInstall
+
+      mkdir -p "$out/lib/vercel" "$out/bin"
+      cp -R node_modules package.json package-lock.json "$out/lib/vercel"
+
+      makeWrapper ${pkgs.nodejs}/bin/node "$out/bin/vercel" \
+        --add-flags "$out/lib/vercel/node_modules/vercel/dist/vc.js"
+      ln -s "$out/bin/vercel" "$out/bin/vc"
+
+      runHook postInstall
+    '';
+  };
+in
 {
   imports = [
     ./ai.nix
@@ -31,6 +62,7 @@
     jq
     ripgrep
     playwright-test
+    vercel-cli
     inputs.devenv.packages.${pkgs.stdenv.hostPlatform.system}.default
   ];
 

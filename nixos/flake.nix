@@ -19,6 +19,16 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    paseo = {
+      url = "github:getpaseo/paseo";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    codex-desktop-linux = {
+      url = "github:ilysenko/codex-desktop-linux";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # Pin to last known-good Hermes before upstream issue #5502
     hermes-agent.url = "github:NousResearch/hermes-agent/v2026.4.3";
 
@@ -43,6 +53,7 @@
       nur,
       hermes-agent,
       agenix,
+      paseo,
       ...
     }:
     {
@@ -60,6 +71,7 @@
             nur.modules.nixos.default
             hermes-agent.nixosModules.default
             agenix.nixosModules.default
+            paseo.nixosModules.default
             # make home-manager as a module of nixos
             # so that home-manager configuration will be deployed automatically when executing `nixos-rebuild switch`
             home-manager.nixosModules.home-manager

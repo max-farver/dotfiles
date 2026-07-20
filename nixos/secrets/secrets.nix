@@ -19,6 +19,11 @@ in
     framework16Attic
   ];
 
+  "framework16-paseo.env.age".publicKeys = [
+    mfarver
+    framework16Attic
+  ];
+
   "do-server-tailscale-auth.age".publicKeys = [
     mfarver
     doServer

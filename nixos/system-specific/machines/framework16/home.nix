@@ -16,12 +16,18 @@ in
     ../../../terminal/default.nix
     ../../../terminal/misc.nix
     ../../../applications/default.nix
+    inputs.codex-desktop-linux.homeManagerModules.default
     ../../../applications/game-dev.nix
     ../../../games/heroic.nix
   ];
   home.username = username;
   home.homeDirectory = homeDir;
 
+
+  programs.codexDesktopLinux = {
+    enable = true;
+    cliPackage = pkgs.codex;
+  };
 
   xdg.enable = true;
 

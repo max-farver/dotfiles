@@ -80,6 +80,13 @@
       owner = "root";
       group = "root";
     };
+
+    secrets.framework16-paseo-env = {
+      file = ../../../secrets/framework16-paseo.env.age;
+      mode = "0440";
+      owner = "mfarver";
+      group = "paseo";
+    };
   };
 
   services.atticd = {
@@ -96,6 +103,15 @@
     trusted-users = [
       "root"
       "mfarver"
+    ];
+
+    substituters = [
+      "https://cache.nixos.org"
+      "https://codex-desktop-linux.cachix.org"
+    ];
+    trusted-public-keys = [
+      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+      "codex-desktop-linux.cachix.org-1:nX/xy6AdK9hQE24A8ALGjkCKj2ObFmcnemiL5Cid4nk="
     ];
   };
 
@@ -162,6 +178,89 @@
 
   services.resolved = {
     enable = true;
+  };
+
+  services.paseo = {
+    enable = true;
+    user = "mfarver";
+    inheritUserEnvironment = true;
+    listenAddress = "127.0.0.1";
+    port = 6767;
+    openFirewall = false;
+    hostnames = [ ".tailf2b6d7.ts.net" ];
+
+    relay = {
+      enable = false;
+    };
+
+    settings = {
+      version = 1;
+      features.webUi.enabled = true;
+      agents.providers.omp = {
+        enabled = true;
+        command = [ "/etc/profiles/per-user/mfarver/bin/omp" ];
+      };
+    };
+  };
+
+  systemd.services.paseo.serviceConfig.EnvironmentFile = config.age.secrets.framework16-paseo-env.path;
+
+  systemd.services.tailscale-paseo-serve = {
+    description = "Expose Paseo through Tailscale Serve";
+    after = [
+      "network-online.target"
+      "tailscaled.service"
+      "paseo.service"
+    ];
+    wants = [
+      "network-online.target"
+      "paseo.service"
+    ];
+    requires = [
+      "tailscaled.service"
+      "paseo.service"
+    ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+      tailscale="${lib.getExe config.services.tailscale.package}"
+      jq_bin="${lib.getExe pkgs.jq}"
+      curl_bin="${lib.getExe pkgs.curl}"
+
+      backend_state="Unknown"
+      tailnet_ip=""
+      for _ in {1..90}; do
+        backend_state="$($tailscale status --json --peers=false | $jq_bin -r '.BackendState // "Unknown"')"
+        tailnet_ip="$($tailscale ip -4 2>/dev/null | head -n1 || true)"
+        if [[ "$backend_state" == "Running" && -n "$tailnet_ip" ]]; then
+          break
+        fi
+        sleep 1
+      done
+
+      if [[ "$backend_state" != "Running" || -z "$tailnet_ip" ]]; then
+        echo "tailscaled never became ready for Paseo Serve (state=$backend_state, ip=$tailnet_ip)" >&2
+        exit 1
+      fi
+
+      for _ in {1..60}; do
+        if "$curl_bin" -fsS http://127.0.0.1:6767/api/health >/dev/null; then
+          paseo_ready=true
+          break
+        fi
+        sleep 1
+      done
+
+      if [[ "''${paseo_ready:-false}" != "true" ]]; then
+        echo "Paseo never became healthy on http://127.0.0.1:6767/api/health" >&2
+        exit 1
+      fi
+
+      "$tailscale" serve --yes --bg http://127.0.0.1:6767
+    '';
   };
 
   services.tailscale = {
