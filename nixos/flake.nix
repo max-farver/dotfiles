@@ -116,19 +116,6 @@
         };
 
 
-        do-server = nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-
-          specialArgs = {
-            inherit inputs;
-          };
-
-          modules = [
-            ./system-specific/machines/do-server/configuration.nix
-            agenix.nixosModules.default
-          ];
-        };
-
         homelab = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
 
@@ -163,8 +150,5 @@
         };
       };
 
-      packages.x86_64-linux = {
-        do-server-do-image = self.nixosConfigurations.do-server.config.system.build.images."digital-ocean";
-      };
     };
 }

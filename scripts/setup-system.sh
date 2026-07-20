@@ -5,18 +5,25 @@ DEFAULT_SYSTEM="framework16"
 DEFAULT_REPO_URL="https://github.com/max-farver/dotfiles"
 DEFAULT_GIT_DIR='${HOME}/.cfg'
 DEFAULT_WORK_TREE='${HOME}/.config'
+DEFAULT_HARDWARE_SRC="/etc/nixos/hardware-configuration.nix"
 
 SYSTEM="${DOTFILES_SYSTEM:-$DEFAULT_SYSTEM}"
 REPO_URL="${DOTFILES_REPO_URL:-$DEFAULT_REPO_URL}"
 GIT_DIR="${DOTFILES_GIT_DIR:-$HOME/.cfg}"
 WORK_TREE="${DOTFILES_WORK_TREE:-$HOME/.config}"
+HARDWARE_SRC="$DEFAULT_HARDWARE_SRC"
+HARDWARE_DEST=""
 DRY_RUN=0
 SKIP_REBUILD=0
 SKIP_NEOVIM_CHECK=0
+FORCE_NEOVIM_CHECK=0
+SYNC_HARDWARE=0
+PRINT_HOST_KEY=0
+RUN_CHECKS=0
 
 usage() {
   cat <<EOF
-Usage: scripts/setup-system.sh [--dry-run] [--system NAME] [--repo-url URL] [--git-dir PATH] [--work-tree PATH] [--skip-rebuild] [--skip-neovim-check] [-h|--help]
+Usage: scripts/setup-system.sh [--dry-run] [--system NAME] [--repo-url URL] [--git-dir PATH] [--work-tree PATH] [--sync-hardware] [--hardware-src PATH] [--hardware-dest PATH] [--print-host-key] [--checks] [--skip-rebuild] [--skip-neovim-check] [--force-neovim-check] [-h|--help]
 
 Post-install bootstrap for this dotfiles repository.
 
@@ -26,8 +33,14 @@ Options:
   --repo-url URL         Bare repository clone URL. Default: $DEFAULT_REPO_URL.
   --git-dir PATH         Git metadata directory. Default: $DEFAULT_GIT_DIR.
   --work-tree PATH       Dotfiles work tree. Default: $DEFAULT_WORK_TREE.
+  --sync-hardware        Copy generated hardware config into the selected machine config.
+  --hardware-src PATH    Hardware config source. Default: $DEFAULT_HARDWARE_SRC.
+  --hardware-dest PATH   Hardware config destination. Default: \$NIXOS_FLAKE/system-specific/machines/\$SYSTEM/hardware-configuration.nix.
+  --print-host-key       Print /etc/ssh/ssh_host_ed25519_key.pub for agenix enrollment.
+  --checks               Run homelab service health checks after rebuild handling.
   --skip-rebuild         Skip sudo nixos-rebuild switch.
   --skip-neovim-check    Skip the post-rebuild nvim startup check.
+  --force-neovim-check   Run the nvim startup check for homelab.
   -h, --help             Show this help.
 
 Environment overrides:
@@ -61,6 +74,19 @@ run() {
 
   printf '[+] %s\n' "$(quote_cmd "$@")"
   "$@"
+}
+
+run_as_root() {
+  if (( DRY_RUN )); then
+    run sudo "$@"
+    return 0
+  fi
+
+  if (( EUID == 0 )); then
+    run "$@"
+  else
+    run sudo "$@"
+  fi
 }
 
 need_cmd() {
@@ -110,12 +136,38 @@ while (( $# > 0 )); do
       WORK_TREE="$2"
       shift 2
       ;;
+    --sync-hardware)
+      SYNC_HARDWARE=1
+      shift
+      ;;
+    --hardware-src)
+      require_value "$1" "${2-}"
+      HARDWARE_SRC="$2"
+      shift 2
+      ;;
+    --hardware-dest)
+      require_value "$1" "${2-}"
+      HARDWARE_DEST="$2"
+      shift 2
+      ;;
+    --print-host-key)
+      PRINT_HOST_KEY=1
+      shift
+      ;;
+    --checks)
+      RUN_CHECKS=1
+      shift
+      ;;
     --skip-rebuild)
       SKIP_REBUILD=1
       shift
       ;;
     --skip-neovim-check)
       SKIP_NEOVIM_CHECK=1
+      shift
+      ;;
+    --force-neovim-check)
+      FORCE_NEOVIM_CHECK=1
       shift
       ;;
     -h|--help)
@@ -129,6 +181,10 @@ while (( $# > 0 )); do
 done
 
 NIXOS_FLAKE="$WORK_TREE/nixos"
+if [[ -z "$HARDWARE_DEST" ]]; then
+  HARDWARE_DEST="$NIXOS_FLAKE/system-specific/machines/$SYSTEM/hardware-configuration.nix"
+fi
+SECRETS_FILE="$NIXOS_FLAKE/secrets/secrets.nix"
 
 printf '[i] System: %s\n' "$SYSTEM"
 printf '[i] Repository URL: %s\n' "$REPO_URL"
@@ -169,6 +225,25 @@ elif ! config_git checkout main -- .; then
   exit 1
 fi
 
+if (( SYNC_HARDWARE )); then
+  [[ -r "$HARDWARE_SRC" ]] || die "Hardware source is not readable: $HARDWARE_SRC"
+  [[ -d "$(dirname -- "$HARDWARE_DEST")" ]] || die "Destination directory missing: $(dirname -- "$HARDWARE_DEST")"
+  run_as_root install -m 0644 "$HARDWARE_SRC" "$HARDWARE_DEST"
+fi
+
+if (( PRINT_HOST_KEY )); then
+  printf '[i] Host SSH key for agenix recipient enrollment:\n'
+  run_as_root cat /etc/ssh/ssh_host_ed25519_key.pub
+
+  if [[ -f "$SECRETS_FILE" ]]; then
+    printf '[i] Next steps:\n'
+    printf '    1) Replace bootstrap recipient in %s\n' "$SECRETS_FILE"
+    printf '       homelab = mfarver;\n'
+    printf '       with the host key above\n'
+    printf '    2) cd %s/secrets && agenix -r\n' "$NIXOS_FLAKE"
+  fi
+fi
+
 need_cmd nix "nix is required; run this from NixOS or install Nix before using this bootstrap script."
 
 if [[ -f "$NIXOS_FLAKE/flake.nix" ]]; then
@@ -188,6 +263,29 @@ elif (( DRY_RUN )); then
   run sudo nixos-rebuild switch --flake "$NIXOS_FLAKE#$SYSTEM"
 else
   run sudo nixos-rebuild switch --flake "$NIXOS_FLAKE#$SYSTEM"
+fi
+
+if (( RUN_CHECKS )); then
+  services=(
+    sshd
+    tailscaled
+    tailscale-services
+    xrdp
+    xrdp-sesman
+    glance
+    beszel-hub
+    beszel-agent
+    linkwarden
+  )
+
+  for svc in "${services[@]}"; do
+    run systemctl status --no-pager "$svc"
+  done
+fi
+
+if [[ "$SYSTEM" == "homelab" && "$FORCE_NEOVIM_CHECK" -eq 0 && "$SKIP_NEOVIM_CHECK" -eq 0 ]]; then
+  printf '[i] Skipping nvim startup check for homelab; pass --force-neovim-check to run it.\n'
+  SKIP_NEOVIM_CHECK=1
 fi
 
 if (( ! SKIP_NEOVIM_CHECK )); then

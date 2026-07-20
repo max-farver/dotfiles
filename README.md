@@ -52,14 +52,26 @@ After the first checkout, rerun locally with:
 ~/.config/scripts/setup-system.sh --system framework16
 ```
 
+For the physical homelab server, use the same setup script with the server-specific bootstrap actions:
+
+```sh
+~/.config/scripts/setup-system.sh --system homelab --sync-hardware --print-host-key --checks --skip-neovim-check
+```
+
+After `--print-host-key`, replace `homelab = mfarver;` in `~/.config/nixos/secrets/secrets.nix` with the printed `/etc/ssh/ssh_host_ed25519_key.pub` value, then rekey secrets:
+
+```sh
+cd ~/.config/nixos/secrets
+agenix -r
+```
+
 The script is stored at repository root `scripts/setup-system.sh`, so it appears at `~/.config/scripts/setup-system.sh` after checkout because the work tree is `$HOME/.config`.
 
 ## NixOS systems
 
 - `framework16` — default Framework laptop system; imports `nixos/system-specific/machines/framework16/configuration.nix` and `home.nix`.
 - `nixos` — compatibility target for the legacy/default rebuild path, using the Framework system with the legacy hostname `nixos`.
-- `do-server` — NixOS server system from `nixos/system-specific/machines/do-server/configuration.nix`.
-- `homelab` — NixOS system from `nixos/system-specific/machines/homelab/configuration.nix`.
+- `homelab` — physical home server system from `nixos/system-specific/machines/homelab/configuration.nix`.
 - `homeConfigurations.pixel-8-pro` — Home Manager-only profile, not a `nixos-rebuild` target.
 
 Validate and build the default Framework output:
@@ -67,6 +79,13 @@ Validate and build the default Framework output:
 ```sh
 nix flake show ~/.config/nixos --no-write-lock-file
 nix build ~/.config/nixos#nixosConfigurations.framework16.config.system.build.toplevel --no-link
+```
+
+Validate the homelab hostname output:
+
+```sh
+nix eval --raw ~/.config/nixos#nixosConfigurations.homelab.config.networking.hostName
+# homelab
 ```
 
 ## Neovim
@@ -84,7 +103,8 @@ See `nvim/README.md` for plugin management and `:PackUpdate`.
 ## Adding a new NixOS machine
 
 1. Add `nixos/system-specific/machines/<name>/configuration.nix`.
-2. Add `nixos/system-specific/machines/<name>/home.nix`.
-3. Add an entry in `nixos/flake.nix` under `nixosConfigurations` using `mkNixosSystem` with `modules = [ ./system-specific/machines/<name>/configuration.nix ];` and `homeModule = ./system-specific/machines/<name>/home.nix;`.
-4. Validate with `nix flake show ~/.config/nixos --no-write-lock-file`.
-5. Apply with `~/.config/scripts/setup-system.sh --system <name>`.
+2. For desktop or Home Manager-managed hosts, add `nixos/system-specific/machines/<name>/home.nix`.
+3. For desktop or Home Manager-managed hosts, add an entry in `nixos/flake.nix` under `nixosConfigurations` using `mkNixosSystem` with `modules = [ ./system-specific/machines/<name>/configuration.nix ];` and `homeModule = ./system-specific/machines/<name>/home.nix;`.
+4. For server hosts without a Home Manager module, copy the existing `homelab` flake pattern: `nixpkgs.lib.nixosSystem` with `agenix.nixosModules.default`.
+5. Validate with `nix flake show ~/.config/nixos --no-write-lock-file`.
+6. Apply with `~/.config/scripts/setup-system.sh --system <name>`.

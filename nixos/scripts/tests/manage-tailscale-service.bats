@@ -3,7 +3,7 @@
 setup() {
   REPO_ROOT="$(cd -- "$BATS_TEST_DIRNAME/../.." && pwd -P)"
   SCRIPT="$REPO_ROOT/scripts/manage-tailscale-service.sh"
-  SOURCE_CONFIG="$REPO_ROOT/system-specific/machines/do-server/tailscale-serve.json"
+  SOURCE_CONFIG="$REPO_ROOT/system-specific/machines/homelab/tailscale-serve.json"
 
   TEST_DIR="$(mktemp -d)"
   TEST_CONFIG="$TEST_DIR/tailscale-serve.json"
