@@ -100,25 +100,48 @@ nixos_rebuild_switch() {
 
 ensure_host_key() {
   local key_path="/etc/ssh/ssh_host_ed25519_key.pub"
+  local private_key_path="/etc/ssh/ssh_host_ed25519_key"
 
   if (( DRY_RUN )); then
+    run sudo mkdir -p /etc/ssh
     run sudo test -r "$key_path"
     run sudo ssh-keygen -A
+    run sudo sh -c 'test -r /etc/ssh/ssh_host_ed25519_key.pub || { test ! -r /etc/ssh/ssh_host_ed25519_key || ssh-keygen -y -f /etc/ssh/ssh_host_ed25519_key > /etc/ssh/ssh_host_ed25519_key.pub; }'
+    run sudo test -r "$key_path"
+    run sudo ssh-keygen -t ed25519 -N "" -f "$private_key_path"
     return 0
   fi
 
   if (( EUID == 0 )); then
+    run mkdir -p /etc/ssh
     if [[ ! -r "$key_path" ]]; then
       run ssh-keygen -A
     fi
-    [[ -r "$key_path" ]] || die "SSH host ed25519 public key is unavailable after ssh-keygen -A: $key_path"
+    if [[ ! -r "$key_path" && -r "$private_key_path" ]]; then
+      run sh -c 'ssh-keygen -y -f /etc/ssh/ssh_host_ed25519_key > /etc/ssh/ssh_host_ed25519_key.pub'
+    fi
+    if [[ ! -r "$key_path" ]]; then
+      [[ ! -e "$private_key_path" ]] || die "SSH host private key exists but public key is unavailable: $key_path"
+      run ssh-keygen -t ed25519 -N "" -f "$private_key_path"
+    fi
+    [[ -r "$key_path" ]] || die "SSH host ed25519 public key is unavailable after key generation: $key_path"
     return 0
   fi
 
+  run sudo mkdir -p /etc/ssh
   if ! sudo test -r "$key_path"; then
     run sudo ssh-keygen -A
   fi
-  sudo test -r "$key_path" || die "SSH host ed25519 public key is unavailable after ssh-keygen -A: $key_path"
+  if ! sudo test -r "$key_path" && sudo test -r "$private_key_path"; then
+    run sudo sh -c 'ssh-keygen -y -f /etc/ssh/ssh_host_ed25519_key > /etc/ssh/ssh_host_ed25519_key.pub'
+  fi
+  if ! sudo test -r "$key_path"; then
+    if sudo test -e "$private_key_path"; then
+      die "SSH host private key exists but public key is unavailable: $key_path"
+    fi
+    run sudo ssh-keygen -t ed25519 -N "" -f "$private_key_path"
+  fi
+  sudo test -r "$key_path" || die "SSH host ed25519 public key is unavailable after key generation: $key_path"
 }
 
 need_cmd() {
