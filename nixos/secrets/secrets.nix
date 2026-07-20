@@ -8,8 +8,8 @@ let
   mfarver = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINhwd1Jc8J4Kf3EzV39VZzHeiSSP7iU87vwfec4ebV1f mfarver@nixos";
   framework16Attic = "age1tnjq3784t53gxjt8gtyjwa7duturq9850ewgz0hppwn90736tycqdthc2n";
 
-  # TODO: replace with homelab host `/etc/ssh/ssh_host_ed25519_key.pub` and run `agenix -r`.
-  # Bootstrap keeps the secret reachable via the operator key until host key is enrolled.
+  # Clean homelab bootstrap replaces this with `/etc/ssh/ssh_host_ed25519_key.pub`.
+  # Homelab-only secrets are initialized fresh on the host, not rekeyed from mfarver.
   homelab = mfarver;
 in
 {
@@ -24,12 +24,10 @@ in
   ];
 
   "homelab-tailscale-auth.age".publicKeys = [
-    mfarver
     homelab
   ];
 
   "linkwarden.env.age".publicKeys = [
-    mfarver
     homelab
   ];
 }

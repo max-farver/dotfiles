@@ -52,13 +52,13 @@ After the first checkout, rerun locally with:
 ~/.config/scripts/setup-system.sh --system framework16
 ```
 
-For the physical homelab server, use the same setup script with the server-specific bootstrap actions:
+For the physical homelab server, use the same setup script with fresh homelab-local secrets:
 
 ```sh
-~/.config/scripts/setup-system.sh --system homelab --sync-hardware --print-host-key --enroll-host-key --checks --skip-neovim-check
+~/.config/scripts/setup-system.sh --system homelab --sync-hardware --print-host-key --initialize-homelab-secrets --checks --skip-neovim-check
 ```
 
-`--enroll-host-key` replaces `homelab = mfarver;` in `~/.config/nixos/secrets/secrets.nix` with the host `/etc/ssh/ssh_host_ed25519_key.pub`, switches the homelab agenix identity path to `/etc/ssh/ssh_host_ed25519_key`, and runs `agenix -r`. Rekeying still requires access to an existing private key that can decrypt the current secrets; if `agenix` is not installed, the setup script falls back to `nix run github:ryantm/agenix -- -r`.
+`--initialize-homelab-secrets` replaces `homelab = mfarver;` in `~/.config/nixos/secrets/secrets.nix` with the host `/etc/ssh/ssh_host_ed25519_key.pub`, switches the homelab agenix identity path to `/etc/ssh/ssh_host_ed25519_key`, generates a fresh Linkwarden `NEXTAUTH_SECRET`, and encrypts fresh homelab secret files directly to the host key. It does not rekey existing secrets and does not require the Framework machine or Framework private keys. Provide the fresh Tailscale auth key with `--tailscale-auth-key`, `--tailscale-auth-key-file`, or `HOMELAB_TAILSCALE_AUTH_KEY`; without one, the script prompts interactively.
 
 The script is stored at repository root `scripts/setup-system.sh`, so it appears at `~/.config/scripts/setup-system.sh` after checkout because the work tree is `$HOME/.config`.
 
