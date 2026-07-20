@@ -56,38 +56,65 @@
       paseo,
       ...
     }:
-    {
-      nixosConfigurations = {
-        framework16 = nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-
+    let
+      mkNixosSystem =
+        {
+          system ? "x86_64-linux",
+          modules,
+          homeModule,
+          extraModules ? [ ],
+        }:
+        nixpkgs.lib.nixosSystem {
+          inherit system;
           specialArgs = {
             inherit inputs;
           };
-
+          modules =
+            modules
+            ++ extraModules
+            ++ [
+              nur.modules.nixos.default
+              hermes-agent.nixosModules.default
+              agenix.nixosModules.default
+              home-manager.nixosModules.home-manager
+              {
+                home-manager.sharedModules = [
+                  agenix.homeManagerModules.default
+                ];
+                home-manager.useUserPackages = true;
+                home-manager.users.mfarver = import homeModule;
+                home-manager.backupFileExtension = "backup";
+                home-manager.extraSpecialArgs = {
+                  inherit inputs;
+                };
+              }
+            ];
+        };
+    in
+    {
+      nixosConfigurations = rec {
+        framework16 = mkNixosSystem {
           modules = [
             ./system-specific/machines/framework16/configuration.nix
+          ];
+          homeModule = ./system-specific/machines/framework16/home.nix;
+          extraModules = [
             nixos-hardware.nixosModules.framework-16-7040-amd
-            nur.modules.nixos.default
-            hermes-agent.nixosModules.default
-            agenix.nixosModules.default
             paseo.nixosModules.default
-            # make home-manager as a module of nixos
-            # so that home-manager configuration will be deployed automatically when executing `nixos-rebuild switch`
-            home-manager.nixosModules.home-manager
-            {
-              # home-manager.useGlobalPkgs = true;
-              home-manager.useUserPackages = true;
-
-              home-manager.users.mfarver = import ./system-specific/machines/framework16/home.nix;
-              home-manager.backupFileExtension = "backup";
-              # Optionally, use home-manager.extraSpecialArgs to pass arguments to home.nix
-              home-manager.extraSpecialArgs = {
-                inherit inputs;
-              };
-            }
           ];
         };
+
+        nixos = framework16.extendModules {
+          modules = [
+            (
+              { lib, ... }:
+              {
+                networking.hostName = lib.mkForce "nixos";
+              }
+            )
+          ];
+        };
+
 
         do-server = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
@@ -114,7 +141,6 @@
             agenix.nixosModules.default
           ];
         };
-
       };
 
       homeConfigurations = {
@@ -135,12 +161,10 @@
             ./system-specific/machines/pixel-8-pro/home.nix
           ];
         };
-
       };
 
       packages.x86_64-linux = {
         do-server-do-image = self.nixosConfigurations.do-server.config.system.build.images."digital-ocean";
       };
-
     };
 }
