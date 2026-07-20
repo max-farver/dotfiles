@@ -55,15 +55,10 @@ After the first checkout, rerun locally with:
 For the physical homelab server, use the same setup script with the server-specific bootstrap actions:
 
 ```sh
-~/.config/scripts/setup-system.sh --system homelab --sync-hardware --print-host-key --checks --skip-neovim-check
+~/.config/scripts/setup-system.sh --system homelab --sync-hardware --print-host-key --enroll-host-key --checks --skip-neovim-check
 ```
 
-After `--print-host-key`, replace `homelab = mfarver;` in `~/.config/nixos/secrets/secrets.nix` with the printed `/etc/ssh/ssh_host_ed25519_key.pub` value, then rekey secrets:
-
-```sh
-cd ~/.config/nixos/secrets
-agenix -r
-```
+`--enroll-host-key` replaces `homelab = mfarver;` in `~/.config/nixos/secrets/secrets.nix` with the host `/etc/ssh/ssh_host_ed25519_key.pub`, switches the homelab agenix identity path to `/etc/ssh/ssh_host_ed25519_key`, and runs `agenix -r`. Rekeying still requires access to an existing private key that can decrypt the current secrets; if `agenix` is not installed, the setup script falls back to `nix run github:ryantm/agenix -- -r`.
 
 The script is stored at repository root `scripts/setup-system.sh`, so it appears at `~/.config/scripts/setup-system.sh` after checkout because the work tree is `$HOME/.config`.
 

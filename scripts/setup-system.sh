@@ -21,10 +21,11 @@ FORCE_NEOVIM_CHECK=0
 SYNC_HARDWARE=0
 PRINT_HOST_KEY=0
 RUN_CHECKS=0
+ENROLL_HOST_KEY=0
 
 usage() {
   cat <<EOF
-Usage: scripts/setup-system.sh [--dry-run] [--system NAME] [--repo-url URL] [--git-dir PATH] [--work-tree PATH] [--sync-hardware] [--hardware-src PATH] [--hardware-dest PATH] [--print-host-key] [--checks] [--skip-rebuild] [--skip-neovim-check] [--force-neovim-check] [-h|--help]
+Usage: scripts/setup-system.sh [--dry-run] [--system NAME] [--repo-url URL] [--git-dir PATH] [--work-tree PATH] [--sync-hardware] [--hardware-src PATH] [--hardware-dest PATH] [--print-host-key] [--enroll-host-key] [--checks] [--skip-rebuild] [--skip-neovim-check] [--force-neovim-check] [-h|--help]
 
 Post-install bootstrap for this dotfiles repository.
 
@@ -38,6 +39,7 @@ Options:
   --hardware-src PATH    Hardware config source. Default: $DEFAULT_HARDWARE_SRC.
   --hardware-dest PATH   Hardware config destination. Default: \$NIXOS_FLAKE/system-specific/machines/\$SYSTEM/hardware-configuration.nix.
   --print-host-key       Print /etc/ssh/ssh_host_ed25519_key.pub for agenix enrollment.
+  --enroll-host-key      Replace the homelab agenix recipient with this host key and rekey secrets.
   --checks               Run homelab service health checks after rebuild handling.
   --skip-rebuild         Skip sudo nixos-rebuild switch.
   --skip-neovim-check    Skip the post-rebuild nvim startup check.
@@ -144,6 +146,82 @@ ensure_host_key() {
   sudo test -r "$key_path" || die "SSH host ed25519 public key is unavailable after key generation: $key_path"
 }
 
+run_in_dir() {
+  local dir="$1"
+  shift
+
+  if (( DRY_RUN )); then
+    printf '[dry-run] cd %s && %s\n' "$(quote_cmd "$dir")" "$(quote_cmd "$@")"
+    return 0
+  fi
+
+  printf '[+] cd %s && %s\n' "$(quote_cmd "$dir")" "$(quote_cmd "$@")"
+  (cd "$dir" && "$@")
+}
+
+read_host_key() {
+  if (( EUID == 0 )); then
+    cat /etc/ssh/ssh_host_ed25519_key.pub
+  else
+    sudo cat /etc/ssh/ssh_host_ed25519_key.pub
+  fi
+}
+
+replace_line_in_file() {
+  local file="$1"
+  local match_prefix="$2"
+  local replacement="$3"
+  local tmp
+  local replaced=0
+  tmp="$(mktemp)"
+
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    if [[ "$line" == "$match_prefix"* ]]; then
+      printf '%s\n' "$replacement" >> "$tmp"
+      replaced=1
+    else
+      printf '%s\n' "$line" >> "$tmp"
+    fi
+  done < "$file"
+
+  (( replaced )) || {
+    rm -f "$tmp"
+    die "Could not find line starting with '$match_prefix' in $file"
+  }
+
+  mv "$tmp" "$file"
+}
+
+enroll_host_key() {
+  local host_key="$1"
+  local escaped_host_key="$host_key"
+  local homelab_config="$NIXOS_FLAKE/system-specific/machines/$SYSTEM/configuration.nix"
+  local secrets_dir="$NIXOS_FLAKE/secrets"
+
+  [[ "$SYSTEM" == "homelab" ]] || die "--enroll-host-key is only supported for --system homelab"
+  [[ -f "$SECRETS_FILE" ]] || die "Missing agenix secrets file: $SECRETS_FILE"
+  [[ -f "$homelab_config" ]] || die "Missing homelab configuration: $homelab_config"
+
+  escaped_host_key="${escaped_host_key//\\/\\\\}"
+  escaped_host_key="${escaped_host_key//\"/\\\"}"
+
+  if (( DRY_RUN )); then
+    printf '[dry-run] replace homelab recipient in %s with %s\n' "$(quote_cmd "$SECRETS_FILE")" "$(quote_cmd "$host_key")"
+    printf '[dry-run] set age.identityPaths in %s to /etc/ssh/ssh_host_ed25519_key\n' "$(quote_cmd "$homelab_config")"
+  else
+    replace_line_in_file "$SECRETS_FILE" "  homelab =" "  homelab = \"$escaped_host_key\";"
+    replace_line_in_file "$homelab_config" "  # Bootstrap secret decryption" "  # Decrypt agenix secrets with the enrolled host SSH key."
+    replace_line_in_file "$homelab_config" "  age.identityPaths =" '  age.identityPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];'
+  fi
+
+  if command -v agenix >/dev/null 2>&1; then
+    run_in_dir "$secrets_dir" agenix -r
+  else
+    need_cmd nix "agenix is not installed and nix is required to run github:ryantm/agenix"
+    run_in_dir "$secrets_dir" nix --extra-experimental-features "$NIX_EXPERIMENTAL_FEATURES" run github:ryantm/agenix -- -r
+  fi
+}
+
 need_cmd() {
   local cmd="$1"
   local hint="$2"
@@ -206,6 +284,11 @@ while (( $# > 0 )); do
       shift 2
       ;;
     --print-host-key)
+      PRINT_HOST_KEY=1
+      shift
+      ;;
+    --enroll-host-key)
+      ENROLL_HOST_KEY=1
       PRINT_HOST_KEY=1
       shift
       ;;
@@ -286,12 +369,18 @@ if (( SYNC_HARDWARE )); then
   run_as_root install -m 0644 "$HARDWARE_SRC" "$HARDWARE_DEST"
 fi
 
-if (( PRINT_HOST_KEY )); then
+if (( PRINT_HOST_KEY || ENROLL_HOST_KEY )); then
   ensure_host_key
   printf '[i] Host SSH key for agenix recipient enrollment:\n'
   run_as_root cat /etc/ssh/ssh_host_ed25519_key.pub
 
-  if [[ -f "$SECRETS_FILE" ]]; then
+  if (( ENROLL_HOST_KEY )); then
+    if (( DRY_RUN )); then
+      enroll_host_key "ssh-ed25519 <host-key> homelab"
+    else
+      enroll_host_key "$(read_host_key)"
+    fi
+  elif [[ -f "$SECRETS_FILE" ]]; then
     printf '[i] Next steps:\n'
     printf '    1) Replace bootstrap recipient in %s\n' "$SECRETS_FILE"
     printf '       homelab = mfarver;\n'
