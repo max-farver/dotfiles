@@ -23,10 +23,6 @@ in
     framework16Attic
   ];
 
-  "homelab-tailscale-auth.age".publicKeys = [
-    homelab
-  ];
-
   "linkwarden.env.age".publicKeys = [
     homelab
   ];

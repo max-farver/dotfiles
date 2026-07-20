@@ -23,13 +23,11 @@ PRINT_HOST_KEY=0
 RUN_CHECKS=0
 ENROLL_HOST_KEY=0
 INITIALIZE_HOMELAB_SECRETS=0
-TAILSCALE_AUTH_KEY=""
-TAILSCALE_AUTH_KEY_FILE=""
 LINKWARDEN_ENV_FILE=""
 
 usage() {
   cat <<EOF
-Usage: scripts/setup-system.sh [--dry-run] [--system NAME] [--repo-url URL] [--git-dir PATH] [--work-tree PATH] [--sync-hardware] [--hardware-src PATH] [--hardware-dest PATH] [--print-host-key] [--enroll-host-key] [--initialize-homelab-secrets] [--tailscale-auth-key KEY] [--tailscale-auth-key-file PATH] [--linkwarden-env-file PATH] [--checks] [--skip-rebuild] [--skip-neovim-check] [--force-neovim-check] [-h|--help]
+Usage: scripts/setup-system.sh [--dry-run] [--system NAME] [--repo-url URL] [--git-dir PATH] [--work-tree PATH] [--sync-hardware] [--hardware-src PATH] [--hardware-dest PATH] [--print-host-key] [--enroll-host-key] [--initialize-homelab-secrets] [--linkwarden-env-file PATH] [--checks] [--skip-rebuild] [--skip-neovim-check] [--force-neovim-check] [-h|--help]
 
 Post-install bootstrap for this dotfiles repository.
 
@@ -45,11 +43,7 @@ Options:
   --print-host-key       Print /etc/ssh/ssh_host_ed25519_key.pub for agenix enrollment.
   --enroll-host-key      Replace the homelab agenix recipient with this host key and rekey secrets.
   --initialize-homelab-secrets
-                         Create fresh homelab secrets encrypted only to this host key.
-  --tailscale-auth-key KEY
-                         Tailscale auth key for --initialize-homelab-secrets.
-  --tailscale-auth-key-file PATH
-                         File containing the Tailscale auth key.
+                         Create fresh Linkwarden secret encrypted only to this host key and run interactive Tailscale login.
   --linkwarden-env-file PATH
                          Env file to encrypt for Linkwarden instead of generating NEXTAUTH_SECRET.
   --checks               Run homelab service health checks after rebuild handling.
@@ -243,35 +237,6 @@ random_secret() {
   fi
 }
 
-tailscale_auth_key() {
-  local value
-
-  if [[ -n "$TAILSCALE_AUTH_KEY" ]]; then
-    printf '%s\n' "$TAILSCALE_AUTH_KEY"
-    return 0
-  fi
-
-  if [[ -n "$TAILSCALE_AUTH_KEY_FILE" ]]; then
-    [[ -r "$TAILSCALE_AUTH_KEY_FILE" ]] || die "Tailscale auth key file is not readable: $TAILSCALE_AUTH_KEY_FILE"
-    cat "$TAILSCALE_AUTH_KEY_FILE"
-    return 0
-  fi
-
-  if [[ -n "${HOMELAB_TAILSCALE_AUTH_KEY:-}" ]]; then
-    printf '%s\n' "$HOMELAB_TAILSCALE_AUTH_KEY"
-    return 0
-  fi
-
-  if [[ -t 0 ]]; then
-    read -r -s -p "Tailscale auth key: " value
-    printf '\n' >&2
-    [[ -n "$value" ]] || die "Tailscale auth key cannot be empty"
-    printf '%s\n' "$value"
-    return 0
-  fi
-
-  die "Provide --tailscale-auth-key, --tailscale-auth-key-file, or HOMELAB_TAILSCALE_AUTH_KEY for --initialize-homelab-secrets"
-}
 
 linkwarden_env() {
   if [[ -n "$LINKWARDEN_ENV_FILE" ]]; then
@@ -303,15 +268,13 @@ initialize_homelab_secrets() {
   local host_key="$1"
   local escaped_host_key="$host_key"
   local homelab_config="$NIXOS_FLAKE/system-specific/machines/$SYSTEM/configuration.nix"
-  local tailscale_secret="$NIXOS_FLAKE/secrets/homelab-tailscale-auth.age"
   local linkwarden_secret="$NIXOS_FLAKE/secrets/linkwarden.env.age"
-  local tailscale_content
   local linkwarden_content
 
   [[ "$SYSTEM" == "homelab" ]] || die "--initialize-homelab-secrets is only supported for --system homelab"
   [[ -f "$SECRETS_FILE" ]] || die "Missing agenix secrets file: $SECRETS_FILE"
   [[ -f "$homelab_config" ]] || die "Missing homelab configuration: $homelab_config"
-  [[ -d "$(dirname -- "$tailscale_secret")" ]] || die "Missing secrets directory: $(dirname -- "$tailscale_secret")"
+  [[ -d "$(dirname -- "$linkwarden_secret")" ]] || die "Missing secrets directory: $(dirname -- "$linkwarden_secret")"
 
   escaped_host_key="${escaped_host_key//\\/\\\\}"
   escaped_host_key="${escaped_host_key//\"/\\\"}"
@@ -320,17 +283,14 @@ initialize_homelab_secrets() {
     printf '[dry-run] replace homelab recipient in %s with %s\n' "$(quote_cmd "$SECRETS_FILE")" "$(quote_cmd "$host_key")"
     printf '[dry-run] set homelab-only recipients in %s for homelab secret files\n' "$(quote_cmd "$SECRETS_FILE")"
     printf '[dry-run] set age.identityPaths in %s to /etc/ssh/ssh_host_ed25519_key\n' "$(quote_cmd "$homelab_config")"
-    printf '[dry-run] encrypt fresh Tailscale auth key to %s\n' "$(quote_cmd "$tailscale_secret")"
     printf '[dry-run] encrypt fresh Linkwarden env to %s\n' "$(quote_cmd "$linkwarden_secret")"
     return 0
   fi
 
-  tailscale_content="$(tailscale_auth_key)"
   linkwarden_content="$(linkwarden_env)"
 
   replace_line_in_file "$SECRETS_FILE" "  homelab =" "  homelab = \"$escaped_host_key\";"
   replace_line_in_file "$homelab_config" "  age.identityPaths =" '  age.identityPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];'
-  encrypt_secret_content "$host_key" "$tailscale_secret" "$tailscale_content"
   encrypt_secret_content "$host_key" "$linkwarden_secret" "$linkwarden_content"
 }
 
@@ -409,16 +369,6 @@ while (( $# > 0 )); do
       PRINT_HOST_KEY=1
       shift
       ;;
-    --tailscale-auth-key)
-      require_value "$1" "${2-}"
-      TAILSCALE_AUTH_KEY="$2"
-      shift 2
-      ;;
-    --tailscale-auth-key-file)
-      require_value "$1" "${2-}"
-      TAILSCALE_AUTH_KEY_FILE="$2"
-      shift 2
-      ;;
     --linkwarden-env-file)
       require_value "$1" "${2-}"
       LINKWARDEN_ENV_FILE="$2"
@@ -460,8 +410,8 @@ if (( ENROLL_HOST_KEY && INITIALIZE_HOMELAB_SECRETS )); then
   die "--enroll-host-key and --initialize-homelab-secrets are mutually exclusive"
 fi
 
-if (( ! INITIALIZE_HOMELAB_SECRETS )) && { [[ -n "$TAILSCALE_AUTH_KEY" ]] || [[ -n "$TAILSCALE_AUTH_KEY_FILE" ]] || [[ -n "$LINKWARDEN_ENV_FILE" ]]; }; then
-  die "--tailscale-auth-key, --tailscale-auth-key-file, and --linkwarden-env-file require --initialize-homelab-secrets"
+if (( ! INITIALIZE_HOMELAB_SECRETS )) && [[ -n "$LINKWARDEN_ENV_FILE" ]]; then
+  die "--linkwarden-env-file requires --initialize-homelab-secrets"
 fi
 
 printf '[i] System: %s\n' "$SYSTEM"
@@ -552,6 +502,10 @@ if (( SKIP_REBUILD )); then
   printf '[i] Skipping nixos-rebuild\n'
 else
   nixos_rebuild_switch
+fi
+
+if (( INITIALIZE_HOMELAB_SECRETS )); then
+  run sudo tailscale up --advertise-tags=tag:server
 fi
 
 if (( RUN_CHECKS )); then

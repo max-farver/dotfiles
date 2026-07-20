@@ -23,13 +23,6 @@ in
   # Bootstrap secret decryption with operator key until homelab host SSH key is enrolled in secrets.nix.
   age.identityPaths = [ "/home/mfarver/.ssh/id_ed25519" ];
 
-  age.secrets.homelab-tailscale-auth = {
-    file = ../../../secrets/homelab-tailscale-auth.age;
-    mode = "0400";
-    owner = "root";
-    group = "root";
-  };
-
   age.secrets.linkwarden-env = {
     file = ../../../secrets/linkwarden.env.age;
     mode = "0400";
@@ -123,7 +116,6 @@ in
 
   services.tailscale = {
     enable = true;
-    authKeyFile = config.age.secrets.homelab-tailscale-auth.path;
     openFirewall = true;
     extraUpFlags = [ "--advertise-tags=tag:server" ];
     # Don't use `services.tailscale.serve.configFile` for HTTPS service endpoints.
@@ -136,12 +128,10 @@ in
     after = [
       "network-online.target"
       "tailscaled.service"
-      "tailscaled-autoconnect.service"
     ];
     wants = [ "network-online.target" ];
     requires = [
       "tailscaled.service"
-      "tailscaled-autoconnect.service"
     ];
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
