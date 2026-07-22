@@ -20,6 +20,13 @@ in
   boot.loader.systemd-boot.configurationLimit = 10;
   boot.loader.efi.canTouchEfiVariables = true;
 
+  programs.nh = {
+    enable = true;
+    clean.enable = true;
+    clean.extraArgs = "--keep-since 4d --keep 3";
+    flake = "/home/mfarver/.config/nixos#homelab";
+  };
+
   # Bootstrap secret decryption with operator key until homelab host SSH key is enrolled in secrets.nix.
   age.identityPaths = [ "/home/mfarver/.ssh/id_ed25519" ];
 
