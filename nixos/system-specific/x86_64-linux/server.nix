@@ -12,8 +12,14 @@
     git
     htop
     jq
-    vim
   ];
+
+  programs.neovim = {
+    enable = true;
+    defaultEditor = true;
+    viAlias = true;
+    vimAlias = true;
+  };
 
   users.users.mfarver = {
     isNormalUser = true;
