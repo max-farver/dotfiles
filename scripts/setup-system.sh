@@ -871,10 +871,10 @@ fi
 
 if [[ -f "$VALIDATION_FLAKE/flake.nix" ]]; then
   nix_cmd flake show --no-write-lock-file "$VALIDATION_FLAKE"
-  nix_cmd eval --raw "$VALIDATION_FLAKE#nixosConfigurations.$SYSTEM.config.networking.hostName"
+  nix_cmd eval --no-write-lock-file --raw "$VALIDATION_FLAKE#nixosConfigurations.$SYSTEM.config.networking.hostName"
 elif (( DRY_RUN )); then
   nix_cmd flake show --no-write-lock-file "$VALIDATION_FLAKE"
-  nix_cmd eval --raw "$VALIDATION_FLAKE#nixosConfigurations.$SYSTEM.config.networking.hostName"
+  nix_cmd eval --no-write-lock-file --raw "$VALIDATION_FLAKE#nixosConfigurations.$SYSTEM.config.networking.hostName"
   printf '[i] Skipping flake validation because dry-run did not create %s\n' "$VALIDATION_FLAKE"
 else
   die "Missing NixOS flake at $VALIDATION_FLAKE/flake.nix after checkout"

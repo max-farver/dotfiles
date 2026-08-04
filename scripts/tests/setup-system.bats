@@ -8,6 +8,7 @@ setup() {
   MOCK_BIN="$TEST_DIR/bin"
   MOCK_LOG="$TEST_DIR/sudo.log"
   TAILSCALE_LOG="$TEST_DIR/tailscale.log"
+  NIX_LOG="$TEST_DIR/nix.log"
   IDENTITY_CAPTURE="$TEST_DIR/staged-identity.nix"
   GIT_DIR="$TEST_DIR/dotfiles.git"
   WORK_TREE="$TEST_DIR/work-tree"
@@ -25,6 +26,7 @@ setup() {
   : > "$HARDWARE_SRC"
   : > "$MOCK_LOG"
   : > "$TAILSCALE_LOG"
+  : > "$NIX_LOG"
   cp "$SCRIPT" "$ISOLATED_SCRIPT"
   chmod 0755 "$ISOLATED_SCRIPT"
   ssh-keygen -q -t ed25519 -N '' -f "$TEST_DIR/beszel-agent-key"
@@ -38,7 +40,9 @@ EOF
 
   cat > "$MOCK_BIN/nix" <<'EOF'
 #!/usr/bin/env bash
-exit 0
+if [[ -n "${NIX_LOG-}" ]]; then
+  printf '%s\n' "$*" >> "$NIX_LOG"
+fi
 EOF
 
   cat > "$MOCK_BIN/age" <<'EOF'
@@ -263,6 +267,36 @@ teardown() {
   [[ "$output" == *"[dry-run] atomically create root-owned wrapper flake at /etc/nixos/homelab-bootstrap with identity.nix and hardware-configuration.nix"* ]]
   [[ "$output" == *"[dry-run] sudo nixos-rebuild build --flake /etc/nixos/homelab-bootstrap#homelab"* ]]
   [[ ! -s "$MOCK_LOG" ]]
+}
+
+@test "homelab wrapper validation prevents lock writes in normal and dry-run paths" {
+  chmod 0777 "$TEST_DIR"
+  chmod 0666 "$MOCK_LOG" "$NIX_LOG"
+
+  run unshare --user --map-auto --setuid 0 --setgid 0 --mount --propagation private env PATH="$MOCK_BIN:$PATH" MOCK_LOG="$MOCK_LOG" NIX_LOG="$NIX_LOG" IDENTITY_CAPTURE="$IDENTITY_CAPTURE" TEST_DIR="$TEST_DIR" OPERATOR_UID="$OPERATOR_UID" OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" GIT_DIR="$GIT_DIR" WORK_TREE="$WORK_TREE" HARDWARE_SRC="$HARDWARE_SRC" bash -c '
+    mount -t tmpfs tmpfs /etc/nixos
+    mount -t tmpfs tmpfs /etc/ssh
+    chmod 0777 /etc/ssh /etc/nixos
+    ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
+    chmod 0666 /etc/ssh/ssh_host_ed25519_key.pub
+    chmod 0644 /etc/ssh/ssh_host_ed25519_key
+    printf "%s\\n" "$1" | setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
+  ' _ "$OPERATOR_NAME" "$ISOLATED_SCRIPT"
+
+  [ "$status" -eq 0 ]
+  [ "$(<"$NIX_LOG")" = $'--extra-experimental-features nix-command flakes flake show --no-write-lock-file /etc/nixos/homelab-bootstrap\n--extra-experimental-features nix-command flakes eval --no-write-lock-file --raw /etc/nixos/homelab-bootstrap#nixosConfigurations.homelab.config.networking.hostName' ]
+
+  run env PATH="$MOCK_BIN:$PATH" MOCK_LOG="$MOCK_LOG" OPERATOR_UID="$OPERATOR_UID" OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" "$SCRIPT" \
+    --dry-run \
+    --system homelab \
+    --git-dir "$GIT_DIR" \
+    --work-tree "$WORK_TREE" \
+    --skip-rebuild \
+    --skip-neovim-check
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[dry-run] nix --extra-experimental-features nix-command\\ flakes flake show --no-write-lock-file /etc/nixos/homelab-bootstrap"* ]]
+  [[ "$output" == *"[dry-run] nix --extra-experimental-features nix-command\\ flakes eval --no-write-lock-file --raw /etc/nixos/homelab-bootstrap#nixosConfigurations.homelab.config.networking.hostName"* ]]
 }
 
 @test "initialized fresh homelab bootstrap defers Tailscale enrollment until boot" {
