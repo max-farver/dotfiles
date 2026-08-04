@@ -34,6 +34,7 @@ HOMELAB_OPERATOR_GID=""
 HOMELAB_OPERATOR_HOME=""
 HOMELAB_IDENTITY_NIX=""
 HOMELAB_FLAKE_NIX=""
+HOMELAB_PREVIOUS_FLAKE_NIX=""
 
 usage() {
   cat <<EOF
@@ -430,6 +431,20 @@ EOF
 
   outputs = { dotfiles, ... }: {
     nixosConfigurations.homelab = dotfiles.nixosConfigurations.homelab.extendModules {
+      modules = [ dotfiles.nixosModules.homelabOperator ./identity.nix ./hardware-configuration.nix ];
+    };
+  };
+}
+EOF
+)"
+  HOMELAB_PREVIOUS_FLAKE_NIX="$(cat <<EOF
+{
+  description = "Machine-local homelab bootstrap";
+
+  inputs.dotfiles.url = "path:$(nix_escape "$NIXOS_FLAKE")";
+
+  outputs = { dotfiles, ... }: {
+    nixosConfigurations.homelab = dotfiles.nixosConfigurations.homelab.extendModules {
       modules = [ ./identity.nix ./hardware-configuration.nix ];
     };
   };
@@ -570,6 +585,33 @@ update_homelab_beszel_agent_key() {
     die "Could not atomically update the Beszel agent key"
   fi
 }
+migrate_homelab_wrapper_flake() {
+  local local_stage
+  local root_stage
+
+  local_stage="$(mktemp)" || die "Could not create local wrapper flake staging file"
+  if ! printf '%s\n' "$HOMELAB_FLAKE_NIX" > "$local_stage"; then
+    rm -f "$local_stage"
+    die "Could not stage migrated homelab wrapper flake"
+  fi
+  chmod 0600 "$local_stage"
+  root_stage="$(sudo mktemp "$HOMELAB_BOOTSTRAP_DIR/.flake.nix.XXXXXX")" || {
+    rm -f "$local_stage"
+    die "Could not create root-owned wrapper flake staging file"
+  }
+  if ! run_as_root install -o root -g root -m 0644 "$local_stage" "$root_stage"; then
+    run_as_root rm -f "$root_stage"
+    rm -f "$local_stage"
+    die "Could not stage migrated homelab wrapper flake"
+  fi
+  rm -f "$local_stage"
+  if ! run_as_root mv -f "$root_stage" "$HOMELAB_BOOTSTRAP_DIR/flake.nix"; then
+    run_as_root rm -f "$root_stage"
+    die "Could not atomically migrate the homelab wrapper flake"
+  fi
+  printf '[i] Migrated machine-local homelab wrapper flake to import homelabOperator\n'
+}
+
 sync_homelab_hardware() {
   local temporary_hardware
   local target="$HOMELAB_BOOTSTRAP_DIR/hardware-configuration.nix"
@@ -616,14 +658,18 @@ bootstrap_homelab_flake() {
     require_root_owned_file "$HOMELAB_BOOTSTRAP_DIR/flake.nix"
     require_root_owned_file "$HOMELAB_BOOTSTRAP_DIR/hardware-configuration.nix"
     actual_identity="$(sudo cat "$HOMELAB_BOOTSTRAP_DIR/identity.nix")"
-    actual_flake="$(sudo cat "$HOMELAB_BOOTSTRAP_DIR/flake.nix")"
+    actual_flake="$(sudo cat "$HOMELAB_BOOTSTRAP_DIR/flake.nix"; printf '\037')"
     validate_existing_homelab_identity "$actual_identity"
-    [[ "$actual_flake" == "$HOMELAB_FLAKE_NIX" ]] || die "Machine-local homelab wrapper does not match this checkout; refusing to replace it"
     if sudo grep -q 'REPLACE' "$HOMELAB_BOOTSTRAP_DIR/hardware-configuration.nix"; then
       die "Machine-local homelab hardware configuration still contains a REPLACE placeholder"
     fi
     if [[ -n "$BESZEL_AGENT_KEY" && "$SYNC_HARDWARE" -eq 1 ]]; then
       die "--sync-hardware cannot be combined with --beszel-agent-key enrollment"
+    fi
+    if [[ "$actual_flake" == "$HOMELAB_PREVIOUS_FLAKE_NIX"$'\n\037' ]]; then
+      migrate_homelab_wrapper_flake
+    elif [[ "$actual_flake" != "$HOMELAB_FLAKE_NIX"$'\n\037' ]]; then
+      die "Machine-local homelab wrapper does not match this checkout; refusing to replace it"
     fi
     update_homelab_beszel_agent_key "$actual_identity"
     (( SYNC_HARDWARE )) && sync_homelab_hardware

@@ -467,6 +467,207 @@ teardown() {
   [ "$(<"$HARDWARE_AFTER_REJECTION")" = "initial hardware" ]
 }
 
+@test "exact legacy homelab wrapper migrates its operator module without changing identity or hardware" {
+  LEGACY_IDENTITY="$TEST_DIR/legacy-identity.nix"
+  LEGACY_HARDWARE="$TEST_DIR/legacy-hardware.nix"
+  MIGRATED_IDENTITY="$TEST_DIR/migrated-identity.nix"
+  MIGRATED_HARDWARE="$TEST_DIR/migrated-hardware.nix"
+  MIGRATED_FLAKE="$TEST_DIR/migrated-flake.nix"
+  chmod 0777 "$TEST_DIR"
+  chmod 0666 "$MOCK_LOG"
+
+  run unshare --user --map-auto --setuid 0 --setgid 0 --mount --propagation private env PATH="$MOCK_BIN:$PATH" MOCK_LOG="$MOCK_LOG" TEST_DIR="$TEST_DIR" OPERATOR_UID="$OPERATOR_UID" OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" GIT_DIR="$GIT_DIR" WORK_TREE="$WORK_TREE" HARDWARE_SRC="$HARDWARE_SRC" bash -c '
+    mount -t tmpfs tmpfs /etc/nixos
+    mount -t tmpfs tmpfs /etc/ssh
+    chmod 0777 /etc/ssh /etc/nixos
+    ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
+    chmod 0666 /etc/ssh/ssh_host_ed25519_key.pub
+    chmod 0644 /etc/ssh/ssh_host_ed25519_key
+    mkdir /etc/nixos/homelab-bootstrap
+    chmod 0777 /etc/nixos/homelab-bootstrap
+    cat > /etc/nixos/homelab-bootstrap/identity.nix <<EOF
+{
+  homelab.operator = {
+    validated = true;
+    name = "$OPERATOR_NAME";
+    uid = $OPERATOR_UID;
+    primaryGroup = "$OPERATOR_GROUP";
+    primaryGid = $OPERATOR_GID;
+    home = "$OPERATOR_HOME";
+    flakePath = "/etc/nixos/homelab-bootstrap#homelab";
+    ageIdentityPath = "/etc/ssh/ssh_host_ed25519_key";
+    beszelAgentKey = null;
+  };
+}
+EOF
+    cat > /etc/nixos/homelab-bootstrap/flake.nix <<EOF
+{
+  description = "Machine-local homelab bootstrap";
+
+  inputs.dotfiles.url = "path:$WORK_TREE/nixos";
+
+  outputs = { dotfiles, ... }: {
+    nixosConfigurations.homelab = dotfiles.nixosConfigurations.homelab.extendModules {
+      modules = [ ./identity.nix ./hardware-configuration.nix ];
+    };
+  };
+}
+EOF
+    printf "legacy hardware\n" > /etc/nixos/homelab-bootstrap/hardware-configuration.nix
+    cp /etc/nixos/homelab-bootstrap/identity.nix "$1"
+    cp /etc/nixos/homelab-bootstrap/hardware-configuration.nix "$2"
+    printf "%s\\n" "$OPERATOR_NAME" | setpriv --reuid 65534 --regid 65534 --clear-groups "$3" --system homelab --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
+    bootstrap_status=$?
+    cp /etc/nixos/homelab-bootstrap/identity.nix "$4"
+    cp /etc/nixos/homelab-bootstrap/hardware-configuration.nix "$5"
+    cp /etc/nixos/homelab-bootstrap/flake.nix "$6"
+    chmod 0644 "$1" "$2" "$4" "$5" "$6"
+    exit "$bootstrap_status"
+  ' _ "$LEGACY_IDENTITY" "$LEGACY_HARDWARE" "$ISOLATED_SCRIPT" "$MIGRATED_IDENTITY" "$MIGRATED_HARDWARE" "$MIGRATED_FLAKE"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Migrated machine-local homelab wrapper flake to import homelabOperator"* ]]
+  [ "$(<"$LEGACY_IDENTITY")" = "$(<"$MIGRATED_IDENTITY")" ]
+  [ "$(<"$LEGACY_HARDWARE")" = "$(<"$MIGRATED_HARDWARE")" ]
+  [ "$(<"$MIGRATED_FLAKE")" = "$(cat <<EOF
+{
+  description = "Machine-local homelab bootstrap";
+
+  inputs.dotfiles.url = "path:$WORK_TREE/nixos";
+
+  outputs = { dotfiles, ... }: {
+    nixosConfigurations.homelab = dotfiles.nixosConfigurations.homelab.extendModules {
+      modules = [ dotfiles.nixosModules.homelabOperator ./identity.nix ./hardware-configuration.nix ];
+    };
+  };
+}
+EOF
+)" ]
+}
+
+@test "modified homelab wrapper is refused without mutating machine-local files" {
+  WRAPPER_BEFORE="$TEST_DIR/modified-wrapper-before.nix"
+  WRAPPER_AFTER="$TEST_DIR/modified-wrapper-after.nix"
+  IDENTITY_BEFORE="$TEST_DIR/modified-identity-before.nix"
+  IDENTITY_AFTER="$TEST_DIR/modified-identity-after.nix"
+  HARDWARE_BEFORE="$TEST_DIR/modified-hardware-before.nix"
+  HARDWARE_AFTER="$TEST_DIR/modified-hardware-after.nix"
+  chmod 0777 "$TEST_DIR"
+  chmod 0666 "$MOCK_LOG"
+
+  run unshare --user --map-auto --setuid 0 --setgid 0 --mount --propagation private env PATH="$MOCK_BIN:$PATH" MOCK_LOG="$MOCK_LOG" TEST_DIR="$TEST_DIR" OPERATOR_UID="$OPERATOR_UID" OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" GIT_DIR="$GIT_DIR" WORK_TREE="$WORK_TREE" HARDWARE_SRC="$HARDWARE_SRC" bash -c '
+    mount -t tmpfs tmpfs /etc/nixos
+    mount -t tmpfs tmpfs /etc/ssh
+    chmod 0777 /etc/ssh /etc/nixos
+    ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
+    chmod 0666 /etc/ssh/ssh_host_ed25519_key.pub
+    chmod 0644 /etc/ssh/ssh_host_ed25519_key
+    mkdir /etc/nixos/homelab-bootstrap
+    cat > /etc/nixos/homelab-bootstrap/identity.nix <<EOF
+{
+  homelab.operator = {
+    validated = true;
+    name = "$OPERATOR_NAME";
+    uid = $OPERATOR_UID;
+    primaryGroup = "$OPERATOR_GROUP";
+    primaryGid = $OPERATOR_GID;
+    home = "$OPERATOR_HOME";
+    flakePath = "/etc/nixos/homelab-bootstrap#homelab";
+    ageIdentityPath = "/etc/ssh/ssh_host_ed25519_key";
+    beszelAgentKey = null;
+  };
+}
+EOF
+    cat > /etc/nixos/homelab-bootstrap/flake.nix <<EOF
+{
+  description = "Machine-local homelab bootstrap";
+
+  inputs.dotfiles.url = "path:$WORK_TREE/nixos";
+
+  outputs = { dotfiles, ... }: {
+    nixosConfigurations.homelab = dotfiles.nixosConfigurations.homelab.extendModules {
+      modules = [ ./identity.nix ./hardware-configuration.nix ];
+    };
+  };
+}
+# machine-specific modification
+EOF
+    printf "modified-wrapper hardware\n" > /etc/nixos/homelab-bootstrap/hardware-configuration.nix
+    cp /etc/nixos/homelab-bootstrap/flake.nix "$1"
+    cp /etc/nixos/homelab-bootstrap/identity.nix "$2"
+    cp /etc/nixos/homelab-bootstrap/hardware-configuration.nix "$3"
+    setpriv --reuid 65534 --regid 65534 --clear-groups "$4" --system homelab --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
+    bootstrap_status=$?
+    cp /etc/nixos/homelab-bootstrap/flake.nix "$5"
+    cp /etc/nixos/homelab-bootstrap/identity.nix "$6"
+    cp /etc/nixos/homelab-bootstrap/hardware-configuration.nix "$7"
+    chmod 0644 "$1" "$2" "$3" "$5" "$6" "$7"
+    exit "$bootstrap_status"
+  ' _ "$WRAPPER_BEFORE" "$IDENTITY_BEFORE" "$HARDWARE_BEFORE" "$ISOLATED_SCRIPT" "$WRAPPER_AFTER" "$IDENTITY_AFTER" "$HARDWARE_AFTER"
+
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"Machine-local homelab wrapper does not match this checkout; refusing to replace it"* ]]
+  [ "$(<"$WRAPPER_BEFORE")" = "$(<"$WRAPPER_AFTER")" ]
+  [ "$(<"$IDENTITY_BEFORE")" = "$(<"$IDENTITY_AFTER")" ]
+  [ "$(<"$HARDWARE_BEFORE")" = "$(<"$HARDWARE_AFTER")" ]
+}
+
+@test "legacy homelab wrapper is not migrated before persisted hardware validates" {
+  WRAPPER_BEFORE="$TEST_DIR/unvalidated-wrapper-before.nix"
+  WRAPPER_AFTER="$TEST_DIR/unvalidated-wrapper-after.nix"
+  chmod 0777 "$TEST_DIR"
+  chmod 0666 "$MOCK_LOG"
+
+  run unshare --user --map-auto --setuid 0 --setgid 0 --mount --propagation private env PATH="$MOCK_BIN:$PATH" MOCK_LOG="$MOCK_LOG" TEST_DIR="$TEST_DIR" OPERATOR_UID="$OPERATOR_UID" OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" GIT_DIR="$GIT_DIR" WORK_TREE="$WORK_TREE" HARDWARE_SRC="$HARDWARE_SRC" bash -c '
+    mount -t tmpfs tmpfs /etc/nixos
+    mount -t tmpfs tmpfs /etc/ssh
+    chmod 0777 /etc/ssh /etc/nixos
+    ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
+    chmod 0666 /etc/ssh/ssh_host_ed25519_key.pub
+    chmod 0644 /etc/ssh/ssh_host_ed25519_key
+    mkdir /etc/nixos/homelab-bootstrap
+    cat > /etc/nixos/homelab-bootstrap/identity.nix <<EOF
+{
+  homelab.operator = {
+    validated = true;
+    name = "$OPERATOR_NAME";
+    uid = $OPERATOR_UID;
+    primaryGroup = "$OPERATOR_GROUP";
+    primaryGid = $OPERATOR_GID;
+    home = "$OPERATOR_HOME";
+    flakePath = "/etc/nixos/homelab-bootstrap#homelab";
+    ageIdentityPath = "/etc/ssh/ssh_host_ed25519_key";
+    beszelAgentKey = null;
+  };
+}
+EOF
+    cat > /etc/nixos/homelab-bootstrap/flake.nix <<EOF
+{
+  description = "Machine-local homelab bootstrap";
+
+  inputs.dotfiles.url = "path:$WORK_TREE/nixos";
+
+  outputs = { dotfiles, ... }: {
+    nixosConfigurations.homelab = dotfiles.nixosConfigurations.homelab.extendModules {
+      modules = [ ./identity.nix ./hardware-configuration.nix ];
+    };
+  };
+}
+EOF
+    printf "REPLACE invalid hardware\n" > /etc/nixos/homelab-bootstrap/hardware-configuration.nix
+    cp /etc/nixos/homelab-bootstrap/flake.nix "$1"
+    setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
+    bootstrap_status=$?
+    cp /etc/nixos/homelab-bootstrap/flake.nix "$3"
+    chmod 0644 "$1" "$3"
+    exit "$bootstrap_status"
+  ' _ "$WRAPPER_BEFORE" "$ISOLATED_SCRIPT" "$WRAPPER_AFTER"
+
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"Machine-local homelab hardware configuration still contains a REPLACE placeholder"* ]]
+  [ "$(<"$WRAPPER_BEFORE")" = "$(<"$WRAPPER_AFTER")" ]
+}
+
 @test "non-homelab bootstrap does not require homelab identity or Beszel key discovery" {
   run env PATH="$MOCK_BIN:$PATH" MOCK_LOG="$MOCK_LOG" FORBID_NSS=1 "$SCRIPT" \
     --dry-run \
