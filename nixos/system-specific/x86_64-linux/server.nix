@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 {
   nix.settings.experimental-features = [
     "nix-command"
@@ -6,6 +6,9 @@
   ];
 
   nixpkgs.config.allowUnfree = true;
+
+  # Fresh servers receive a route through DHCP unless host-specific networking overrides it.
+  networking.useDHCP = lib.mkDefault true;
 
   environment.systemPackages = with pkgs; [
     curl
