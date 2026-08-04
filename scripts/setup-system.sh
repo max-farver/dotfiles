@@ -881,6 +881,7 @@ fi
 run git --git-dir="$GIT_DIR" config status.showUntrackedFiles no
 run mkdir -p "$WORK_TREE"
 run git --git-dir="$GIT_DIR" fetch --all --prune
+run git --git-dir="$GIT_DIR" fetch origin refs/heads/main:refs/remotes/origin/main
 
 if (( DRY_RUN )); then
   run git --git-dir="$GIT_DIR" --work-tree="$WORK_TREE" checkout origin/main -- .

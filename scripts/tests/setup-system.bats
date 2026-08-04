@@ -219,6 +219,7 @@ teardown() {
   expected_git_log="$(printf '%s\n' \
     "--git-dir=$GIT_DIR config status.showUntrackedFiles no" \
     "--git-dir=$GIT_DIR fetch --all --prune" \
+    "--git-dir=$GIT_DIR fetch origin refs/heads/main:refs/remotes/origin/main" \
     "--git-dir=$GIT_DIR --work-tree=$WORK_TREE checkout origin/main -- .")"
 
   run env PATH="$MOCK_BIN:$PATH" GIT_LOG="$GIT_LOG" "$SCRIPT" \
@@ -240,7 +241,7 @@ teardown() {
     --skip-neovim-check
 
   [ "$status" -eq 0 ]
-  [[ "$output" == *"[dry-run] git --git-dir=$GIT_DIR fetch --all --prune"*"[dry-run] git --git-dir=$GIT_DIR --work-tree=$WORK_TREE checkout origin/main -- ."* ]]
+  [[ "$output" == *"[dry-run] git --git-dir=$GIT_DIR fetch --all --prune"*"[dry-run] git --git-dir=$GIT_DIR fetch origin refs/heads/main:refs/remotes/origin/main"*"[dry-run] git --git-dir=$GIT_DIR --work-tree=$WORK_TREE checkout origin/main -- ."* ]]
 }
 
 @test "homelab bootstrap rejects an NSS account whose UID differs from the invoking identity" {
