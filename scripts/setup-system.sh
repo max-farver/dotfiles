@@ -117,7 +117,7 @@ nix_cmd() {
 
 nixos_rebuild() {
   if [[ "$SYSTEM" == "homelab" ]]; then
-    run sudo nixos-rebuild build --flake "$HOMELAB_BOOTSTRAP_FLAKE#homelab" --option experimental-features "$NIX_EXPERIMENTAL_FEATURES"
+    run sudo nixos-rebuild build --no-write-lock-file --flake "$HOMELAB_BOOTSTRAP_FLAKE#homelab" --option experimental-features "$NIX_EXPERIMENTAL_FEATURES"
   else
     run sudo nixos-rebuild switch --flake "$NIXOS_FLAKE#$SYSTEM" --option experimental-features "$NIX_EXPERIMENTAL_FEATURES"
   fi
@@ -502,6 +502,18 @@ require_root_owned_directory() {
   owner_uid="$(sudo stat -c '%u' -- "$path")" || die "Could not read ownership of $path"
   [[ "$owner_uid" == "0" ]] || die "Refusing non-root-owned bootstrap directory: $path"
 }
+cleanup_homelab_wrapper_lock() {
+  local lock_file="$HOMELAB_BOOTSTRAP_DIR/flake.lock"
+
+  if ! sudo test -e "$lock_file" && ! sudo test -L "$lock_file"; then
+    return 0
+  fi
+
+  require_root_owned_file "$lock_file"
+  printf '[i] Removing stale root-owned homelab wrapper lock at %s so the wrapper uses the live local dotfiles checkout\n' "$lock_file"
+  run_as_root rm -f -- "$lock_file"
+}
+
 validate_existing_homelab_identity() {
   local identity="$1"
   local line
@@ -673,6 +685,7 @@ bootstrap_homelab_flake() {
     fi
     update_homelab_beszel_agent_key "$actual_identity"
     (( SYNC_HARDWARE )) && sync_homelab_hardware
+    cleanup_homelab_wrapper_lock
     return 0
   fi
 

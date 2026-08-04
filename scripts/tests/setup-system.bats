@@ -171,7 +171,19 @@ case "${1-}" in
       *) command ssh-keygen "${@:2}" ;;
     esac
     ;;
-  mkdir|chmod|rm)
+  nixos-rebuild)
+    if [[ -n "${NIXOS_REBUILD_LOCK_STATE-}" ]]; then
+      if [[ -e /etc/nixos/homelab-bootstrap/flake.lock || -L /etc/nixos/homelab-bootstrap/flake.lock ]]; then
+        printf 'present\n' > "$NIXOS_REBUILD_LOCK_STATE"
+      else
+        printf 'absent\n' > "$NIXOS_REBUILD_LOCK_STATE"
+      fi
+    fi
+    ;;
+  mkdir|chmod)
+    ;;
+  rm)
+    command rm "${@:2}"
     ;;
   *)
     printf 'unexpected sudo command: %s\n' "$*" >&2
@@ -265,7 +277,7 @@ teardown() {
 
   [ "$status" -eq 0 ]
   [[ "$output" == *"[dry-run] atomically create root-owned wrapper flake at /etc/nixos/homelab-bootstrap with identity.nix and hardware-configuration.nix"* ]]
-  [[ "$output" == *"[dry-run] sudo nixos-rebuild build --flake /etc/nixos/homelab-bootstrap#homelab"* ]]
+  [[ "$output" == *"[dry-run] sudo nixos-rebuild build --no-write-lock-file --flake /etc/nixos/homelab-bootstrap#homelab"* ]]
   [[ ! -s "$MOCK_LOG" ]]
 }
 
@@ -666,6 +678,200 @@ EOF
   [ "$status" -eq 1 ]
   [[ "$output" == *"Machine-local homelab hardware configuration still contains a REPLACE placeholder"* ]]
   [ "$(<"$WRAPPER_BEFORE")" = "$(<"$WRAPPER_AFTER")" ]
+}
+
+@test "stale regular homelab wrapper lock is removed before a no-write rebuild" {
+  LOCK_REMOVAL_STATE="$TEST_DIR/lock-removal-state"
+  REBUILD_LOCK_STATE="$TEST_DIR/rebuild-lock-state"
+  chmod 0777 "$TEST_DIR"
+  chmod 0666 "$MOCK_LOG"
+
+  run unshare --user --map-auto --setuid 0 --setgid 0 --mount --propagation private env PATH="$MOCK_BIN:$PATH" MOCK_LOG="$MOCK_LOG" NIXOS_REBUILD_LOCK_STATE="$REBUILD_LOCK_STATE" TEST_DIR="$TEST_DIR" OPERATOR_UID="$OPERATOR_UID" OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" GIT_DIR="$GIT_DIR" WORK_TREE="$WORK_TREE" HARDWARE_SRC="$HARDWARE_SRC" bash -c '
+    mount -t tmpfs tmpfs /etc/nixos
+    mount -t tmpfs tmpfs /etc/ssh
+    chmod 0777 /etc/ssh /etc/nixos
+    ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
+    chmod 0666 /etc/ssh/ssh_host_ed25519_key.pub
+    chmod 0644 /etc/ssh/ssh_host_ed25519_key
+    mkdir /etc/nixos/homelab-bootstrap
+    chmod 0777 /etc/nixos/homelab-bootstrap
+    cat > /etc/nixos/homelab-bootstrap/identity.nix <<EOF
+{
+  homelab.operator = {
+    validated = true;
+    name = "$OPERATOR_NAME";
+    uid = $OPERATOR_UID;
+    primaryGroup = "$OPERATOR_GROUP";
+    primaryGid = $OPERATOR_GID;
+    home = "$OPERATOR_HOME";
+    flakePath = "/etc/nixos/homelab-bootstrap#homelab";
+    ageIdentityPath = "/etc/ssh/ssh_host_ed25519_key";
+    beszelAgentKey = null;
+  };
+}
+EOF
+    cat > /etc/nixos/homelab-bootstrap/flake.nix <<EOF
+{
+  description = "Machine-local homelab bootstrap";
+
+  inputs.dotfiles.url = "path:$WORK_TREE/nixos";
+
+  outputs = { dotfiles, ... }: {
+    nixosConfigurations.homelab = dotfiles.nixosConfigurations.homelab.extendModules {
+      modules = [ dotfiles.nixosModules.homelabOperator ./identity.nix ./hardware-configuration.nix ];
+    };
+  };
+}
+EOF
+    printf "persisted hardware\n" > /etc/nixos/homelab-bootstrap/hardware-configuration.nix
+    cat > /etc/nixos/homelab-bootstrap/flake.lock <<EOF
+{
+  "nodes": {
+    "root": {
+      "inputs": {}
+    }
+  },
+  "root": "root",
+  "version": 7
+}
+EOF
+    setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-neovim-check
+    bootstrap_status=$?
+    if [[ -e /etc/nixos/homelab-bootstrap/flake.lock || -L /etc/nixos/homelab-bootstrap/flake.lock ]]; then
+      printf "present\n" > "$1"
+    else
+      printf "removed\n" > "$1"
+    fi
+    chmod 0644 "$1" "$NIXOS_REBUILD_LOCK_STATE"
+    exit "$bootstrap_status"
+  ' _ "$LOCK_REMOVAL_STATE" "$ISOLATED_SCRIPT"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Removing stale root-owned homelab wrapper lock"* ]]
+  [ "$(<"$LOCK_REMOVAL_STATE")" = "removed" ]
+  [ "$(<"$REBUILD_LOCK_STATE")" = "absent" ]
+  [[ "$(<"$MOCK_LOG")" == *"nixos-rebuild build --no-write-lock-file --flake /etc/nixos/homelab-bootstrap#homelab --option experimental-features nix-command flakes"* ]]
+}
+
+@test "symlink homelab wrapper lock is rejected without deletion or rebuild" {
+  LOCK_STATE="$TEST_DIR/symlink-lock-state"
+  chmod 0777 "$TEST_DIR"
+  chmod 0666 "$MOCK_LOG"
+
+  run unshare --user --map-auto --setuid 0 --setgid 0 --mount --propagation private env PATH="$MOCK_BIN:$PATH" MOCK_LOG="$MOCK_LOG" TEST_DIR="$TEST_DIR" OPERATOR_UID="$OPERATOR_UID" OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" GIT_DIR="$GIT_DIR" WORK_TREE="$WORK_TREE" HARDWARE_SRC="$HARDWARE_SRC" bash -c '
+    mount -t tmpfs tmpfs /etc/nixos
+    mount -t tmpfs tmpfs /etc/ssh
+    chmod 0777 /etc/ssh /etc/nixos
+    ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
+    chmod 0666 /etc/ssh/ssh_host_ed25519_key.pub
+    chmod 0644 /etc/ssh/ssh_host_ed25519_key
+    mkdir /etc/nixos/homelab-bootstrap
+    cat > /etc/nixos/homelab-bootstrap/identity.nix <<EOF
+{
+  homelab.operator = {
+    validated = true;
+    name = "$OPERATOR_NAME";
+    uid = $OPERATOR_UID;
+    primaryGroup = "$OPERATOR_GROUP";
+    primaryGid = $OPERATOR_GID;
+    home = "$OPERATOR_HOME";
+    flakePath = "/etc/nixos/homelab-bootstrap#homelab";
+    ageIdentityPath = "/etc/ssh/ssh_host_ed25519_key";
+    beszelAgentKey = null;
+  };
+}
+EOF
+    cat > /etc/nixos/homelab-bootstrap/flake.nix <<EOF
+{
+  description = "Machine-local homelab bootstrap";
+
+  inputs.dotfiles.url = "path:$WORK_TREE/nixos";
+
+  outputs = { dotfiles, ... }: {
+    nixosConfigurations.homelab = dotfiles.nixosConfigurations.homelab.extendModules {
+      modules = [ dotfiles.nixosModules.homelabOperator ./identity.nix ./hardware-configuration.nix ];
+    };
+  };
+}
+EOF
+    printf "persisted hardware\n" > /etc/nixos/homelab-bootstrap/hardware-configuration.nix
+    printf "protected lock target\n" > /etc/nixos/homelab-bootstrap/lock-target
+    ln -s lock-target /etc/nixos/homelab-bootstrap/flake.lock
+    setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-neovim-check
+    bootstrap_status=$?
+    if [[ -L /etc/nixos/homelab-bootstrap/flake.lock ]]; then
+      printf "symlink-survived\n" > "$1"
+    else
+      printf "symlink-removed\n" > "$1"
+    fi
+    chmod 0644 "$1"
+    exit "$bootstrap_status"
+  ' _ "$LOCK_STATE" "$ISOLATED_SCRIPT"
+
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"Expected a regular file at /etc/nixos/homelab-bootstrap/flake.lock"* ]]
+  [ "$(<"$LOCK_STATE")" = "symlink-survived" ]
+  [[ "$(<"$MOCK_LOG")" != *"nixos-rebuild "* ]]
+}
+
+@test "nonregular homelab wrapper lock is rejected without deletion or rebuild" {
+  LOCK_STATE="$TEST_DIR/directory-lock-state"
+  chmod 0777 "$TEST_DIR"
+  chmod 0666 "$MOCK_LOG"
+
+  run unshare --user --map-auto --setuid 0 --setgid 0 --mount --propagation private env PATH="$MOCK_BIN:$PATH" MOCK_LOG="$MOCK_LOG" TEST_DIR="$TEST_DIR" OPERATOR_UID="$OPERATOR_UID" OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" GIT_DIR="$GIT_DIR" WORK_TREE="$WORK_TREE" HARDWARE_SRC="$HARDWARE_SRC" bash -c '
+    mount -t tmpfs tmpfs /etc/nixos
+    mount -t tmpfs tmpfs /etc/ssh
+    chmod 0777 /etc/ssh /etc/nixos
+    ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
+    chmod 0666 /etc/ssh/ssh_host_ed25519_key.pub
+    chmod 0644 /etc/ssh/ssh_host_ed25519_key
+    mkdir /etc/nixos/homelab-bootstrap
+    cat > /etc/nixos/homelab-bootstrap/identity.nix <<EOF
+{
+  homelab.operator = {
+    validated = true;
+    name = "$OPERATOR_NAME";
+    uid = $OPERATOR_UID;
+    primaryGroup = "$OPERATOR_GROUP";
+    primaryGid = $OPERATOR_GID;
+    home = "$OPERATOR_HOME";
+    flakePath = "/etc/nixos/homelab-bootstrap#homelab";
+    ageIdentityPath = "/etc/ssh/ssh_host_ed25519_key";
+    beszelAgentKey = null;
+  };
+}
+EOF
+    cat > /etc/nixos/homelab-bootstrap/flake.nix <<EOF
+{
+  description = "Machine-local homelab bootstrap";
+
+  inputs.dotfiles.url = "path:$WORK_TREE/nixos";
+
+  outputs = { dotfiles, ... }: {
+    nixosConfigurations.homelab = dotfiles.nixosConfigurations.homelab.extendModules {
+      modules = [ dotfiles.nixosModules.homelabOperator ./identity.nix ./hardware-configuration.nix ];
+    };
+  };
+}
+EOF
+    printf "persisted hardware\n" > /etc/nixos/homelab-bootstrap/hardware-configuration.nix
+    mkdir /etc/nixos/homelab-bootstrap/flake.lock
+    setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-neovim-check
+    bootstrap_status=$?
+    if [[ -d /etc/nixos/homelab-bootstrap/flake.lock ]]; then
+      printf "directory-survived\n" > "$1"
+    else
+      printf "directory-removed\n" > "$1"
+    fi
+    chmod 0644 "$1"
+    exit "$bootstrap_status"
+  ' _ "$LOCK_STATE" "$ISOLATED_SCRIPT"
+
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"Expected a regular file at /etc/nixos/homelab-bootstrap/flake.lock"* ]]
+  [ "$(<"$LOCK_STATE")" = "directory-survived" ]
+  [[ "$(<"$MOCK_LOG")" != *"nixos-rebuild "* ]]
 }
 
 @test "non-homelab bootstrap does not require homelab identity or Beszel key discovery" {

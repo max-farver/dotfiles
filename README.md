@@ -74,7 +74,7 @@ sudo cat /etc/nixos/homelab-bootstrap/hardware-configuration.nix
 
 read -r -p 'Type INSTALL to register the reviewed homelab generation for the next boot: ' install
 if [ "$install" = INSTALL ]; then
-  sudo nixos-rebuild boot --flake /etc/nixos/homelab-bootstrap#homelab --option experimental-features "nix-command flakes"
+  sudo nixos-rebuild boot --no-write-lock-file --flake /etc/nixos/homelab-bootstrap#homelab --option experimental-features "nix-command flakes"
 fi
 ```
 
@@ -96,7 +96,7 @@ After the Hub is reachable, open its **Add System** flow and copy the public key
   --system homelab \
   --beszel-agent-key "$(cat /path/to/key-copied-from-beszel-hub.pub)"
 
-sudo nixos-rebuild boot --flake /etc/nixos/homelab-bootstrap#homelab --option experimental-features "nix-command flakes"
+sudo nixos-rebuild boot --no-write-lock-file --flake /etc/nixos/homelab-bootstrap#homelab --option experimental-features "nix-command flakes"
 ```
 
 Reboot from the physical console to start the agent. Do not pass `--sync-hardware` while enrolling the agent.
