@@ -883,8 +883,8 @@ run mkdir -p "$WORK_TREE"
 run git --git-dir="$GIT_DIR" fetch --all --prune
 
 if (( DRY_RUN )); then
-  run git --git-dir="$GIT_DIR" --work-tree="$WORK_TREE" checkout main -- .
-elif ! config_git checkout main -- .; then
+  run git --git-dir="$GIT_DIR" --work-tree="$WORK_TREE" checkout origin/main -- .
+elif ! config_git checkout origin/main -- .; then
   printf '[!] Move or back up the conflicting file, then rerun the script.\n' >&2
   exit 1
 fi

@@ -9,6 +9,7 @@ setup() {
   MOCK_LOG="$TEST_DIR/sudo.log"
   TAILSCALE_LOG="$TEST_DIR/tailscale.log"
   NIX_LOG="$TEST_DIR/nix.log"
+  GIT_LOG="$TEST_DIR/git.log"
   IDENTITY_CAPTURE="$TEST_DIR/staged-identity.nix"
   GIT_DIR="$TEST_DIR/dotfiles.git"
   WORK_TREE="$TEST_DIR/work-tree"
@@ -27,6 +28,7 @@ setup() {
   : > "$MOCK_LOG"
   : > "$TAILSCALE_LOG"
   : > "$NIX_LOG"
+  : > "$GIT_LOG"
   cp "$SCRIPT" "$ISOLATED_SCRIPT"
   chmod 0755 "$ISOLATED_SCRIPT"
   ssh-keygen -q -t ed25519 -N '' -f "$TEST_DIR/beszel-agent-key"
@@ -35,7 +37,9 @@ setup() {
 
   cat > "$MOCK_BIN/git" <<'EOF'
 #!/usr/bin/env bash
-exit 0
+if [[ -n "${GIT_LOG-}" ]]; then
+  printf '%s\n' "$*" >> "$GIT_LOG"
+fi
 EOF
 
   cat > "$MOCK_BIN/nix" <<'EOF'
@@ -209,6 +213,34 @@ teardown() {
 
   [ "$status" -eq 1 ]
   [[ "$output" == *"Homelab bootstrap must be invoked directly by the intended non-root operator, not through sudo or as root"* ]]
+}
+
+@test "setup checks out fetched origin/main in normal and dry-run paths" {
+  expected_git_log="$(printf '%s\n' \
+    "--git-dir=$GIT_DIR config status.showUntrackedFiles no" \
+    "--git-dir=$GIT_DIR fetch --all --prune" \
+    "--git-dir=$GIT_DIR --work-tree=$WORK_TREE checkout origin/main -- .")"
+
+  run env PATH="$MOCK_BIN:$PATH" GIT_LOG="$GIT_LOG" "$SCRIPT" \
+    --system framework16 \
+    --git-dir "$GIT_DIR" \
+    --work-tree "$WORK_TREE" \
+    --skip-rebuild \
+    --skip-neovim-check
+
+  [ "$status" -eq 0 ]
+  [ "$(<"$GIT_LOG")" = "$expected_git_log" ]
+
+  run env PATH="$MOCK_BIN:$PATH" "$SCRIPT" \
+    --dry-run \
+    --system framework16 \
+    --git-dir "$GIT_DIR" \
+    --work-tree "$WORK_TREE" \
+    --skip-rebuild \
+    --skip-neovim-check
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[dry-run] git --git-dir=$GIT_DIR fetch --all --prune"*"[dry-run] git --git-dir=$GIT_DIR --work-tree=$WORK_TREE checkout origin/main -- ."* ]]
 }
 
 @test "homelab bootstrap rejects an NSS account whose UID differs from the invoking identity" {
