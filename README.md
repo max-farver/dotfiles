@@ -52,13 +52,58 @@ After the first checkout, rerun locally with:
 ~/.config/scripts/setup-system.sh --system framework16
 ```
 
-For the physical homelab server, use the same setup script with fresh homelab-local secrets:
+### Copy-and-run homelab bootstrap
+
+Run this **as the existing local administrator**, never with `sudo`. It downloads the bootstrap script to `/tmp`, stages the homelab wrapper, builds it without activating it, then requires an explicit `INSTALL` acknowledgement before registering the result for the next boot. It does not replace the current generation.
 
 ```sh
-~/.config/scripts/setup-system.sh --system homelab --sync-hardware --print-host-key --initialize-homelab-secrets --checks --skip-neovim-check
+set -euo pipefail
+
+bootstrap=/tmp/setup-system.sh
+curl -fsSL https://raw.githubusercontent.com/max-farver/dotfiles/main/scripts/setup-system.sh -o "$bootstrap"
+chmod 0755 "$bootstrap"
+
+"$bootstrap" \
+  --system homelab \
+  --sync-hardware \
+  --initialize-homelab-secrets \
+  --skip-neovim-check
+
+sudo cat /etc/nixos/homelab-bootstrap/identity.nix
+sudo cat /etc/nixos/homelab-bootstrap/hardware-configuration.nix
+
+read -r -p 'Type INSTALL to register the reviewed homelab generation for the next boot: ' install
+if [ "$install" = INSTALL ]; then
+  sudo nixos-rebuild boot --flake /etc/nixos/homelab-bootstrap#homelab --option experimental-features "nix-command flakes"
+fi
 ```
 
-`--initialize-homelab-secrets` replaces `homelab = mfarver;` in `~/.config/nixos/secrets/secrets.nix` with the host `/etc/ssh/ssh_host_ed25519_key.pub`, switches the homelab agenix identity path to `/etc/ssh/ssh_host_ed25519_key`, generates a fresh Linkwarden `NEXTAUTH_SECRET`, and encrypts the fresh Linkwarden secret directly to the host key. It does not rekey existing secrets and does not require the Framework machine or Framework private keys. Tailscale enrollment is interactive: after rebuild, the script runs `sudo tailscale up --advertise-tags=tag:server`.
+The script derives a candidate from the invoking account's numeric UID, validates its NSS record, home directory ownership, and `sudo` access, then requires you to type the detected username. It writes the confirmed identity and generated hardware configuration to root-owned `/etc/nixos/homelab-bootstrap/`; neither is stored in or overwritten by the Git work tree. `--initialize-homelab-secrets` encrypts the initial Linkwarden secret to the generated host key before first boot. The first boot starts the Beszel Hub but deliberately leaves the agent disabled. Subsequent runs verify the persisted identity and refuse to adopt a different account automatically. After `INSTALL`, reboot from the physical console and retain the prior systemd-boot generation as the rollback path.
+
+After that first boot, enroll Tailscale from the physical console and restart the endpoint-provisioning unit:
+
+```sh
+sudo tailscale up --advertise-tags=tag:server
+sudo systemctl restart tailscale-services
+```
+
+### Enroll the Beszel agent after first boot
+
+After the Hub is reachable, open its **Add System** flow and copy the public key it displays. Run this as the same local administrator; it changes only the agent key in the root-owned identity file, stages a build, and does not activate it:
+
+```sh
+~/.config/scripts/setup-system.sh \
+  --system homelab \
+  --beszel-agent-key "$(cat /path/to/key-copied-from-beszel-hub.pub)"
+
+sudo nixos-rebuild boot --flake /etc/nixos/homelab-bootstrap#homelab --option experimental-features "nix-command flakes"
+```
+
+Reboot from the physical console to start the agent. Do not pass `--sync-hardware` while enrolling the agent.
+
+### Homelab recovery
+
+If a staged generation cannot authenticate the original local user or loses network access, boot the previous systemd-boot generation from the physical console. Do not run the homelab target from a root recovery shell or manually create a replacement user. Return to the known-good local account, inspect the generated wrapper, correct its inputs, and stage a new boot generation instead. The setup script intentionally rejects root invocation and cannot replace the confirmed machine-local identity on later runs.
 
 The script is stored at repository root `scripts/setup-system.sh`, so it appears at `~/.config/scripts/setup-system.sh` after checkout because the work tree is `$HOME/.config`.
 

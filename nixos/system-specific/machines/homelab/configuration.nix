@@ -10,6 +10,7 @@ in
 {
   imports = [
     ./hardware-configuration.nix
+    ./operator.nix
     ../../../desktop-environments/plasma.nix
     ../../x86_64-linux/server.nix
   ];
@@ -20,15 +21,6 @@ in
   boot.loader.systemd-boot.configurationLimit = 10;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  programs.nh = {
-    enable = true;
-    clean.enable = true;
-    clean.extraArgs = "--keep 10";
-    flake = "/home/mfarver/.config/nixos#homelab";
-  };
-
-  # Bootstrap secret decryption with operator key until homelab host SSH key is enrolled in secrets.nix.
-  age.identityPaths = [ "/home/mfarver/.ssh/id_ed25519" ];
 
   age.secrets.linkwarden-env = {
     file = ../../../secrets/linkwarden.env.age;
@@ -98,12 +90,13 @@ in
     };
 
     agent = {
-      enable = true;
+      enable = config.homelab.operator.beszelAgentKey != null;
       openFirewall = false;
       environment = {
         HUB_URL = "http://127.0.0.1:8090";
         LISTEN = "0.0.0.0:45876";
-        KEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBXVLydaYfu79T2qdDxKyL6pyLGdHu/RnqZcjCTao+6V mfarver@nixos";
+      } // lib.optionalAttrs (config.homelab.operator.beszelAgentKey != null) {
+        KEY = config.homelab.operator.beszelAgentKey;
       };
     };
   };
