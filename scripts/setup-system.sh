@@ -431,7 +431,7 @@ EOF
 
   outputs = { dotfiles, ... }: {
     nixosConfigurations.homelab = dotfiles.nixosConfigurations.homelab.extendModules {
-      modules = [ dotfiles.nixosModules.homelabOperator ./identity.nix ./hardware-configuration.nix ];
+      modules = [ ./identity.nix ./hardware-configuration.nix ];
     };
   };
 }
@@ -445,7 +445,7 @@ EOF
 
   outputs = { dotfiles, ... }: {
     nixosConfigurations.homelab = dotfiles.nixosConfigurations.homelab.extendModules {
-      modules = [ ./identity.nix ./hardware-configuration.nix ];
+      modules = [ dotfiles.nixosModules.homelabOperator ./identity.nix ./hardware-configuration.nix ];
     };
   };
 }
@@ -621,7 +621,7 @@ migrate_homelab_wrapper_flake() {
     run_as_root rm -f "$root_stage"
     die "Could not atomically migrate the homelab wrapper flake"
   fi
-  printf '[i] Migrated machine-local homelab wrapper flake to import homelabOperator\n'
+  printf '[i] Migrated machine-local homelab wrapper flake to the current template\n'
 }
 
 sync_homelab_hardware() {

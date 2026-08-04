@@ -371,6 +371,7 @@ teardown() {
 }
 
 @test "confirmed homelab operator stages the discovered identity in the wrapper" {
+  GENERATED_FLAKE_CAPTURE="$TEST_DIR/generated-flake.nix"
   chmod 0777 "$TEST_DIR"
   chmod 0666 "$MOCK_LOG"
   run unshare --user --map-auto --setuid 0 --setgid 0 --mount --propagation private env PATH="$MOCK_BIN:$PATH" MOCK_LOG="$MOCK_LOG" IDENTITY_CAPTURE="$IDENTITY_CAPTURE" TEST_DIR="$TEST_DIR" OPERATOR_UID="$OPERATOR_UID" OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" GIT_DIR="$GIT_DIR" WORK_TREE="$WORK_TREE" HARDWARE_SRC="$HARDWARE_SRC" bash -c '
@@ -383,9 +384,10 @@ teardown() {
     chmod 0644 /etc/ssh/ssh_host_ed25519_key
     printf "%s\\n" "$1" | setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --beszel-agent-key "$3" --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
     bootstrap_status=$?
-    chmod 0644 "$IDENTITY_CAPTURE"
+    cp /etc/nixos/homelab-bootstrap/flake.nix "$4"
+    chmod 0644 "$IDENTITY_CAPTURE" "$4"
     exit "$bootstrap_status"
-  ' _ "$OPERATOR_NAME" "$ISOLATED_SCRIPT" "$BESZEL_AGENT_KEY"
+  ' _ "$OPERATOR_NAME" "$ISOLATED_SCRIPT" "$BESZEL_AGENT_KEY" "$GENERATED_FLAKE_CAPTURE"
   [ "$status" -eq 0 ]
 
   NIX_SERIALIZED_BESZEL_AGENT_KEY="${BESZEL_AGENT_KEY//\$\{/\\\${}"
@@ -397,6 +399,20 @@ teardown() {
   [[ "$(<"$IDENTITY_CAPTURE")" == *"flakePath = \"/etc/nixos/homelab-bootstrap#homelab\";"* ]]
   [[ "$(<"$IDENTITY_CAPTURE")" == *"ageIdentityPath = \"/etc/ssh/ssh_host_ed25519_key\";"* ]]
   [[ "$(<"$IDENTITY_CAPTURE")" == *"beszelAgentKey = \"$NIX_SERIALIZED_BESZEL_AGENT_KEY\";"* ]]
+  [ "$(<"$GENERATED_FLAKE_CAPTURE")" = "$(cat <<EOF
+{
+  description = "Machine-local homelab bootstrap";
+
+  inputs.dotfiles.url = "path:$WORK_TREE/nixos";
+
+  outputs = { dotfiles, ... }: {
+    nixosConfigurations.homelab = dotfiles.nixosConfigurations.homelab.extendModules {
+      modules = [ ./identity.nix ./hardware-configuration.nix ];
+    };
+  };
+}
+EOF
+)" ]
   run nix-instantiate --parse "$IDENTITY_CAPTURE"
   [ "$status" -eq 0 ]
 }
@@ -512,7 +528,7 @@ teardown() {
   [ "$(<"$HARDWARE_AFTER_REJECTION")" = "initial hardware" ]
 }
 
-@test "exact legacy homelab wrapper migrates its operator module without changing identity or hardware" {
+@test "exact prior explicit-operator homelab wrapper migrates to the no-operator template without changing identity or hardware" {
   LEGACY_IDENTITY="$TEST_DIR/legacy-identity.nix"
   LEGACY_HARDWARE="$TEST_DIR/legacy-hardware.nix"
   MIGRATED_IDENTITY="$TEST_DIR/migrated-identity.nix"
@@ -553,7 +569,7 @@ EOF
 
   outputs = { dotfiles, ... }: {
     nixosConfigurations.homelab = dotfiles.nixosConfigurations.homelab.extendModules {
-      modules = [ ./identity.nix ./hardware-configuration.nix ];
+      modules = [ dotfiles.nixosModules.homelabOperator ./identity.nix ./hardware-configuration.nix ];
     };
   };
 }
@@ -571,7 +587,7 @@ EOF
   ' _ "$LEGACY_IDENTITY" "$LEGACY_HARDWARE" "$ISOLATED_SCRIPT" "$MIGRATED_IDENTITY" "$MIGRATED_HARDWARE" "$MIGRATED_FLAKE"
 
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Migrated machine-local homelab wrapper flake to import homelabOperator"* ]]
+  [[ "$output" == *"Migrated machine-local homelab wrapper flake to the current template"* ]]
   [ "$(<"$LEGACY_IDENTITY")" = "$(<"$MIGRATED_IDENTITY")" ]
   [ "$(<"$LEGACY_HARDWARE")" = "$(<"$MIGRATED_HARDWARE")" ]
   [ "$(<"$MIGRATED_FLAKE")" = "$(cat <<EOF
@@ -582,7 +598,7 @@ EOF
 
   outputs = { dotfiles, ... }: {
     nixosConfigurations.homelab = dotfiles.nixosConfigurations.homelab.extendModules {
-      modules = [ dotfiles.nixosModules.homelabOperator ./identity.nix ./hardware-configuration.nix ];
+      modules = [ ./identity.nix ./hardware-configuration.nix ];
     };
   };
 }
@@ -751,7 +767,7 @@ EOF
 
   outputs = { dotfiles, ... }: {
     nixosConfigurations.homelab = dotfiles.nixosConfigurations.homelab.extendModules {
-      modules = [ dotfiles.nixosModules.homelabOperator ./identity.nix ./hardware-configuration.nix ];
+      modules = [ ./identity.nix ./hardware-configuration.nix ];
     };
   };
 }
@@ -822,7 +838,7 @@ EOF
 
   outputs = { dotfiles, ... }: {
     nixosConfigurations.homelab = dotfiles.nixosConfigurations.homelab.extendModules {
-      modules = [ dotfiles.nixosModules.homelabOperator ./identity.nix ./hardware-configuration.nix ];
+      modules = [ ./identity.nix ./hardware-configuration.nix ];
     };
   };
 }
@@ -883,7 +899,7 @@ EOF
 
   outputs = { dotfiles, ... }: {
     nixosConfigurations.homelab = dotfiles.nixosConfigurations.homelab.extendModules {
-      modules = [ dotfiles.nixosModules.homelabOperator ./identity.nix ./hardware-configuration.nix ];
+      modules = [ ./identity.nix ./hardware-configuration.nix ];
     };
   };
 }
