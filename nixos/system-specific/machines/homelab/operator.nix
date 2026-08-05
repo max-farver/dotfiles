@@ -41,6 +41,11 @@ in
       default = false;
       description = "Whether the machine-local bootstrap has validated the operator identity.";
     };
+    secretsValidated = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Whether root-owned bootstrap freshly provisioned and validated all required secrets with the host age identity.";
+    };
 
     name = mkOption {
       type = types.nullOr types.str;
@@ -98,6 +103,11 @@ in
         assertion = cfg.validated;
         message = "homelab requires a validated machine-local operator identity; import /etc/nixos/homelab-bootstrap/identity.nix through the wrapper flake.";
       }
+      {
+        assertion = cfg.secretsValidated;
+        message = "homelab requires root-validated secret provisioning; set homelab.operator.secretsValidated = true in /etc/nixos/homelab-bootstrap/identity.nix only after fresh required-secret initialization succeeds.";
+      }
+
       {
         assertion = !cfg.validated || identityPresent;
         message = "homelab.operator.validated requires name, uid, primaryGroup, primaryGid, home, flakePath, and ageIdentityPath.";

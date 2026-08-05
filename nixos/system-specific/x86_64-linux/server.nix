@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 {
   nix.settings.experimental-features = [
     "nix-command"
@@ -9,6 +9,13 @@
 
   # Fresh servers receive a route through DHCP unless host-specific networking overrides it.
   networking.useDHCP = lib.mkDefault true;
+
+  assertions = [
+    {
+      assertion = config.networking.useDHCP || config.networking.defaultGateway != null;
+      message = "networking.useDHCP = false requires a declarative networking.defaultGateway.";
+    }
+  ];
 
   environment.systemPackages = with pkgs; [
     curl

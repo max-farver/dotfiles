@@ -80,6 +80,8 @@ fi
 
 The script derives a candidate from the invoking account's numeric UID, validates its NSS record, home directory ownership, and `sudo` access, then requires you to type the detected username. It writes the confirmed identity and generated hardware configuration to root-owned `/etc/nixos/homelab-bootstrap/`; neither is stored in or overwritten by the Git work tree. `--initialize-homelab-secrets` encrypts the initial Linkwarden secret to the generated host key before first boot. The first boot starts the Beszel Hub but deliberately leaves the agent disabled. Subsequent runs verify the persisted identity and refuse to adopt a different account automatically. After `INSTALL`, reboot from the physical console and retain the prior systemd-boot generation as the rollback path.
 
+Before staging, the script rejects an origin mismatch, a non-concrete generated root filesystem, an unusable local unlock password, or unverified Linkwarden secret provisioning. It also preserves the verified host-recipient secret artifacts across later repository checkouts, so Beszel enrollment cannot revert them.
+
 After that first boot, enroll Tailscale from the physical console and restart the endpoint-provisioning unit:
 
 ```sh

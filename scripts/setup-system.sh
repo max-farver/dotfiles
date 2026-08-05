@@ -35,6 +35,8 @@ HOMELAB_OPERATOR_HOME=""
 HOMELAB_IDENTITY_NIX=""
 HOMELAB_FLAKE_NIX=""
 HOMELAB_PREVIOUS_FLAKE_NIX=""
+HOMELAB_SECRETS_BACKUP_DIR=""
+HOMELAB_SECRETS_INITIALIZED=0
 
 usage() {
   cat <<EOF
@@ -124,23 +126,28 @@ nixos_rebuild() {
 }
 
 ensure_homelab_unlock_password() {
+  local password_status
   local password_state
 
   [[ "$SYSTEM" == "homelab" ]] || return 0
 
-  if (( DRY_RUN )); then
-    printf '[dry-run] verify %s has a usable local password; prompt with passwd if needed\n' "$HOMELAB_OPERATOR_NAME"
-    return 0
-  fi
+  password_status="$(sudo passwd --status "$HOMELAB_OPERATOR_NAME")" \
+    || die "Could not determine local password status for $HOMELAB_OPERATOR_NAME"
+  read -r _ password_state _ <<< "$password_status"
+  [[ "$password_state" == "P" ]] \
+    || die "$HOMELAB_OPERATOR_NAME has no usable local password (state: ${password_state:-unknown}). Set one with: sudo passwd $HOMELAB_OPERATOR_NAME"
 
-  read -r _ password_state _ < <(sudo passwd --status "$HOMELAB_OPERATOR_NAME")
-  if [[ "$password_state" == "P" ]]; then
-    printf '[i] Local unlock password is configured for %s\n' "$HOMELAB_OPERATOR_NAME"
-    return 0
-  fi
+  printf '[i] Local unlock password is configured for %s\n' "$HOMELAB_OPERATOR_NAME"
+}
 
-  printf '[!] %s has no usable local password (state: %s). Set one to enable SDDM and Plasma screen-unlock authentication.\n' "$HOMELAB_OPERATOR_NAME" "$password_state" >&2
-  run sudo passwd "$HOMELAB_OPERATOR_NAME"
+validate_git_origin() {
+  local origin_urls=()
+
+  is_git_dir "$GIT_DIR" || return 0
+  mapfile -t origin_urls < <(git --git-dir="$GIT_DIR" remote get-url --all origin) \
+    || die "Existing Git metadata has no readable origin remote: $GIT_DIR"
+  [[ ${#origin_urls[@]} -eq 1 && "${origin_urls[0]}" == "$REPO_URL" ]] \
+    || die "Existing Git origin must exactly match --repo-url; expected $REPO_URL"
 }
 ensure_host_key() {
   local key_path="/etc/ssh/ssh_host_ed25519_key.pub"
@@ -416,6 +423,7 @@ detect_homelab_operator() {
     home = "$(nix_escape "$HOMELAB_OPERATOR_HOME")";
     flakePath = "$HOMELAB_BOOTSTRAP_DIR#homelab";
     ageIdentityPath = "/etc/ssh/ssh_host_ed25519_key";
+    secretsValidated = false;
     beszelAgentKey = $beszel_agent_key_nix;
   };
 }
@@ -469,38 +477,61 @@ EOF
 }
 
 validate_homelab_hardware_source() {
+  local hardware_content
+  local root_mount
+  local root_assignment_regex='fileSystems[[:space:]]*\.[[:space:]]*"/"[[:space:]]*=[[:space:]]*\{([^}]*)\}'
+  local device_regex='(^|[[:space:];])device[[:space:]]*=[[:space:]]*"[^"]+"[[:space:]]*;'
+  local fs_type_regex='(^|[[:space:];])fsType[[:space:]]*=[[:space:]]*"[^"]+"[[:space:]]*;'
+  local placeholder_device_regex='(^|[[:space:];])device[[:space:]]*=[[:space:]]*"/dev/root"[[:space:]]*;'
+
   [[ "$SYSTEM" == "homelab" ]] || return 0
-
-  if (( DRY_RUN )); then
-    if [[ -r "$HARDWARE_SRC" ]]; then
-      grep -q 'REPLACE' "$HARDWARE_SRC" && die "Homelab hardware configuration still contains a REPLACE placeholder: $HARDWARE_SRC"
-    else
-      printf '[dry-run] validate generated hardware configuration at %s has no REPLACE placeholders\n' "$HARDWARE_SRC"
-    fi
-    return 0
-  fi
-
-  sudo test -r "$HARDWARE_SRC" || die "Hardware source is not readable: $HARDWARE_SRC"
-  if sudo grep -q 'REPLACE' "$HARDWARE_SRC"; then
-    die "Homelab hardware configuration still contains a REPLACE placeholder: $HARDWARE_SRC"
-  fi
+  sudo test -f "$HARDWARE_SRC" && ! sudo test -L "$HARDWARE_SRC" && sudo test -s "$HARDWARE_SRC" \
+    || die "Homelab hardware source must be a nonempty regular file: $HARDWARE_SRC"
+  need_cmd nix-instantiate "nix-instantiate is required to parse the homelab hardware source"
+  sudo nix-instantiate --parse "$HARDWARE_SRC" >/dev/null \
+    || die "Homelab hardware source is not valid Nix syntax: $HARDWARE_SRC"
+  hardware_content="$(sudo cat "$HARDWARE_SRC")" \
+    || die "Could not read homelab hardware source: $HARDWARE_SRC"
+  [[ "$hardware_content" != *REPLACE* ]] \
+    || die "Homelab hardware configuration still contains a REPLACE placeholder: $HARDWARE_SRC"
+  [[ "$hardware_content" =~ $root_assignment_regex ]] \
+    || die "Homelab hardware source must declare fileSystems.\"/\" as a concrete root filesystem mount: $HARDWARE_SRC"
+  root_mount="${BASH_REMATCH[1]}"
+  [[ "$root_mount" =~ $device_regex && "$root_mount" =~ $fs_type_regex ]] \
+    || die "Homelab hardware source root filesystem mount must have nonempty device and fsType values: $HARDWARE_SRC"
+  [[ ! "$root_mount" =~ $placeholder_device_regex ]] \
+    || die "Homelab hardware source root filesystem mount must not use the /dev/root placeholder: $HARDWARE_SRC"
 }
 
 require_root_owned_file() {
   local path="$1"
   local owner_uid
+  local mode
 
   sudo test -f "$path" && ! sudo test -L "$path" || die "Expected a regular file at $path"
   owner_uid="$(sudo stat -c '%u' -- "$path")" || die "Could not read ownership of $path"
   [[ "$owner_uid" == "0" ]] || die "Refusing non-root-owned bootstrap file: $path"
+  mode="$(sudo stat -c '%a' -- "$path")" || die "Could not read mode of $path"
+  [[ ! "$mode" =~ ^[0-7]*[2367][0-7]$ && ! "$mode" =~ ^[0-7]*[0-7][2367]$ ]] \
+    || die "Refusing group- or world-writable bootstrap file: $path"
 }
 require_root_owned_directory() {
   local path="$1"
+  local current="$path"
   local owner_uid
+  local mode
 
-  sudo test -d "$path" && ! sudo test -L "$path" || die "Expected a directory at $path"
-  owner_uid="$(sudo stat -c '%u' -- "$path")" || die "Could not read ownership of $path"
-  [[ "$owner_uid" == "0" ]] || die "Refusing non-root-owned bootstrap directory: $path"
+  while :; do
+    sudo test -d "$current" && ! sudo test -L "$current" || die "Expected a non-symlink directory at $current"
+    owner_uid="$(sudo stat -c '%u' -- "$current")" || die "Could not read ownership of $current"
+    [[ "$owner_uid" == "0" ]] || die "Refusing non-root-owned bootstrap directory ancestry: $current"
+    mode="$(sudo stat -c '%a' -- "$current")" || die "Could not read mode of $current"
+    [[ ! "$mode" =~ ^[0-7]*[2367][0-7]$ && ! "$mode" =~ ^[0-7]*[0-7][2367]$ ]] \
+      || die "Refusing group- or world-writable bootstrap directory ancestry: $current"
+    [[ "$current" == / ]] && break
+    current="${current%/*}"
+    [[ -n "$current" ]] || current="/"
+  done
 }
 cleanup_homelab_wrapper_lock() {
   local lock_file="$HOMELAB_BOOTSTRAP_DIR/flake.lock"
@@ -558,6 +589,158 @@ validate_existing_homelab_identity() {
       || die "Machine-local homelab identity has an invalid Beszel agent public key"
   fi
 }
+homelab_secret_validation_state() {
+  local identity="$1"
+  local line
+  local state="missing"
+  local state_count=0
+
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^[[:space:]]*secretsValidated[[:space:]]*=[[:space:]]*(true|false)\;[[:space:]]*$ ]]; then
+      state="${BASH_REMATCH[1]}"
+      ((state_count += 1))
+    fi
+  done <<< "$identity"
+  (( state_count <= 1 )) \
+    || die "Machine-local homelab identity must contain at most one secret provisioning state"
+  printf '%s' "$state"
+}
+
+require_homelab_secrets_validated() {
+  local identity="$1"
+  local state
+
+  state="$(homelab_secret_validation_state "$identity")"
+  [[ "$state" == "true" ]] \
+    || die "Machine-local homelab secrets are unvalidated. Run scripts/setup-system.sh --system homelab --initialize-homelab-secrets before staging a generation"
+}
+
+verify_homelab_linkwarden_secret() {
+  local linkwarden_secret="$NIXOS_FLAKE/secrets/linkwarden.env.age"
+  local host_key
+  local escaped_host_key
+  local secrets_content
+
+  [[ -f "$SECRETS_FILE" && ! -L "$SECRETS_FILE" && -s "$SECRETS_FILE" ]] \
+    || die "Missing or unsafe homelab secret recipient configuration: $SECRETS_FILE"
+  [[ -f "$linkwarden_secret" && ! -L "$linkwarden_secret" && -s "$linkwarden_secret" ]] \
+    || die "Missing or unsafe Linkwarden ciphertext: $linkwarden_secret"
+  sudo test -f /etc/ssh/ssh_host_ed25519_key && ! sudo test -L /etc/ssh/ssh_host_ed25519_key \
+    || die "Homelab host age identity is unavailable: /etc/ssh/ssh_host_ed25519_key"
+  host_key="$(read_host_key)" || die "Could not read the homelab host public key"
+  is_ssh_public_key_line "$host_key" || die "Homelab host public key is invalid"
+  escaped_host_key="$(nix_escape "$host_key")"
+  secrets_content="$(cat "$SECRETS_FILE")" || die "Could not read $SECRETS_FILE"
+  [[ "$secrets_content" == *"homelab = \"$escaped_host_key\";"* ]] \
+    || die "Homelab recipient configuration does not match this host key; initialize homelab secrets again"
+
+  if command -v age >/dev/null 2>&1; then
+    sudo age --decrypt --identity /etc/ssh/ssh_host_ed25519_key --output /dev/null "$linkwarden_secret" \
+      || die "Linkwarden ciphertext is not decryptable by this homelab host key; initialize homelab secrets again"
+  else
+    need_cmd nix "age is not installed and nix is required to verify the Linkwarden ciphertext"
+    sudo nix --extra-experimental-features "$NIX_EXPERIMENTAL_FEATURES" run nixpkgs#age -- \
+      --decrypt --identity /etc/ssh/ssh_host_ed25519_key --output /dev/null "$linkwarden_secret" \
+      || die "Linkwarden ciphertext is not decryptable by this homelab host key; initialize homelab secrets again"
+  fi
+}
+
+backup_validated_homelab_secrets() {
+  local identity
+  local state
+
+  [[ "$SYSTEM" == "homelab" ]] || return 0
+  [[ -e "$HOMELAB_BOOTSTRAP_DIR" || -L "$HOMELAB_BOOTSTRAP_DIR" ]] || return 0
+  require_root_owned_directory "$HOMELAB_BOOTSTRAP_DIR"
+  require_root_owned_file "$HOMELAB_BOOTSTRAP_DIR/identity.nix"
+  identity="$(sudo cat "$HOMELAB_BOOTSTRAP_DIR/identity.nix")"
+  validate_existing_homelab_identity "$identity"
+  state="$(homelab_secret_validation_state "$identity")"
+  if [[ "$state" != "true" ]]; then
+    (( INITIALIZE_HOMELAB_SECRETS )) \
+      || require_homelab_secrets_validated "$identity"
+    return 0
+  fi
+
+  ensure_host_key
+  verify_homelab_linkwarden_secret
+  HOMELAB_SECRETS_BACKUP_DIR="$(mktemp -d)" || die "Could not create a Linkwarden secret backup"
+  chmod 0700 "$HOMELAB_SECRETS_BACKUP_DIR"
+  cp --preserve=mode -- "$SECRETS_FILE" "$HOMELAB_SECRETS_BACKUP_DIR/secrets.nix" \
+    && cp --preserve=mode -- "$NIXOS_FLAKE/secrets/linkwarden.env.age" "$HOMELAB_SECRETS_BACKUP_DIR/linkwarden.env.age" \
+    || die "Could not preserve verified homelab secret artifacts before checkout"
+}
+
+restore_validated_homelab_secrets() {
+  [[ -n "$HOMELAB_SECRETS_BACKUP_DIR" ]] || return 0
+
+  cp --preserve=mode -- "$HOMELAB_SECRETS_BACKUP_DIR/secrets.nix" "$SECRETS_FILE" \
+    && cp --preserve=mode -- "$HOMELAB_SECRETS_BACKUP_DIR/linkwarden.env.age" "$NIXOS_FLAKE/secrets/linkwarden.env.age" \
+    || die "Could not restore verified homelab secret artifacts after checkout"
+  verify_homelab_linkwarden_secret
+  rm -rf -- "$HOMELAB_SECRETS_BACKUP_DIR"
+  HOMELAB_SECRETS_BACKUP_DIR=""
+}
+
+mark_homelab_secrets_validated() {
+  local identity
+  local state
+  local line
+  local updated_identity=""
+  local inserted=0
+  local local_stage
+  local root_stage
+
+  (( INITIALIZE_HOMELAB_SECRETS )) \
+    || die "Homelab secret validation may only be marked after fresh Linkwarden initialization"
+  HOMELAB_SECRETS_INITIALIZED=1
+  if [[ ! -e "$HOMELAB_BOOTSTRAP_DIR" && ! -L "$HOMELAB_BOOTSTRAP_DIR" ]]; then
+    [[ "$HOMELAB_IDENTITY_NIX" == *"secretsValidated = false;"* ]] \
+      || die "Fresh homelab identity is missing its secret provisioning state"
+    HOMELAB_IDENTITY_NIX="${HOMELAB_IDENTITY_NIX/secretsValidated = false;/secretsValidated = true;}"
+    return 0
+  fi
+
+  require_root_owned_directory "$HOMELAB_BOOTSTRAP_DIR"
+  require_root_owned_file "$HOMELAB_BOOTSTRAP_DIR/identity.nix"
+  identity="$(sudo cat "$HOMELAB_BOOTSTRAP_DIR/identity.nix")"
+  validate_existing_homelab_identity "$identity"
+  state="$(homelab_secret_validation_state "$identity")"
+  [[ "$state" != "true" ]] || return 0
+  if (( DRY_RUN )); then
+    printf '[dry-run] mark machine-local homelab secret provisioning as validated after successful Linkwarden encryption\n'
+    return 0
+  fi
+
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    if [[ "$line" =~ ^([[:space:]]*secretsValidated[[:space:]]*=[[:space:]]*)false(\;[[:space:]]*)$ ]]; then
+      line="${BASH_REMATCH[1]}true${BASH_REMATCH[2]}"
+    elif [[ "$state" == "missing" && "$line" =~ ^([[:space:]]*ageIdentityPath[[:space:]]*=[[:space:]]*.*\;[[:space:]]*)$ ]]; then
+      updated_identity+="$line"$'\n'
+      line='    secretsValidated = true;'
+      inserted=1
+    fi
+    updated_identity+="$line"$'\n'
+  done <<< "$identity"
+  [[ "$state" != "missing" || "$inserted" -eq 1 ]] \
+    || die "Could not add the required homelab secret provisioning state"
+
+  local_stage="$(mktemp)" || die "Could not create local identity staging file"
+  printf '%s' "$updated_identity" > "$local_stage" || { rm -f "$local_stage"; die "Could not stage homelab secret provisioning state"; }
+  chmod 0600 "$local_stage"
+  root_stage="$(sudo mktemp "$HOMELAB_BOOTSTRAP_DIR/.identity.nix.XXXXXX")" || { rm -f "$local_stage"; die "Could not create root-owned identity staging file"; }
+  if ! run_as_root install -o root -g root -m 0644 "$local_stage" "$root_stage"; then
+    run_as_root rm -f "$root_stage"
+    rm -f "$local_stage"
+    die "Could not stage homelab secret provisioning state"
+  fi
+  rm -f "$local_stage"
+  if ! run_as_root mv -f "$root_stage" "$HOMELAB_BOOTSTRAP_DIR/identity.nix"; then
+    run_as_root rm -f "$root_stage"
+    die "Could not atomically mark homelab secret provisioning"
+  fi
+}
+
 
 update_homelab_beszel_agent_key() {
   local identity="$1"
@@ -653,9 +836,15 @@ bootstrap_homelab_flake() {
 
   [[ "$SYSTEM" == "homelab" ]] || return 0
   validate_homelab_hardware_source
-  ensure_host_key
 
   if [[ -e "$HOMELAB_BOOTSTRAP_DIR" || -L "$HOMELAB_BOOTSTRAP_DIR" ]]; then
+    require_root_owned_directory "$HOMELAB_BOOTSTRAP_DIR"
+    require_root_owned_file "$HOMELAB_BOOTSTRAP_DIR/identity.nix"
+    actual_identity="$(sudo cat "$HOMELAB_BOOTSTRAP_DIR/identity.nix")"
+    validate_existing_homelab_identity "$actual_identity"
+    if [[ "$HOMELAB_SECRETS_INITIALIZED" -eq 0 ]]; then
+      require_homelab_secrets_validated "$actual_identity"
+    fi
     if (( DRY_RUN )); then
       printf '[dry-run] verify existing root-owned homelab bootstrap at %s without replacing its identity\n' "$HOMELAB_BOOTSTRAP_DIR"
       if [[ -n "$BESZEL_AGENT_KEY" ]]; then
@@ -672,6 +861,7 @@ bootstrap_homelab_flake() {
     actual_identity="$(sudo cat "$HOMELAB_BOOTSTRAP_DIR/identity.nix")"
     actual_flake="$(sudo cat "$HOMELAB_BOOTSTRAP_DIR/flake.nix"; printf '\037')"
     validate_existing_homelab_identity "$actual_identity"
+    require_homelab_secrets_validated "$actual_identity"
     if sudo grep -q 'REPLACE' "$HOMELAB_BOOTSTRAP_DIR/hardware-configuration.nix"; then
       die "Machine-local homelab hardware configuration still contains a REPLACE placeholder"
     fi
@@ -688,6 +878,9 @@ bootstrap_homelab_flake() {
     cleanup_homelab_wrapper_lock
     return 0
   fi
+
+  [[ "$HOMELAB_IDENTITY_NIX" == *"secretsValidated = true;"* ]] \
+    || die "Fresh homelab secret provisioning is required before staging a generation; rerun with --initialize-homelab-secrets"
 
   if (( DRY_RUN )); then
     printf '[dry-run] atomically create root-owned wrapper flake at %s with identity.nix and hardware-configuration.nix\n' "$HOMELAB_BOOTSTRAP_DIR"
@@ -848,7 +1041,20 @@ if (( ! INITIALIZE_HOMELAB_SECRETS )) && [[ -n "$LINKWARDEN_ENV_FILE" ]]; then
   die "--linkwarden-env-file requires --initialize-homelab-secrets"
 fi
 
+if [[ "$SYSTEM" == "homelab" && "$RUN_CHECKS" -eq 1 ]]; then
+  die "--checks is not supported for staged homelab builds; boot the staged generation and check its services there"
+fi
+
 detect_homelab_operator
+
+if [[ "$SYSTEM" == "homelab" ]]; then
+  validate_homelab_hardware_source
+  if [[ ! -e "$HOMELAB_BOOTSTRAP_DIR" && ! -L "$HOMELAB_BOOTSTRAP_DIR" && "$INITIALIZE_HOMELAB_SECRETS" -eq 0 ]]; then
+    die "Fresh homelab secret provisioning is required before checkout; rerun with --initialize-homelab-secrets"
+  fi
+  ensure_homelab_unlock_password
+  backup_validated_homelab_secrets
+fi
 
 printf '[i] System: %s\n' "$SYSTEM"
 printf '[i] Repository URL: %s\n' "$REPO_URL"
@@ -862,6 +1068,7 @@ if ! command -v git >/dev/null 2>&1; then
     die "Install git first or run from a NixOS environment with nix available."
   fi
 fi
+validate_git_origin
 
 if ! is_git_dir "$GIT_DIR"; then
   if (( DRY_RUN )); then
@@ -877,6 +1084,7 @@ if ! is_git_dir "$GIT_DIR"; then
     run git clone --bare "$REPO_URL" "$GIT_DIR"
   fi
 fi
+validate_git_origin
 
 run git --git-dir="$GIT_DIR" config status.showUntrackedFiles no
 run mkdir -p "$WORK_TREE"
@@ -890,6 +1098,23 @@ elif ! config_git checkout origin/main -- .; then
   exit 1
 fi
 
+restore_validated_homelab_secrets
+
+if [[ "$SYSTEM" == "homelab" && "$INITIALIZE_HOMELAB_SECRETS" -eq 1 ]]; then
+  ensure_host_key
+  printf '[i] Host SSH key for agenix recipient enrollment:\n'
+  run_as_root cat /etc/ssh/ssh_host_ed25519_key.pub
+  if (( DRY_RUN )); then
+    initialize_homelab_secrets "ssh-ed25519 <host-key> homelab"
+  else
+    initialize_homelab_secrets "$(read_host_key)"
+  fi
+  if (( ! DRY_RUN )); then
+    verify_homelab_linkwarden_secret
+  fi
+  mark_homelab_secrets_validated
+fi
+
 if [[ "$SYSTEM" == "homelab" ]]; then
   bootstrap_homelab_flake
 elif (( SYNC_HARDWARE )); then
@@ -898,18 +1123,12 @@ elif (( SYNC_HARDWARE )); then
   run_as_root install -m 0644 "$HARDWARE_SRC" "$HARDWARE_DEST"
 fi
 
-if (( PRINT_HOST_KEY || ENROLL_HOST_KEY || INITIALIZE_HOMELAB_SECRETS )); then
+if (( (PRINT_HOST_KEY || ENROLL_HOST_KEY) && ! INITIALIZE_HOMELAB_SECRETS )); then
   ensure_host_key
   printf '[i] Host SSH key for agenix recipient enrollment:\n'
   run_as_root cat /etc/ssh/ssh_host_ed25519_key.pub
 
-  if (( INITIALIZE_HOMELAB_SECRETS )); then
-    if (( DRY_RUN )); then
-      initialize_homelab_secrets "ssh-ed25519 <host-key> homelab"
-    else
-      initialize_homelab_secrets "$(read_host_key)"
-    fi
-  elif (( ENROLL_HOST_KEY )); then
+  if (( ENROLL_HOST_KEY )); then
     if (( DRY_RUN )); then
       enroll_host_key "ssh-ed25519 <host-key> homelab"
     else
@@ -945,7 +1164,6 @@ if (( SKIP_REBUILD )); then
 else
   nixos_rebuild
 fi
-ensure_homelab_unlock_password
 
 if (( INITIALIZE_HOMELAB_SECRETS )); then
   printf '[i] Tailscale enrollment is deferred until the staged homelab generation boots; after boot, run: sudo tailscale up --advertise-tags=tag:server\n'

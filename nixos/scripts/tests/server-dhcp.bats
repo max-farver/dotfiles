@@ -5,59 +5,43 @@ setup() {
   SERVER_MODULE="$REPO_ROOT/system-specific/x86_64-linux/server.nix"
 }
 
-evaluate_dhcp() {
-  local dhcp_override="${1-}"
+evaluate_gateway_assertion() {
+  local networking_override="$1"
 
   run env \
-    NIXOS_FLAKE="$REPO_ROOT" \
     SERVER_MODULE="$SERVER_MODULE" \
-    DHCP_OVERRIDE="$dhcp_override" \
+    NETWORKING_OVERRIDE="$networking_override" \
     nix eval --impure --raw --expr '
       let
-        flake = builtins.getFlake (builtins.getEnv "NIXOS_FLAKE");
-        override = builtins.getEnv "DHCP_OVERRIDE";
-        evaluated = flake.inputs.nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-          modules = [
-            (import (builtins.getEnv "SERVER_MODULE"))
-          ] ++ (
-            if override == "" then
-              [ ]
-            else if override == "weaker-false" then
-              [
-                {
-                  networking.useDHCP = flake.inputs.nixpkgs.lib.mkOverride 1001 false;
-                }
-              ]
-            else
-              [
-                {
-                  networking.useDHCP = builtins.fromJSON override;
-                }
-              ]
-          );
+        override = builtins.getEnv "NETWORKING_OVERRIDE";
+        networking = if override == "false-with-gateway" then {
+          useDHCP = false;
+          defaultGateway = "192.0.2.1";
+        } else {
+          useDHCP = false;
+          defaultGateway = null;
+        };
+        server = import (builtins.getEnv "SERVER_MODULE") {
+          config = { inherit networking; };
+          lib = {
+            mkDefault = value: value;
+          };
+          pkgs = { };
         };
       in
-        builtins.toJSON evaluated.config.networking.useDHCP
+        if (builtins.head server.assertions).assertion then "true" else "false"
     '
 }
 
-@test "server baseline enables DHCP without host networking configuration" {
-  evaluate_dhcp
+@test "static networking with a gateway satisfies the DHCP safety assertion" {
+  evaluate_gateway_assertion false-with-gateway
 
   [ "$status" -eq 0 ]
   [ "$output" = "true" ]
 }
 
-@test "server DHCP baseline wins over a lower-priority fallback" {
-  evaluate_dhcp weaker-false
-
-  [ "$status" -eq 0 ]
-  [ "$output" = "true" ]
-}
-
-@test "explicit host DHCP setting overrides the server baseline" {
-  evaluate_dhcp false
+@test "static networking without a gateway fails the DHCP safety assertion" {
+  evaluate_gateway_assertion false-without-gateway
 
   [ "$status" -eq 0 ]
   [ "$output" = "false" ]

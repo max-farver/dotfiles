@@ -19,12 +19,31 @@ setup() {
   OPERATOR_GID="4242"
   OPERATOR_HOME="$TEST_DIR/home"
   HARDWARE_SRC="$TEST_DIR/hardware-configuration.nix"
+  HARDWARE_REPLACEMENT_SRC="$TEST_DIR/replacement-hardware-configuration.nix"
   ISOLATED_SCRIPT="$TEST_DIR/setup-system.sh"
 
-  mkdir -p "$MOCK_BIN" "$GIT_DIR/objects" "$WORK_TREE/nixos" "$OPERATOR_HOME"
+  mkdir -p "$MOCK_BIN" "$GIT_DIR/objects" "$WORK_TREE/nixos/secrets" "$OPERATOR_HOME"
   : > "$GIT_DIR/config"
   : > "$WORK_TREE/nixos/flake.nix"
-  : > "$HARDWARE_SRC"
+  printf '  homelab = "uninitialized-recipient";\n' > "$WORK_TREE/nixos/secrets/secrets.nix"
+  chmod 0777 "$WORK_TREE/nixos/secrets"
+  chmod 0666 "$WORK_TREE/nixos/secrets/secrets.nix"
+  cat > "$HARDWARE_SRC" <<'EOF'
+{
+  fileSystems."/" = {
+    device = "/dev/disk/by-uuid/bootstrap-root";
+    fsType = "ext4";
+  };
+}
+EOF
+  cat > "$HARDWARE_REPLACEMENT_SRC" <<'EOF'
+{
+  fileSystems."/" = {
+    device = "/dev/disk/by-uuid/replacement-root";
+    fsType = "ext4";
+  };
+}
+EOF
   : > "$MOCK_LOG"
   : > "$TAILSCALE_LOG"
   : > "$NIX_LOG"
@@ -37,8 +56,19 @@ setup() {
 
   cat > "$MOCK_BIN/git" <<'EOF'
 #!/usr/bin/env bash
+set -euo pipefail
+
 if [[ -n "${GIT_LOG-}" ]]; then
   printf '%s\n' "$*" >> "$GIT_LOG"
+fi
+
+if [[ "${1-}" == --git-dir=* && "${2-}" == "remote" && "${3-}" == "get-url" && "${4-}" == "--all" && "${5-}" == "origin" ]]; then
+  printf '%s\n' "${MOCK_ORIGIN_URL:-https://github.com/max-farver/dotfiles}"
+fi
+
+if [[ "${GIT_CHECKOUT_REPLACE_SECRETS-0}" == "1" && "$*" == *"checkout origin/main -- ."* ]]; then
+  printf '  homelab = "checkout-recipient";\n' > "${WORK_TREE:?}/nixos/secrets/secrets.nix"
+  printf 'NEXTAUTH_SECRET=checkout-secret\n' > "${WORK_TREE:?}/nixos/secrets/linkwarden.env.age"
 fi
 EOF
 
@@ -48,10 +78,37 @@ if [[ -n "${NIX_LOG-}" ]]; then
   printf '%s\n' "$*" >> "$NIX_LOG"
 fi
 EOF
+  cat > "$MOCK_BIN/nix-instantiate" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ "${1-}" == "--parse" && -f "${2-}" ]] || exit 1
+EOF
 
   cat > "$MOCK_BIN/age" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
+
+if [[ "${1-}" == "--decrypt" ]]; then
+  shift
+  while (( $# > 0 )); do
+    case "$1" in
+      --identity)
+        shift 2
+        ;;
+      --output)
+        output_path="$2"
+        shift 2
+        ;;
+      *)
+        input_path="$1"
+        shift
+        ;;
+    esac
+  done
+  cat "${input_path:?}" > "${output_path:?}"
+  exit 0
+fi
 
 while (( $# > 0 )); do
   case "$1" in
@@ -70,6 +127,17 @@ while (( $# > 0 )); do
 done
 
 cat > "${output_path:?}"
+EOF
+
+  cat > "$MOCK_BIN/prepare-homelab-secrets" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+work_tree="${1:?work tree is required}"
+rm -f "$work_tree/nixos/secrets/secrets.nix" "$work_tree/nixos/secrets/linkwarden.env.age"
+host_key="$(cat /etc/ssh/ssh_host_ed25519_key.pub)"
+printf '  homelab = "%s";\n' "$host_key" > "$work_tree/nixos/secrets/secrets.nix"
+printf 'NEXTAUTH_SECRET=verified-fixture\n' > "$work_tree/nixos/secrets/linkwarden.env.age"
 EOF
 
   cat > "$MOCK_BIN/tailscale" <<'EOF'
@@ -161,7 +229,7 @@ case "${1-}" in
     ;;
   passwd)
     if [[ "${2-}" == "--status" ]]; then
-      printf '%s P 0 99999 7 -1\n' "${3:?}"
+      printf '%s %s 0 99999 7 -1\n' "${3:?}" "${PASSWORD_STATE:-P}"
       exit 0
     fi
     exit 1
@@ -174,6 +242,9 @@ case "${1-}" in
       -A|-t) ;;
       *) command ssh-keygen "${@:2}" ;;
     esac
+    ;;
+  nix-instantiate|age)
+    command "$1" "${@:2}"
     ;;
   nixos-rebuild)
     if [[ -n "${NIXOS_REBUILD_LOCK_STATE-}" ]]; then
@@ -196,7 +267,8 @@ case "${1-}" in
 esac
 EOF
 
-  chmod +x "$MOCK_BIN/git" "$MOCK_BIN/nix" "$MOCK_BIN/age" "$MOCK_BIN/tailscale" "$MOCK_BIN/id" "$MOCK_BIN/getent" "$MOCK_BIN/stat" "$MOCK_BIN/sudo"
+  chmod +x "$MOCK_BIN/git" "$MOCK_BIN/nix" "$MOCK_BIN/nix-instantiate" "$MOCK_BIN/age" "$MOCK_BIN/tailscale" "$MOCK_BIN/id" "$MOCK_BIN/getent" "$MOCK_BIN/stat" "$MOCK_BIN/sudo"
+  chmod +x "$MOCK_BIN/prepare-homelab-secrets"
 }
 
 teardown() {
@@ -217,6 +289,8 @@ teardown() {
 
 @test "setup checks out fetched origin/main in normal and dry-run paths" {
   expected_git_log="$(printf '%s\n' \
+    "--git-dir=$GIT_DIR remote get-url --all origin" \
+    "--git-dir=$GIT_DIR remote get-url --all origin" \
     "--git-dir=$GIT_DIR config status.showUntrackedFiles no" \
     "--git-dir=$GIT_DIR fetch --all --prune" \
     "--git-dir=$GIT_DIR fetch origin refs/heads/main:refs/remotes/origin/main" \
@@ -243,6 +317,94 @@ teardown() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"[dry-run] git --git-dir=$GIT_DIR fetch --all --prune"*"[dry-run] git --git-dir=$GIT_DIR fetch origin refs/heads/main:refs/remotes/origin/main"*"[dry-run] git --git-dir=$GIT_DIR --work-tree=$WORK_TREE checkout origin/main -- ."* ]]
 }
+@test "existing Git origin mismatch aborts before checkout mutation" {
+  printf 'work-tree sentinel\n' > "$WORK_TREE/sentinel"
+
+  run env PATH="$MOCK_BIN:$PATH" GIT_LOG="$GIT_LOG" MOCK_ORIGIN_URL="git@github.com:unexpected/dotfiles.git" "$SCRIPT" \
+    --system framework16 \
+    --repo-url "https://github.com/max-farver/dotfiles" \
+    --git-dir "$GIT_DIR" \
+    --work-tree "$WORK_TREE" \
+    --skip-rebuild \
+    --skip-neovim-check
+
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"Existing Git origin must exactly match --repo-url; expected https://github.com/max-farver/dotfiles"* ]]
+  [ "$(<"$GIT_LOG")" = "--git-dir=$GIT_DIR remote get-url --all origin" ]
+  [ "$(<"$WORK_TREE/sentinel")" = "work-tree sentinel" ]
+}
+
+@test "staged homelab build rejects --checks before operator or Git work" {
+  run env PATH="$MOCK_BIN:$PATH" GIT_LOG="$GIT_LOG" MOCK_LOG="$MOCK_LOG" FORBID_NSS=1 "$SCRIPT" \
+    --system homelab \
+    --checks \
+    --git-dir "$GIT_DIR" \
+    --work-tree "$WORK_TREE" \
+    --skip-rebuild \
+    --skip-neovim-check
+
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"--checks is not supported for staged homelab builds; boot the staged generation and check its services there"* ]]
+  [[ ! -s "$GIT_LOG" ]]
+  [[ ! -s "$MOCK_LOG" ]]
+}
+
+@test "homelab hardware guard rejects empty and non-concrete root sources before checkout" {
+  local fixture_name
+  local hardware_content
+  local expected_error
+
+  while IFS='|' read -r fixture_name hardware_content expected_error; do
+    printf '%b' "$hardware_content" > "$HARDWARE_SRC"
+    : > "$GIT_LOG"
+    : > "$MOCK_LOG"
+
+    run env PATH="$MOCK_BIN:$PATH" GIT_LOG="$GIT_LOG" MOCK_LOG="$MOCK_LOG" OPERATOR_UID="$OPERATOR_UID" OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" "$SCRIPT" \
+      --dry-run \
+      --system homelab \
+      --initialize-homelab-secrets \
+      --git-dir "$GIT_DIR" \
+      --work-tree "$WORK_TREE" \
+      --hardware-src "$HARDWARE_SRC" \
+      --skip-rebuild \
+      --skip-neovim-check
+
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"$expected_error"* ]]
+    [[ ! -s "$GIT_LOG" ]]
+    [[ "$(<"$MOCK_LOG")" != *"install "* ]]
+    [[ "$(<"$MOCK_LOG")" != *"nixos-rebuild "* ]]
+  done <<'EOF'
+empty||Homelab hardware source must be a nonempty regular file
+missing-root|{\n  boot.initrd.availableKernelModules = [ "nvme" ];\n}\n|Homelab hardware source must declare fileSystems."/" as a concrete root filesystem mount
+incomplete-root|{\n  fileSystems."/" = { device = "/dev/disk/by-uuid/root"; };\n}\n|Homelab hardware source root filesystem mount must have nonempty device and fsType values
+placeholder-root|{\n  fileSystems."/" = { device = "/dev/root"; fsType = "ext4"; };\n}\n|Homelab hardware source root filesystem mount must not use the /dev/root placeholder
+EOF
+}
+
+@test "homelab password refusal happens before wrapper, secret, build, or checkout mutation" {
+  mkdir -p "$WORK_TREE/nixos/secrets"
+  printf 'recipient sentinel\n' > "$WORK_TREE/nixos/secrets/secrets.nix"
+
+  run env PATH="$MOCK_BIN:$PATH" GIT_LOG="$GIT_LOG" MOCK_LOG="$MOCK_LOG" PASSWORD_STATE="L" OPERATOR_UID="$OPERATOR_UID" OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" "$SCRIPT" \
+    --dry-run \
+    --system homelab \
+    --initialize-homelab-secrets \
+    --git-dir "$GIT_DIR" \
+    --work-tree "$WORK_TREE" \
+    --hardware-src "$HARDWARE_SRC" \
+    --skip-rebuild \
+    --skip-neovim-check
+
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"$OPERATOR_NAME has no usable local password (state: L)"* ]]
+  [ "$(<"$WORK_TREE/nixos/secrets/secrets.nix")" = "recipient sentinel" ]
+  [[ ! -e "$WORK_TREE/nixos/secrets/linkwarden.env.age" ]]
+  [[ ! -s "$GIT_LOG" ]]
+  [[ "$(<"$MOCK_LOG")" == *"passwd --status $OPERATOR_NAME"* ]]
+  [[ "$(<"$MOCK_LOG")" != *"install "* ]]
+  [[ "$(<"$MOCK_LOG")" != *"nixos-rebuild "* ]]
+}
 
 @test "homelab bootstrap rejects an NSS account whose UID differs from the invoking identity" {
   run env PATH="$MOCK_BIN:$PATH" MOCK_LOG="$MOCK_LOG" OPERATOR_UID="$OPERATOR_UID" OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" NSS_UID="9999" "$SCRIPT" \
@@ -262,6 +424,7 @@ teardown() {
   run env PATH="$MOCK_BIN:$PATH" MOCK_LOG="$MOCK_LOG" OPERATOR_UID="$OPERATOR_UID" OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" "$SCRIPT" \
     --dry-run \
     --system homelab \
+    --initialize-homelab-secrets \
     --git-dir "$GIT_DIR" \
     --work-tree "$WORK_TREE" \
     --skip-rebuild \
@@ -269,7 +432,8 @@ teardown() {
 
   [ "$status" -eq 0 ]
   [[ "$output" == *"[dry-run] atomically create root-owned wrapper flake at /etc/nixos/homelab-bootstrap with identity.nix and hardware-configuration.nix"* ]]
-  [[ ! -s "$MOCK_LOG" ]]
+  [[ "$(<"$MOCK_LOG")" != *"install "* ]]
+  [[ "$(<"$MOCK_LOG")" != *"nixos-rebuild "* ]]
 }
 
 @test "homelab bootstrap rejects an invalid Beszel agent key" {
@@ -302,6 +466,7 @@ teardown() {
   run env PATH="$MOCK_BIN:$PATH" MOCK_LOG="$MOCK_LOG" OPERATOR_UID="$OPERATOR_UID" OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" "$SCRIPT" \
     --dry-run \
     --system homelab \
+    --initialize-homelab-secrets \
     --beszel-agent-key "$BESZEL_AGENT_KEY" \
     --git-dir "$GIT_DIR" \
     --work-tree "$WORK_TREE" \
@@ -311,7 +476,8 @@ teardown() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"[dry-run] atomically create root-owned wrapper flake at /etc/nixos/homelab-bootstrap with identity.nix and hardware-configuration.nix"* ]]
   [[ "$output" == *"[dry-run] sudo nixos-rebuild build --no-write-lock-file --flake /etc/nixos/homelab-bootstrap#homelab"* ]]
-  [[ ! -s "$MOCK_LOG" ]]
+  [[ "$(<"$MOCK_LOG")" != *"install "* ]]
+  [[ "$(<"$MOCK_LOG")" != *"nixos-rebuild "* ]]
 }
 
 @test "homelab wrapper validation prevents lock writes in normal and dry-run paths" {
@@ -325,21 +491,15 @@ teardown() {
     ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
     chmod 0666 /etc/ssh/ssh_host_ed25519_key.pub
     chmod 0644 /etc/ssh/ssh_host_ed25519_key
-    printf "%s\\n" "$1" | setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
+    printf "%s\\n" "$1" | setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --initialize-homelab-secrets --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
+    first_status=$?
+    (( first_status == 0 )) || exit "$first_status"
+    setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --dry-run --system homelab --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
   ' _ "$OPERATOR_NAME" "$ISOLATED_SCRIPT"
 
   [ "$status" -eq 0 ]
   [ "$(<"$NIX_LOG")" = $'--extra-experimental-features nix-command flakes flake show --no-write-lock-file /etc/nixos/homelab-bootstrap\n--extra-experimental-features nix-command flakes eval --no-write-lock-file --raw /etc/nixos/homelab-bootstrap#nixosConfigurations.homelab.config.networking.hostName' ]
 
-  run env PATH="$MOCK_BIN:$PATH" MOCK_LOG="$MOCK_LOG" OPERATOR_UID="$OPERATOR_UID" OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" "$SCRIPT" \
-    --dry-run \
-    --system homelab \
-    --git-dir "$GIT_DIR" \
-    --work-tree "$WORK_TREE" \
-    --skip-rebuild \
-    --skip-neovim-check
-
-  [ "$status" -eq 0 ]
   [[ "$output" == *"[dry-run] nix --extra-experimental-features nix-command\\ flakes flake show --no-write-lock-file /etc/nixos/homelab-bootstrap"* ]]
   [[ "$output" == *"[dry-run] nix --extra-experimental-features nix-command\\ flakes eval --no-write-lock-file --raw /etc/nixos/homelab-bootstrap#nixosConfigurations.homelab.config.networking.hostName"* ]]
 }
@@ -369,6 +529,42 @@ teardown() {
   [[ ! -s "$TAILSCALE_LOG" ]]
   ! grep -q -- 'tailscale' "$MOCK_LOG"
 }
+@test "initialized homelab rerun restores host-verified secret artifacts after checkout" {
+  LINKWARDEN_ENV_FILE="$TEST_DIR/linkwarden.env"
+  INITIAL_RECIPIENTS="$TEST_DIR/initial-secrets.nix"
+  INITIAL_CIPHERTEXT="$TEST_DIR/initial-linkwarden.env.age"
+  FINAL_IDENTITY="$TEST_DIR/final-identity.nix"
+  mkdir -p "$WORK_TREE/nixos/secrets"
+  printf '  homelab = "old-recipient";\n' > "$WORK_TREE/nixos/secrets/secrets.nix"
+  printf 'NEXTAUTH_SECRET=host-secret\n' > "$LINKWARDEN_ENV_FILE"
+  chmod 0777 "$TEST_DIR" "$WORK_TREE/nixos/secrets"
+  chmod 0666 "$MOCK_LOG" "$WORK_TREE/nixos/secrets/secrets.nix"
+
+  run unshare --user --map-auto --setuid 0 --setgid 0 --mount --propagation private env PATH="$MOCK_BIN:$PATH" MOCK_LOG="$MOCK_LOG" IDENTITY_CAPTURE="$IDENTITY_CAPTURE" TEST_DIR="$TEST_DIR" OPERATOR_UID="$OPERATOR_UID" OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" GIT_DIR="$GIT_DIR" WORK_TREE="$WORK_TREE" HARDWARE_SRC="$HARDWARE_SRC" LINKWARDEN_ENV_FILE="$LINKWARDEN_ENV_FILE" bash -c '
+    mount -t tmpfs tmpfs /etc/nixos
+    mount -t tmpfs tmpfs /etc/ssh
+    chmod 0777 /etc/ssh /etc/nixos
+    ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
+    chmod 0666 /etc/ssh/ssh_host_ed25519_key.pub
+    chmod 0644 /etc/ssh/ssh_host_ed25519_key
+    printf "%s\\n" "$1" | setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --initialize-homelab-secrets --linkwarden-env-file "$3" --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
+    first_status=$?
+    (( first_status == 0 )) || exit "$first_status"
+    cp "$WORK_TREE/nixos/secrets/secrets.nix" "$4"
+    cp "$WORK_TREE/nixos/secrets/linkwarden.env.age" "$5"
+    GIT_CHECKOUT_REPLACE_SECRETS=1 setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
+    rerun_status=$?
+    cp /etc/nixos/homelab-bootstrap/identity.nix "$6"
+    chmod 0644 "$WORK_TREE/nixos/secrets/secrets.nix" "$WORK_TREE/nixos/secrets/linkwarden.env.age"
+    chmod 0644 "$4" "$5" "$6"
+    exit "$rerun_status"
+  ' _ "$OPERATOR_NAME" "$ISOLATED_SCRIPT" "$LINKWARDEN_ENV_FILE" "$INITIAL_RECIPIENTS" "$INITIAL_CIPHERTEXT" "$FINAL_IDENTITY"
+
+  [ "$status" -eq 0 ]
+  [ "$(<"$WORK_TREE/nixos/secrets/secrets.nix")" = "$(<"$INITIAL_RECIPIENTS")" ]
+  [ "$(<"$WORK_TREE/nixos/secrets/linkwarden.env.age")" = "$(<"$INITIAL_CIPHERTEXT")" ]
+  [[ "$(<"$FINAL_IDENTITY")" == *"secretsValidated = true;"* ]]
+}
 
 @test "confirmed homelab operator stages the discovered identity in the wrapper" {
   GENERATED_FLAKE_CAPTURE="$TEST_DIR/generated-flake.nix"
@@ -382,7 +578,7 @@ teardown() {
     ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
     chmod 0666 /etc/ssh/ssh_host_ed25519_key.pub
     chmod 0644 /etc/ssh/ssh_host_ed25519_key
-    printf "%s\\n" "$1" | setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --beszel-agent-key "$3" --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
+    printf "%s\\n" "$1" | setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --initialize-homelab-secrets --beszel-agent-key "$3" --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
     bootstrap_status=$?
     cp /etc/nixos/homelab-bootstrap/flake.nix "$4"
     chmod 0644 "$IDENTITY_CAPTURE" "$4"
@@ -428,7 +624,7 @@ EOF
     ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
     chmod 0666 /etc/ssh/ssh_host_ed25519_key.pub
     chmod 0644 /etc/ssh/ssh_host_ed25519_key
-    printf "%s\\n" "$1" | setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
+    printf "%s\\n" "$1" | setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --initialize-homelab-secrets --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
     bootstrap_status=$?
     cp /etc/nixos/homelab-bootstrap/identity.nix "$3"
     chmod 0644 "$3"
@@ -451,7 +647,7 @@ EOF
     ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
     chmod 0666 /etc/ssh/ssh_host_ed25519_key.pub
     chmod 0644 /etc/ssh/ssh_host_ed25519_key
-    printf "%s\\n" "$1" | setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
+    printf "%s\\n" "$1" | setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --initialize-homelab-secrets --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
     first_status=$?
     (( first_status == 0 )) || exit "$first_status"
     cp /etc/nixos/homelab-bootstrap/identity.nix "$4"
@@ -484,7 +680,7 @@ EOF
     ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
     chmod 0666 /etc/ssh/ssh_host_ed25519_key.pub
     chmod 0644 /etc/ssh/ssh_host_ed25519_key
-    printf "%s\\n" "$1" | setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
+    printf "%s\\n" "$1" | setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --initialize-homelab-secrets --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
     first_status=$?
     (( first_status == 0 )) || exit "$first_status"
     setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --beszel-agent-key "ssh-ed25519 definitely-not-a-key" --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
@@ -501,31 +697,31 @@ EOF
 
 @test "later Beszel enrollment rejects hardware synchronization without changing hardware" {
   HARDWARE_AFTER_REJECTION="$TEST_DIR/hardware-after-rejection.nix"
+  INITIAL_HARDWARE="$TEST_DIR/initial-hardware.nix"
   chmod 0777 "$TEST_DIR"
   chmod 0666 "$HARDWARE_SRC"
   chmod 0666 "$MOCK_LOG"
-  run unshare --user --map-auto --setuid 0 --setgid 0 --mount --propagation private env PATH="$MOCK_BIN:$PATH" MOCK_LOG="$MOCK_LOG" IDENTITY_CAPTURE="$IDENTITY_CAPTURE" TEST_DIR="$TEST_DIR" OPERATOR_UID="$OPERATOR_UID" OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" GIT_DIR="$GIT_DIR" WORK_TREE="$WORK_TREE" HARDWARE_SRC="$HARDWARE_SRC" bash -c '
+  run unshare --user --map-auto --setuid 0 --setgid 0 --mount --propagation private env PATH="$MOCK_BIN:$PATH" MOCK_LOG="$MOCK_LOG" IDENTITY_CAPTURE="$IDENTITY_CAPTURE" TEST_DIR="$TEST_DIR" OPERATOR_UID="$OPERATOR_UID" OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" GIT_DIR="$GIT_DIR" WORK_TREE="$WORK_TREE" HARDWARE_SRC="$HARDWARE_SRC" HARDWARE_REPLACEMENT_SRC="$HARDWARE_REPLACEMENT_SRC" bash -c '
     mount -t tmpfs tmpfs /etc/nixos
     mount -t tmpfs tmpfs /etc/ssh
     chmod 0777 /etc/ssh /etc/nixos
     ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
     chmod 0666 /etc/ssh/ssh_host_ed25519_key.pub
     chmod 0644 /etc/ssh/ssh_host_ed25519_key
-    printf "initial hardware\\n" > "$HARDWARE_SRC"
-    printf "%s\\n" "$1" | setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
+    printf "%s\\n" "$1" | setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --initialize-homelab-secrets --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
     first_status=$?
     (( first_status == 0 )) || exit "$first_status"
-    printf "replacement hardware\\n" > "$HARDWARE_SRC"
-    printf "%s\\n" "$1" | setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --beszel-agent-key "$3" --sync-hardware --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
+    cp /etc/nixos/homelab-bootstrap/hardware-configuration.nix "$5"
+    printf "%s\\n" "$1" | setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --beszel-agent-key "$3" --sync-hardware --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_REPLACEMENT_SRC" --skip-rebuild --skip-neovim-check
     enrollment_status=$?
     cp /etc/nixos/homelab-bootstrap/hardware-configuration.nix "$4"
-    chmod 0644 "$4"
+    chmod 0644 "$4" "$5"
     exit "$enrollment_status"
-  ' _ "$OPERATOR_NAME" "$ISOLATED_SCRIPT" "$BESZEL_AGENT_KEY" "$HARDWARE_AFTER_REJECTION"
+  ' _ "$OPERATOR_NAME" "$ISOLATED_SCRIPT" "$BESZEL_AGENT_KEY" "$HARDWARE_AFTER_REJECTION" "$INITIAL_HARDWARE"
 
   [ "$status" -eq 1 ]
   [[ "$output" == *"--sync-hardware cannot be combined with --beszel-agent-key enrollment"* ]]
-  [ "$(<"$HARDWARE_AFTER_REJECTION")" = "initial hardware" ]
+  [ "$(<"$HARDWARE_AFTER_REJECTION")" = "$(<"$INITIAL_HARDWARE")" ]
 }
 
 @test "exact prior explicit-operator homelab wrapper migrates to the no-operator template without changing identity or hardware" {
@@ -544,6 +740,7 @@ EOF
     ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
     chmod 0666 /etc/ssh/ssh_host_ed25519_key.pub
     chmod 0644 /etc/ssh/ssh_host_ed25519_key
+    setpriv --reuid 65534 --regid 65534 --clear-groups prepare-homelab-secrets "$WORK_TREE"
     mkdir /etc/nixos/homelab-bootstrap
     chmod 0777 /etc/nixos/homelab-bootstrap
     cat > /etc/nixos/homelab-bootstrap/identity.nix <<EOF
@@ -558,6 +755,7 @@ EOF
     flakePath = "/etc/nixos/homelab-bootstrap#homelab";
     ageIdentityPath = "/etc/ssh/ssh_host_ed25519_key";
     beszelAgentKey = null;
+    secretsValidated = true;
   };
 }
 EOF
@@ -623,6 +821,7 @@ EOF
     ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
     chmod 0666 /etc/ssh/ssh_host_ed25519_key.pub
     chmod 0644 /etc/ssh/ssh_host_ed25519_key
+    setpriv --reuid 65534 --regid 65534 --clear-groups prepare-homelab-secrets "$WORK_TREE"
     mkdir /etc/nixos/homelab-bootstrap
     cat > /etc/nixos/homelab-bootstrap/identity.nix <<EOF
 {
@@ -636,6 +835,7 @@ EOF
     flakePath = "/etc/nixos/homelab-bootstrap#homelab";
     ageIdentityPath = "/etc/ssh/ssh_host_ed25519_key";
     beszelAgentKey = null;
+    secretsValidated = true;
   };
 }
 EOF
@@ -686,6 +886,7 @@ EOF
     ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
     chmod 0666 /etc/ssh/ssh_host_ed25519_key.pub
     chmod 0644 /etc/ssh/ssh_host_ed25519_key
+    setpriv --reuid 65534 --regid 65534 --clear-groups prepare-homelab-secrets "$WORK_TREE"
     mkdir /etc/nixos/homelab-bootstrap
     cat > /etc/nixos/homelab-bootstrap/identity.nix <<EOF
 {
@@ -699,6 +900,7 @@ EOF
     flakePath = "/etc/nixos/homelab-bootstrap#homelab";
     ageIdentityPath = "/etc/ssh/ssh_host_ed25519_key";
     beszelAgentKey = null;
+    secretsValidated = true;
   };
 }
 EOF
@@ -742,6 +944,7 @@ EOF
     ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
     chmod 0666 /etc/ssh/ssh_host_ed25519_key.pub
     chmod 0644 /etc/ssh/ssh_host_ed25519_key
+    setpriv --reuid 65534 --regid 65534 --clear-groups prepare-homelab-secrets "$WORK_TREE"
     mkdir /etc/nixos/homelab-bootstrap
     chmod 0777 /etc/nixos/homelab-bootstrap
     cat > /etc/nixos/homelab-bootstrap/identity.nix <<EOF
@@ -756,6 +959,7 @@ EOF
     flakePath = "/etc/nixos/homelab-bootstrap#homelab";
     ageIdentityPath = "/etc/ssh/ssh_host_ed25519_key";
     beszelAgentKey = null;
+    secretsValidated = true;
   };
 }
 EOF
@@ -814,6 +1018,7 @@ EOF
     ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
     chmod 0666 /etc/ssh/ssh_host_ed25519_key.pub
     chmod 0644 /etc/ssh/ssh_host_ed25519_key
+    setpriv --reuid 65534 --regid 65534 --clear-groups prepare-homelab-secrets "$WORK_TREE"
     mkdir /etc/nixos/homelab-bootstrap
     cat > /etc/nixos/homelab-bootstrap/identity.nix <<EOF
 {
@@ -827,6 +1032,7 @@ EOF
     flakePath = "/etc/nixos/homelab-bootstrap#homelab";
     ageIdentityPath = "/etc/ssh/ssh_host_ed25519_key";
     beszelAgentKey = null;
+    secretsValidated = true;
   };
 }
 EOF
@@ -875,6 +1081,7 @@ EOF
     ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
     chmod 0666 /etc/ssh/ssh_host_ed25519_key.pub
     chmod 0644 /etc/ssh/ssh_host_ed25519_key
+    setpriv --reuid 65534 --regid 65534 --clear-groups prepare-homelab-secrets "$WORK_TREE"
     mkdir /etc/nixos/homelab-bootstrap
     cat > /etc/nixos/homelab-bootstrap/identity.nix <<EOF
 {
@@ -888,6 +1095,7 @@ EOF
     flakePath = "/etc/nixos/homelab-bootstrap#homelab";
     ageIdentityPath = "/etc/ssh/ssh_host_ed25519_key";
     beszelAgentKey = null;
+    secretsValidated = true;
   };
 }
 EOF
