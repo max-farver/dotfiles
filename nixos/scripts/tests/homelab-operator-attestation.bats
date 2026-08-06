@@ -25,11 +25,11 @@ evaluate_secret_attestation() {
               home = "/home/operator";
               flakePath = "/etc/nixos/homelab-bootstrap#homelab";
               ageIdentityPath = "/etc/ssh/ssh_host_ed25519_key";
-              beszelAgentKey = null;
-            };
-            services.beszel.agent.enable = false;
+          };
           };
           lib = {
+            hasPrefix = prefix: value:
+              builtins.substring 0 (builtins.stringLength prefix) value == prefix;
             mkIf = condition: value: if condition then value else { };
             mkMerge = values: builtins.head values;
             mkOption = value: value;
@@ -41,6 +41,43 @@ evaluate_secret_attestation() {
         ) operator.config.assertions);
       in
         if attestation.assertion then "true" else "false"
+    '
+}
+
+evaluate_valid_identity_runtime_branch() {
+  run env \
+    OPERATOR_MODULE="$OPERATOR_MODULE" \
+    nix eval --impure --raw --expr '
+      let
+        operator = import (builtins.getEnv "OPERATOR_MODULE") {
+          config = {
+            homelab.operator = {
+              validated = true;
+              secretsValidated = true;
+              name = "operator";
+              uid = 1000;
+              primaryGroup = "operator";
+              primaryGid = 1000;
+              home = "/home/operator";
+              flakePath = "/etc/nixos/homelab-bootstrap#homelab";
+              ageIdentityPath = "/etc/ssh/ssh_host_ed25519_key";
+            };
+          };
+          lib = {
+            hasPrefix = prefix: value:
+              builtins.substring 0 (builtins.stringLength prefix) value == prefix;
+            mkIf = condition: value: if condition then value else { };
+            mkMerge = values: builtins.elemAt values 1;
+            mkOption = value: value;
+            types = { };
+          };
+        };
+      in
+        builtins.concatStringsSep "\n" [
+          operator.config.programs.nh.flake
+          (builtins.concatStringsSep "\n" operator.config.age.identityPaths)
+          (if operator.config ? users then "present" else "absent")
+        ]
     '
 }
 
@@ -56,4 +93,11 @@ evaluate_secret_attestation() {
 
   [ "$status" -eq 0 ]
   [ "$output" = "true" ]
+}
+
+@test "homelab operator runtime config retains nh and age without managing users" {
+  evaluate_valid_identity_runtime_branch
+
+  [ "$status" -eq 0 ]
+  [ "$output" = $'/etc/nixos/homelab-bootstrap#homelab\n/etc/ssh/ssh_host_ed25519_key\nabsent' ]
 }

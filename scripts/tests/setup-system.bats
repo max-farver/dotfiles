@@ -50,9 +50,6 @@ EOF
   : > "$GIT_LOG"
   cp "$SCRIPT" "$ISOLATED_SCRIPT"
   chmod 0755 "$ISOLATED_SCRIPT"
-  ssh-keygen -q -t ed25519 -N '' -f "$TEST_DIR/beszel-agent-key"
-  BESZEL_AGENT_KEY="$(<"$TEST_DIR/beszel-agent-key.pub")"
-  BESZEL_AGENT_KEY="${BESZEL_AGENT_KEY% *} operator\$host \${config}"
 
   cat > "$MOCK_BIN/git" <<'EOF'
 #!/usr/bin/env bash
@@ -420,7 +417,7 @@ EOF
   [[ ! -s "$MOCK_LOG" ]]
 }
 
-@test "first homelab setup accepts a missing Beszel agent key" {
+@test "first homelab setup plans a root-owned wrapper without a legacy key option" {
   run env PATH="$MOCK_BIN:$PATH" MOCK_LOG="$MOCK_LOG" OPERATOR_UID="$OPERATOR_UID" OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" "$SCRIPT" \
     --dry-run \
     --system homelab \
@@ -436,25 +433,26 @@ EOF
   [[ "$(<"$MOCK_LOG")" != *"nixos-rebuild "* ]]
 }
 
-@test "homelab bootstrap rejects an invalid Beszel agent key" {
-  run env PATH="$MOCK_BIN:$PATH" MOCK_LOG="$MOCK_LOG" OPERATOR_UID="$OPERATOR_UID" OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" "$SCRIPT" \
-    --dry-run \
+@test "removed Beszel option fails before Git, Nix, or sudo mutation" {
+  run env PATH="$MOCK_BIN:$PATH" GIT_LOG="$GIT_LOG" NIX_LOG="$NIX_LOG" MOCK_LOG="$MOCK_LOG" "$SCRIPT" \
+    --beszel-agent-key value \
     --system homelab \
-    --beszel-agent-key 'ssh-ed25519 definitely-not-a-key' \
     --git-dir "$GIT_DIR" \
     --work-tree "$WORK_TREE" \
     --skip-rebuild \
     --skip-neovim-check
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"--beszel-agent-key must be one nonempty SSH public-key line"* ]]
+  [[ "$output" == *"Unknown option: --beszel-agent-key"* ]]
+  [[ ! -s "$GIT_LOG" ]]
+  [[ ! -s "$NIX_LOG" ]]
   [[ ! -s "$MOCK_LOG" ]]
 }
 
 @test "homelab bootstrap requires the exact discovered operator confirmation" {
   run env PATH="$MOCK_BIN:$PATH" MOCK_LOG="$MOCK_LOG" OPERATOR_UID="$OPERATOR_UID" OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" GIT_DIR="$GIT_DIR" WORK_TREE="$WORK_TREE" bash -c '
-    printf "%s\\n" "$1" | "$2" --system homelab --beszel-agent-key "$3" --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --skip-rebuild --skip-neovim-check
-  ' _ 'different_operator' "$SCRIPT" "$BESZEL_AGENT_KEY"
+    printf "%s\\n" "$1" | "$2" --system homelab --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --skip-rebuild --skip-neovim-check
+  ' _ 'different_operator' "$SCRIPT"
 
   [ "$status" -eq 1 ]
   [[ "$output" == *"Confirmation did not exactly match the detected homelab operator"* ]]
@@ -467,7 +465,6 @@ EOF
     --dry-run \
     --system homelab \
     --initialize-homelab-secrets \
-    --beszel-agent-key "$BESZEL_AGENT_KEY" \
     --git-dir "$GIT_DIR" \
     --work-tree "$WORK_TREE" \
     --hardware-src "$HARDWARE_SRC" \
@@ -578,15 +575,14 @@ EOF
     ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
     chmod 0666 /etc/ssh/ssh_host_ed25519_key.pub
     chmod 0644 /etc/ssh/ssh_host_ed25519_key
-    printf "%s\\n" "$1" | setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --initialize-homelab-secrets --beszel-agent-key "$3" --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
+    printf "%s\\n" "$1" | setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --initialize-homelab-secrets --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
     bootstrap_status=$?
-    cp /etc/nixos/homelab-bootstrap/flake.nix "$4"
-    chmod 0644 "$IDENTITY_CAPTURE" "$4"
+    cp /etc/nixos/homelab-bootstrap/flake.nix "$3"
+    chmod 0644 "$IDENTITY_CAPTURE" "$3"
     exit "$bootstrap_status"
-  ' _ "$OPERATOR_NAME" "$ISOLATED_SCRIPT" "$BESZEL_AGENT_KEY" "$GENERATED_FLAKE_CAPTURE"
+  ' _ "$OPERATOR_NAME" "$ISOLATED_SCRIPT" "$GENERATED_FLAKE_CAPTURE"
   [ "$status" -eq 0 ]
 
-  NIX_SERIALIZED_BESZEL_AGENT_KEY="${BESZEL_AGENT_KEY//\$\{/\\\${}"
   [[ "$(<"$IDENTITY_CAPTURE")" == *"name = \"$OPERATOR_NAME\";"* ]]
   [[ "$(<"$IDENTITY_CAPTURE")" == *"uid = $OPERATOR_UID;"* ]]
   [[ "$(<"$IDENTITY_CAPTURE")" == *"primaryGroup = \"$OPERATOR_GROUP\";"* ]]
@@ -594,7 +590,7 @@ EOF
   [[ "$(<"$IDENTITY_CAPTURE")" == *"home = \"$OPERATOR_HOME\";"* ]]
   [[ "$(<"$IDENTITY_CAPTURE")" == *"flakePath = \"/etc/nixos/homelab-bootstrap#homelab\";"* ]]
   [[ "$(<"$IDENTITY_CAPTURE")" == *"ageIdentityPath = \"/etc/ssh/ssh_host_ed25519_key\";"* ]]
-  [[ "$(<"$IDENTITY_CAPTURE")" == *"beszelAgentKey = \"$NIX_SERIALIZED_BESZEL_AGENT_KEY\";"* ]]
+  [[ "$(<"$IDENTITY_CAPTURE")" != *"beszelAgentKey"* ]]
   [ "$(<"$GENERATED_FLAKE_CAPTURE")" = "$(cat <<EOF
 {
   description = "Machine-local homelab bootstrap";
@@ -613,123 +609,14 @@ EOF
   [ "$status" -eq 0 ]
 }
 
-@test "keyless homelab bootstrap stages a null Beszel agent key" {
-  KEYLESS_IDENTITY_CAPTURE="$TEST_DIR/keyless-identity.nix"
-  chmod 0777 "$TEST_DIR"
-  chmod 0666 "$MOCK_LOG"
-  run unshare --user --map-auto --setuid 0 --setgid 0 --mount --propagation private env PATH="$MOCK_BIN:$PATH" MOCK_LOG="$MOCK_LOG" IDENTITY_CAPTURE="$IDENTITY_CAPTURE" TEST_DIR="$TEST_DIR" OPERATOR_UID="$OPERATOR_UID" OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" GIT_DIR="$GIT_DIR" WORK_TREE="$WORK_TREE" HARDWARE_SRC="$HARDWARE_SRC" bash -c '
-    mount -t tmpfs tmpfs /etc/nixos
-    mount -t tmpfs tmpfs /etc/ssh
-    chmod 0777 /etc/ssh /etc/nixos
-    ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
-    chmod 0666 /etc/ssh/ssh_host_ed25519_key.pub
-    chmod 0644 /etc/ssh/ssh_host_ed25519_key
-    printf "%s\\n" "$1" | setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --initialize-homelab-secrets --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
-    bootstrap_status=$?
-    cp /etc/nixos/homelab-bootstrap/identity.nix "$3"
-    chmod 0644 "$3"
-    exit "$bootstrap_status"
-  ' _ "$OPERATOR_NAME" "$ISOLATED_SCRIPT" "$KEYLESS_IDENTITY_CAPTURE"
 
-  [ "$status" -eq 0 ]
-  [[ "$(<"$KEYLESS_IDENTITY_CAPTURE")" == *"beszelAgentKey = null;"* ]]
-}
-
-@test "later Beszel enrollment atomically replaces only the serialized key" {
-  INITIAL_IDENTITY_CAPTURE="$TEST_DIR/initial-identity.nix"
-  ENROLLED_IDENTITY_CAPTURE="$TEST_DIR/enrolled-identity.nix"
-  chmod 0777 "$TEST_DIR"
-  chmod 0666 "$MOCK_LOG"
-  run unshare --user --map-auto --setuid 0 --setgid 0 --mount --propagation private env PATH="$MOCK_BIN:$PATH" MOCK_LOG="$MOCK_LOG" IDENTITY_CAPTURE="$IDENTITY_CAPTURE" TEST_DIR="$TEST_DIR" OPERATOR_UID="$OPERATOR_UID" OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" GIT_DIR="$GIT_DIR" WORK_TREE="$WORK_TREE" HARDWARE_SRC="$HARDWARE_SRC" bash -c '
-    mount -t tmpfs tmpfs /etc/nixos
-    mount -t tmpfs tmpfs /etc/ssh
-    chmod 0777 /etc/ssh /etc/nixos
-    ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
-    chmod 0666 /etc/ssh/ssh_host_ed25519_key.pub
-    chmod 0644 /etc/ssh/ssh_host_ed25519_key
-    printf "%s\\n" "$1" | setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --initialize-homelab-secrets --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
-    first_status=$?
-    (( first_status == 0 )) || exit "$first_status"
-    cp /etc/nixos/homelab-bootstrap/identity.nix "$4"
-    printf "%s\\n" "$1" | setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --beszel-agent-key "$3" --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
-    enrollment_status=$?
-    cp /etc/nixos/homelab-bootstrap/identity.nix "$5"
-    chmod 0644 "$4" "$5"
-    exit "$enrollment_status"
-  ' _ "$OPERATOR_NAME" "$ISOLATED_SCRIPT" "$BESZEL_AGENT_KEY" "$INITIAL_IDENTITY_CAPTURE" "$ENROLLED_IDENTITY_CAPTURE"
-
-  [ "$status" -eq 0 ]
-  initial_identity="$(<"$INITIAL_IDENTITY_CAPTURE")"
-  enrolled_identity="$(<"$ENROLLED_IDENTITY_CAPTURE")"
-  NIX_SERIALIZED_BESZEL_AGENT_KEY="${BESZEL_AGENT_KEY//\$\{/\\\${}"
-  [[ "$initial_identity" == *"beszelAgentKey = null;"* ]]
-  [[ "$enrolled_identity" == *"beszelAgentKey = \"$NIX_SERIALIZED_BESZEL_AGENT_KEY\";"* ]]
-  initial_immutable="$(printf '%s\\n' "$initial_identity" | grep -v '^[[:space:]]*beszelAgentKey[[:space:]]*=')"
-  enrolled_immutable="$(printf '%s\\n' "$enrolled_identity" | grep -v '^[[:space:]]*beszelAgentKey[[:space:]]*=')"
-  [ "$initial_immutable" = "$enrolled_immutable" ]
-}
-
-@test "later invalid Beszel enrollment is rejected without replacing the key" {
-  IDENTITY_AFTER_REJECTION="$TEST_DIR/identity-after-rejection.nix"
-  chmod 0777 "$TEST_DIR"
-  chmod 0666 "$MOCK_LOG"
-  run unshare --user --map-auto --setuid 0 --setgid 0 --mount --propagation private env PATH="$MOCK_BIN:$PATH" MOCK_LOG="$MOCK_LOG" IDENTITY_CAPTURE="$IDENTITY_CAPTURE" TEST_DIR="$TEST_DIR" OPERATOR_UID="$OPERATOR_UID" OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" GIT_DIR="$GIT_DIR" WORK_TREE="$WORK_TREE" HARDWARE_SRC="$HARDWARE_SRC" bash -c '
-    mount -t tmpfs tmpfs /etc/nixos
-    mount -t tmpfs tmpfs /etc/ssh
-    chmod 0777 /etc/ssh /etc/nixos
-    ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
-    chmod 0666 /etc/ssh/ssh_host_ed25519_key.pub
-    chmod 0644 /etc/ssh/ssh_host_ed25519_key
-    printf "%s\\n" "$1" | setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --initialize-homelab-secrets --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
-    first_status=$?
-    (( first_status == 0 )) || exit "$first_status"
-    setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --beszel-agent-key "ssh-ed25519 definitely-not-a-key" --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
-    enrollment_status=$?
-    cp /etc/nixos/homelab-bootstrap/identity.nix "$3"
-    chmod 0644 "$3"
-    exit "$enrollment_status"
-  ' _ "$OPERATOR_NAME" "$ISOLATED_SCRIPT" "$IDENTITY_AFTER_REJECTION"
-
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"--beszel-agent-key must be one nonempty SSH public-key line"* ]]
-  [[ "$(<"$IDENTITY_AFTER_REJECTION")" == *"beszelAgentKey = null;"* ]]
-}
-
-@test "later Beszel enrollment rejects hardware synchronization without changing hardware" {
-  HARDWARE_AFTER_REJECTION="$TEST_DIR/hardware-after-rejection.nix"
-  INITIAL_HARDWARE="$TEST_DIR/initial-hardware.nix"
-  chmod 0777 "$TEST_DIR"
-  chmod 0666 "$HARDWARE_SRC"
-  chmod 0666 "$MOCK_LOG"
-  run unshare --user --map-auto --setuid 0 --setgid 0 --mount --propagation private env PATH="$MOCK_BIN:$PATH" MOCK_LOG="$MOCK_LOG" IDENTITY_CAPTURE="$IDENTITY_CAPTURE" TEST_DIR="$TEST_DIR" OPERATOR_UID="$OPERATOR_UID" OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" GIT_DIR="$GIT_DIR" WORK_TREE="$WORK_TREE" HARDWARE_SRC="$HARDWARE_SRC" HARDWARE_REPLACEMENT_SRC="$HARDWARE_REPLACEMENT_SRC" bash -c '
-    mount -t tmpfs tmpfs /etc/nixos
-    mount -t tmpfs tmpfs /etc/ssh
-    chmod 0777 /etc/ssh /etc/nixos
-    ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
-    chmod 0666 /etc/ssh/ssh_host_ed25519_key.pub
-    chmod 0644 /etc/ssh/ssh_host_ed25519_key
-    printf "%s\\n" "$1" | setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --initialize-homelab-secrets --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
-    first_status=$?
-    (( first_status == 0 )) || exit "$first_status"
-    cp /etc/nixos/homelab-bootstrap/hardware-configuration.nix "$5"
-    printf "%s\\n" "$1" | setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --beszel-agent-key "$3" --sync-hardware --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_REPLACEMENT_SRC" --skip-rebuild --skip-neovim-check
-    enrollment_status=$?
-    cp /etc/nixos/homelab-bootstrap/hardware-configuration.nix "$4"
-    chmod 0644 "$4" "$5"
-    exit "$enrollment_status"
-  ' _ "$OPERATOR_NAME" "$ISOLATED_SCRIPT" "$BESZEL_AGENT_KEY" "$HARDWARE_AFTER_REJECTION" "$INITIAL_HARDWARE"
-
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"--sync-hardware cannot be combined with --beszel-agent-key enrollment"* ]]
-  [ "$(<"$HARDWARE_AFTER_REJECTION")" = "$(<"$INITIAL_HARDWARE")" ]
-}
-
-@test "exact prior explicit-operator homelab wrapper migrates to the no-operator template without changing identity or hardware" {
+@test "root-owned legacy Beszel identity dry run plans removal, normal run removes one line, and rerun is idempotent" {
   LEGACY_IDENTITY="$TEST_DIR/legacy-identity.nix"
-  LEGACY_HARDWARE="$TEST_DIR/legacy-hardware.nix"
+  DRY_RUN_IDENTITY="$TEST_DIR/dry-run-identity.nix"
   MIGRATED_IDENTITY="$TEST_DIR/migrated-identity.nix"
-  MIGRATED_HARDWARE="$TEST_DIR/migrated-hardware.nix"
-  MIGRATED_FLAKE="$TEST_DIR/migrated-flake.nix"
+  RERUN_IDENTITY="$TEST_DIR/rerun-identity.nix"
+  INITIAL_HARDWARE="$TEST_DIR/initial-hardware.nix"
+  FINAL_HARDWARE="$TEST_DIR/final-hardware.nix"
   chmod 0777 "$TEST_DIR"
   chmod 0666 "$MOCK_LOG"
 
@@ -767,41 +654,47 @@ EOF
 
   outputs = { dotfiles, ... }: {
     nixosConfigurations.homelab = dotfiles.nixosConfigurations.homelab.extendModules {
-      modules = [ dotfiles.nixosModules.homelabOperator ./identity.nix ./hardware-configuration.nix ];
-    };
-  };
-}
-EOF
-    printf "legacy hardware\n" > /etc/nixos/homelab-bootstrap/hardware-configuration.nix
-    cp /etc/nixos/homelab-bootstrap/identity.nix "$1"
-    cp /etc/nixos/homelab-bootstrap/hardware-configuration.nix "$2"
-    printf "%s\\n" "$OPERATOR_NAME" | setpriv --reuid 65534 --regid 65534 --clear-groups "$3" --system homelab --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
-    bootstrap_status=$?
-    cp /etc/nixos/homelab-bootstrap/identity.nix "$4"
-    cp /etc/nixos/homelab-bootstrap/hardware-configuration.nix "$5"
-    cp /etc/nixos/homelab-bootstrap/flake.nix "$6"
-    chmod 0644 "$1" "$2" "$4" "$5" "$6"
-    exit "$bootstrap_status"
-  ' _ "$LEGACY_IDENTITY" "$LEGACY_HARDWARE" "$ISOLATED_SCRIPT" "$MIGRATED_IDENTITY" "$MIGRATED_HARDWARE" "$MIGRATED_FLAKE"
-
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"Migrated machine-local homelab wrapper flake to the current template"* ]]
-  [ "$(<"$LEGACY_IDENTITY")" = "$(<"$MIGRATED_IDENTITY")" ]
-  [ "$(<"$LEGACY_HARDWARE")" = "$(<"$MIGRATED_HARDWARE")" ]
-  [ "$(<"$MIGRATED_FLAKE")" = "$(cat <<EOF
-{
-  description = "Machine-local homelab bootstrap";
-
-  inputs.dotfiles.url = "path:$WORK_TREE/nixos";
-
-  outputs = { dotfiles, ... }: {
-    nixosConfigurations.homelab = dotfiles.nixosConfigurations.homelab.extendModules {
       modules = [ ./identity.nix ./hardware-configuration.nix ];
     };
   };
 }
 EOF
-)" ]
+    printf "persisted hardware\\n" > /etc/nixos/homelab-bootstrap/hardware-configuration.nix
+    [[ -O /etc/nixos/homelab-bootstrap && -O /etc/nixos/homelab-bootstrap/identity.nix && -O /etc/nixos/homelab-bootstrap/flake.nix && -O /etc/nixos/homelab-bootstrap/hardware-configuration.nix ]] || exit 1
+    cp /etc/nixos/homelab-bootstrap/identity.nix "$1"
+    cp /etc/nixos/homelab-bootstrap/hardware-configuration.nix "$5"
+    setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --dry-run --system homelab --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
+    dry_run_status=$?
+    cp /etc/nixos/homelab-bootstrap/identity.nix "$3"
+    (( dry_run_status == 0 )) || exit "$dry_run_status"
+    printf "%s\\n" "$OPERATOR_NAME" | setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
+    migration_status=$?
+    cp /etc/nixos/homelab-bootstrap/identity.nix "$4"
+    (( migration_status == 0 )) || exit "$migration_status"
+    printf "%s\\n" "$OPERATOR_NAME" | setpriv --reuid 65534 --regid 65534 --clear-groups "$2" --system homelab --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild --skip-neovim-check
+    rerun_status=$?
+    cp /etc/nixos/homelab-bootstrap/identity.nix "$6"
+    cp /etc/nixos/homelab-bootstrap/hardware-configuration.nix "$7"
+    chmod 0644 "$1" "$3" "$4" "$5" "$6" "$7"
+    exit "$rerun_status"
+  ' _ "$LEGACY_IDENTITY" "$ISOLATED_SCRIPT" "$DRY_RUN_IDENTITY" "$MIGRATED_IDENTITY" "$INITIAL_HARDWARE" "$RERUN_IDENTITY" "$FINAL_HARDWARE"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[dry-run] atomically remove the legacy Beszel agent key from /etc/nixos/homelab-bootstrap/identity.nix"* ]]
+  [ "$(<"$DRY_RUN_IDENTITY")" = "$(<"$LEGACY_IDENTITY")" ]
+  [ "$(grep -c '^[[:space:]]*beszelAgentKey[[:space:]]*=' "$LEGACY_IDENTITY")" -eq 1 ]
+  expected_identity="$(grep -v '^[[:space:]]*beszelAgentKey[[:space:]]*=' "$LEGACY_IDENTITY")"
+  [ "$(<"$MIGRATED_IDENTITY")" = "$expected_identity" ]
+  [ "$(<"$RERUN_IDENTITY")" = "$(<"$MIGRATED_IDENTITY")" ]
+  [[ "$(<"$MIGRATED_IDENTITY")" == *"name = \"$OPERATOR_NAME\";"* ]]
+  [[ "$(<"$MIGRATED_IDENTITY")" == *"uid = $OPERATOR_UID;"* ]]
+  [[ "$(<"$MIGRATED_IDENTITY")" == *"primaryGroup = \"$OPERATOR_GROUP\";"* ]]
+  [[ "$(<"$MIGRATED_IDENTITY")" == *"primaryGid = $OPERATOR_GID;"* ]]
+  [[ "$(<"$MIGRATED_IDENTITY")" == *"home = \"$OPERATOR_HOME\";"* ]]
+  [[ "$(<"$MIGRATED_IDENTITY")" == *"ageIdentityPath = \"/etc/ssh/ssh_host_ed25519_key\";"* ]]
+  [ "$(grep -c '^[[:space:]]*beszelAgentKey[[:space:]]*=' "$MIGRATED_IDENTITY")" -eq 0 ]
+  [[ "$(<"$MIGRATED_IDENTITY")" != *"beszelAgentKey"* ]]
+  [ "$(<"$FINAL_HARDWARE")" = "$(<"$INITIAL_HARDWARE")" ]
 }
 
 @test "modified homelab wrapper is refused without mutating machine-local files" {
@@ -834,7 +727,6 @@ EOF
     home = "$OPERATOR_HOME";
     flakePath = "/etc/nixos/homelab-bootstrap#homelab";
     ageIdentityPath = "/etc/ssh/ssh_host_ed25519_key";
-    beszelAgentKey = null;
     secretsValidated = true;
   };
 }
@@ -899,7 +791,6 @@ EOF
     home = "$OPERATOR_HOME";
     flakePath = "/etc/nixos/homelab-bootstrap#homelab";
     ageIdentityPath = "/etc/ssh/ssh_host_ed25519_key";
-    beszelAgentKey = null;
     secretsValidated = true;
   };
 }
@@ -958,7 +849,6 @@ EOF
     home = "$OPERATOR_HOME";
     flakePath = "/etc/nixos/homelab-bootstrap#homelab";
     ageIdentityPath = "/etc/ssh/ssh_host_ed25519_key";
-    beszelAgentKey = null;
     secretsValidated = true;
   };
 }
@@ -1031,7 +921,6 @@ EOF
     home = "$OPERATOR_HOME";
     flakePath = "/etc/nixos/homelab-bootstrap#homelab";
     ageIdentityPath = "/etc/ssh/ssh_host_ed25519_key";
-    beszelAgentKey = null;
     secretsValidated = true;
   };
 }
@@ -1094,7 +983,6 @@ EOF
     home = "$OPERATOR_HOME";
     flakePath = "/etc/nixos/homelab-bootstrap#homelab";
     ageIdentityPath = "/etc/ssh/ssh_host_ed25519_key";
-    beszelAgentKey = null;
     secretsValidated = true;
   };
 }
@@ -1131,7 +1019,7 @@ EOF
   [[ "$(<"$MOCK_LOG")" != *"nixos-rebuild "* ]]
 }
 
-@test "non-homelab bootstrap does not require homelab identity or Beszel key discovery" {
+@test "non-homelab bootstrap does not require homelab identity discovery" {
   run env PATH="$MOCK_BIN:$PATH" MOCK_LOG="$MOCK_LOG" FORBID_NSS=1 "$SCRIPT" \
     --dry-run \
     --system framework16 \

@@ -89,11 +89,6 @@ in
       description = "Absolute SSH identity path used to decrypt bootstrap secrets.";
     };
 
-    beszelAgentKey = mkOption {
-      type = types.nullOr types.str;
-      default = null;
-      description = "Validated Beszel agent public key for this machine.";
-    };
   };
 
   config = mkMerge [
@@ -140,26 +135,9 @@ in
         assertion = !cfg.validated || isAbsolutePath cfg.ageIdentityPath;
         message = "homelab.operator.ageIdentityPath must be an absolute path.";
       }
-      {
-        assertion = !cfg.validated || !config.services.beszel.agent.enable || cfg.beszelAgentKey != null;
-        message = "homelab.operator.beszelAgentKey must be set when the Beszel agent is enabled.";
-      }
     ];
     }
   (mkIf identityValid {
-    users.groups.${cfg.primaryGroup} = {
-      gid = cfg.primaryGid;
-    };
-
-    users.users.${cfg.name} = {
-      isNormalUser = true;
-      uid = cfg.uid;
-      group = cfg.primaryGroup;
-      home = cfg.home;
-      createHome = true;
-      description = "Homelab operator";
-      extraGroups = [ "wheel" ];
-    };
 
     programs.nh.flake = cfg.flakePath;
     age.identityPaths = [ cfg.ageIdentityPath ];

@@ -82,24 +82,6 @@ in
     };
   };
 
-  services.beszel = {
-    hub = {
-      enable = true;
-      host = "127.0.0.1";
-      port = 8090;
-    };
-
-    agent = {
-      enable = config.homelab.operator.beszelAgentKey != null;
-      openFirewall = false;
-      environment = {
-        HUB_URL = "http://127.0.0.1:8090";
-        LISTEN = "0.0.0.0:45876";
-      } // lib.optionalAttrs (config.homelab.operator.beszelAgentKey != null) {
-        KEY = config.homelab.operator.beszelAgentKey;
-      };
-    };
-  };
 
   services.linkwarden = {
     enable = true;

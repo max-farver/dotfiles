@@ -24,7 +24,6 @@ RUN_CHECKS=0
 ENROLL_HOST_KEY=0
 INITIALIZE_HOMELAB_SECRETS=0
 LINKWARDEN_ENV_FILE=""
-BESZEL_AGENT_KEY=""
 HOMELAB_BOOTSTRAP_DIR="/etc/nixos/homelab-bootstrap"
 HOMELAB_BOOTSTRAP_FLAKE="$HOMELAB_BOOTSTRAP_DIR"
 HOMELAB_OPERATOR_NAME=""
@@ -40,7 +39,7 @@ HOMELAB_SECRETS_INITIALIZED=0
 
 usage() {
   cat <<EOF
-Usage: scripts/setup-system.sh [--dry-run] [--system NAME] [--repo-url URL] [--git-dir PATH] [--work-tree PATH] [--sync-hardware] [--hardware-src PATH] [--hardware-dest PATH] [--beszel-agent-key KEY] [--print-host-key] [--enroll-host-key] [--initialize-homelab-secrets] [--linkwarden-env-file PATH] [--checks] [--skip-rebuild] [--skip-neovim-check] [--force-neovim-check] [-h|--help]
+Usage: scripts/setup-system.sh [--dry-run] [--system NAME] [--repo-url URL] [--git-dir PATH] [--work-tree PATH] [--sync-hardware] [--hardware-src PATH] [--hardware-dest PATH] [--print-host-key] [--enroll-host-key] [--initialize-homelab-secrets] [--linkwarden-env-file PATH] [--checks] [--skip-rebuild] [--skip-neovim-check] [--force-neovim-check] [-h|--help]
 
 Post-install bootstrap for this dotfiles repository.
 
@@ -53,8 +52,6 @@ Options:
   --sync-hardware        Copy generated hardware config into the selected machine config. Homelab captures it in the local wrapper.
   --hardware-src PATH    Hardware config source. Default: $DEFAULT_HARDWARE_SRC.
   --hardware-dest PATH   Hardware config destination. Default: \$NIXOS_FLAKE/system-specific/machines/\$SYSTEM/hardware-configuration.nix (non-homelab only).
-  --beszel-agent-key KEY
-                         One SSH public-key line for the Beszel agent; optional on first homelab setup.
   --print-host-key       Print /etc/ssh/ssh_host_ed25519_key.pub for agenix enrollment.
   --enroll-host-key      Replace the homelab agenix recipient with this host key and rekey secrets.
   --initialize-homelab-secrets
@@ -344,32 +341,6 @@ nix_escape() {
   value="${value//$'\r'/\\r}"
   printf '%s' "$value"
 }
-nix_unescape() {
-  local value="$1"
-  local result=""
-  local char
-  local i
-
-  for ((i = 0; i < ${#value}; i += 1)); do
-    char="${value:i:1}"
-    if [[ "$char" != "\\" ]]; then
-      result+="$char"
-      continue
-    fi
-
-    i=$((i + 1))
-    (( i < ${#value} )) || return 1
-    char="${value:i:1}"
-    case "$char" in
-      \\|\"|\$) result+="$char" ;;
-      n) result+=$'\n' ;;
-      r) result+=$'\r' ;;
-      *) return 1 ;;
-    esac
-  done
-
-  printf '%s' "$result"
-}
 is_ssh_public_key_line() {
   local key="$1"
 
@@ -404,12 +375,6 @@ detect_homelab_operator() {
   IFS=: read -r HOMELAB_OPERATOR_GROUP _ _ _ <<< "$group_entry"
   [[ "$HOMELAB_OPERATOR_GROUP" =~ ^[a-z_][a-z0-9_-]*\$?$ ]] || die "Refusing unsupported primary group from NSS: $HOMELAB_OPERATOR_GROUP"
 
-  local beszel_agent_key_nix="null"
-
-  if [[ -n "$BESZEL_AGENT_KEY" ]]; then
-    is_ssh_public_key_line "$BESZEL_AGENT_KEY" || die "--beszel-agent-key must be one nonempty SSH public-key line"
-    beszel_agent_key_nix="\"$(nix_escape "$BESZEL_AGENT_KEY")\""
-  fi
 
   if [[ ! -e "$HOMELAB_BOOTSTRAP_DIR" && ! -L "$HOMELAB_BOOTSTRAP_DIR" ]]; then
     HOMELAB_IDENTITY_NIX="$(cat <<EOF
@@ -424,7 +389,6 @@ detect_homelab_operator() {
     flakePath = "$HOMELAB_BOOTSTRAP_DIR#homelab";
     ageIdentityPath = "/etc/ssh/ssh_host_ed25519_key";
     secretsValidated = false;
-    beszelAgentKey = $beszel_agent_key_nix;
   };
 }
 EOF
@@ -548,9 +512,6 @@ cleanup_homelab_wrapper_lock() {
 validate_existing_homelab_identity() {
   local identity="$1"
   local line
-  local persisted_beszel_key=""
-  local persisted_beszel_key_source=""
-  local persisted_beszel_key_count=0
   local expected_operator_name
   local expected_operator_group
   local expected_operator_home
@@ -571,22 +532,58 @@ validate_existing_homelab_identity() {
     && [[ "$identity" == *"ageIdentityPath = \"/etc/ssh/ssh_host_ed25519_key\";"* ]] \
     || die "Machine-local homelab identity does not match the detected account; refusing to replace it"
 
-  while IFS= read -r line; do
-    if [[ "$line" =~ ^[[:space:]]*beszelAgentKey[[:space:]]*=[[:space:]]*\"(([^\"\\]|\\.)*)\"\;[[:space:]]*$ ]]; then
-      persisted_beszel_key_source="${BASH_REMATCH[1]}"
-      ((persisted_beszel_key_count += 1))
-    elif [[ "$line" =~ ^[[:space:]]*beszelAgentKey[[:space:]]*=[[:space:]]*null\;[[:space:]]*$ ]]; then
-      ((persisted_beszel_key_count += 1))
+}
+legacy_homelab_beszel_agent_key_count() {
+  local identity="$1"
+  local line
+  local count=0
+
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    if [[ "$line" =~ ^[[:space:]]*beszelAgentKey[[:space:]]*=[[:space:]]*(null|\"([^\"\\]|\\.)*\")[[:space:]]*\;[[:space:]]*$ ]]; then
+      ((count += 1))
     fi
   done <<< "$identity"
-  (( persisted_beszel_key_count == 1 )) \
-    || die "Machine-local homelab identity must contain exactly one Beszel agent key"
-  if [[ -n "$persisted_beszel_key_source" ]]; then
-    if ! persisted_beszel_key="$(nix_unescape "$persisted_beszel_key_source")"; then
-      die "Machine-local homelab identity has an invalid escaped Beszel agent public key"
+  printf '%s' "$count"
+}
+
+remove_legacy_homelab_beszel_agent_key() {
+  local identity="$1"
+  local line
+  local count
+  local updated_identity=""
+  local local_stage
+  local root_stage
+
+  count="$(legacy_homelab_beszel_agent_key_count "$identity")"
+  (( count <= 1 )) || die "Machine-local homelab identity contains multiple legacy Beszel agent keys"
+  (( count == 1 )) || return 0
+
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    if [[ "$line" =~ ^[[:space:]]*beszelAgentKey[[:space:]]*=[[:space:]]*(null|\"([^\"\\]|\\.)*\")[[:space:]]*\;[[:space:]]*$ ]]; then
+      continue
     fi
-    is_ssh_public_key_line "$persisted_beszel_key" \
-      || die "Machine-local homelab identity has an invalid Beszel agent public key"
+    updated_identity+="$line"$'\n'
+  done <<< "$identity"
+
+  local_stage="$(mktemp)" || die "Could not create local identity staging file"
+  if ! printf '%s' "$updated_identity" > "$local_stage"; then
+    rm -f "$local_stage"
+    die "Could not stage legacy Beszel identity migration"
+  fi
+  chmod 0600 "$local_stage"
+  root_stage="$(sudo mktemp "$HOMELAB_BOOTSTRAP_DIR/.identity.nix.XXXXXX")" || {
+    rm -f "$local_stage"
+    die "Could not create root-owned identity staging file"
+  }
+  if ! run_as_root install -o root -g root -m 0644 "$local_stage" "$root_stage"; then
+    run_as_root rm -f "$root_stage"
+    rm -f "$local_stage"
+    die "Could not stage legacy Beszel identity migration"
+  fi
+  rm -f "$local_stage"
+  if ! run_as_root mv -f "$root_stage" "$HOMELAB_BOOTSTRAP_DIR/identity.nix"; then
+    run_as_root rm -f "$root_stage"
+    die "Could not atomically remove the legacy Beszel agent key"
   fi
 }
 homelab_secret_validation_state() {
@@ -742,44 +739,6 @@ mark_homelab_secrets_validated() {
 }
 
 
-update_homelab_beszel_agent_key() {
-  local identity="$1"
-  local line
-  local updated_identity=""
-  local local_stage
-  local root_stage
-  local replacement="\"$(nix_escape "$BESZEL_AGENT_KEY")\""
-
-  [[ -n "$BESZEL_AGENT_KEY" ]] || return 0
-  while IFS= read -r line || [[ -n "$line" ]]; do
-    if [[ "$line" =~ ^([[:space:]]*beszelAgentKey[[:space:]]*=[[:space:]]*)(\"([^\"\\]|\\.)*\"|null)(\;[[:space:]]*)$ ]]; then
-      line="${BASH_REMATCH[1]}$replacement${BASH_REMATCH[4]}"
-    fi
-    updated_identity+="$line"$'\n'
-  done <<< "$identity"
-
-  [[ "$updated_identity" != "$identity"$'\n' ]] || return 0
-  local_stage="$(mktemp)" || die "Could not create local identity staging file"
-  if ! printf '%s' "$updated_identity" > "$local_stage"; then
-    rm -f "$local_stage"
-    die "Could not stage updated Beszel agent key"
-  fi
-  chmod 0600 "$local_stage"
-  root_stage="$(sudo mktemp "$HOMELAB_BOOTSTRAP_DIR/.identity.nix.XXXXXX")" || {
-    rm -f "$local_stage"
-    die "Could not create root-owned identity staging file"
-  }
-  if ! run_as_root install -o root -g root -m 0644 "$local_stage" "$root_stage"; then
-    run_as_root rm -f "$root_stage"
-    rm -f "$local_stage"
-    die "Could not stage updated Beszel agent key"
-  fi
-  rm -f "$local_stage"
-  if ! run_as_root mv -f "$root_stage" "$HOMELAB_BOOTSTRAP_DIR/identity.nix"; then
-    run_as_root rm -f "$root_stage"
-    die "Could not atomically update the Beszel agent key"
-  fi
-}
 migrate_homelab_wrapper_flake() {
   local local_stage
   local root_stage
@@ -833,6 +792,7 @@ bootstrap_homelab_flake() {
   local root_stage
   local actual_identity
   local actual_flake
+  local legacy_beszel_key_count
 
   [[ "$SYSTEM" == "homelab" ]] || return 0
   validate_homelab_hardware_source
@@ -842,16 +802,24 @@ bootstrap_homelab_flake() {
     require_root_owned_file "$HOMELAB_BOOTSTRAP_DIR/identity.nix"
     actual_identity="$(sudo cat "$HOMELAB_BOOTSTRAP_DIR/identity.nix")"
     validate_existing_homelab_identity "$actual_identity"
+    legacy_beszel_key_count="$(legacy_homelab_beszel_agent_key_count "$actual_identity")"
+    (( legacy_beszel_key_count <= 1 )) || die "Machine-local homelab identity contains multiple legacy Beszel agent keys"
     if [[ "$HOMELAB_SECRETS_INITIALIZED" -eq 0 ]]; then
       require_homelab_secrets_validated "$actual_identity"
     fi
     if (( DRY_RUN )); then
       printf '[dry-run] verify existing root-owned homelab bootstrap at %s without replacing its identity\n' "$HOMELAB_BOOTSTRAP_DIR"
-      if [[ -n "$BESZEL_AGENT_KEY" ]]; then
-        printf '[dry-run] validate immutable homelab identity fields, then atomically update only its Beszel agent key\n'
+      if (( legacy_beszel_key_count == 1 )); then
+        printf '[dry-run] atomically remove the legacy Beszel agent key from /etc/nixos/homelab-bootstrap/identity.nix\n'
       fi
       (( SYNC_HARDWARE )) && sync_homelab_hardware
       return 0
+    fi
+    remove_legacy_homelab_beszel_agent_key "$actual_identity"
+    actual_identity="$(sudo cat "$HOMELAB_BOOTSTRAP_DIR/identity.nix")"
+    validate_existing_homelab_identity "$actual_identity"
+    if [[ "$HOMELAB_SECRETS_INITIALIZED" -eq 0 ]]; then
+      require_homelab_secrets_validated "$actual_identity"
     fi
 
     require_root_owned_directory "$HOMELAB_BOOTSTRAP_DIR"
@@ -865,15 +833,11 @@ bootstrap_homelab_flake() {
     if sudo grep -q 'REPLACE' "$HOMELAB_BOOTSTRAP_DIR/hardware-configuration.nix"; then
       die "Machine-local homelab hardware configuration still contains a REPLACE placeholder"
     fi
-    if [[ -n "$BESZEL_AGENT_KEY" && "$SYNC_HARDWARE" -eq 1 ]]; then
-      die "--sync-hardware cannot be combined with --beszel-agent-key enrollment"
-    fi
     if [[ "$actual_flake" == "$HOMELAB_PREVIOUS_FLAKE_NIX"$'\n\037' ]]; then
       migrate_homelab_wrapper_flake
     elif [[ "$actual_flake" != "$HOMELAB_FLAKE_NIX"$'\n\037' ]]; then
       die "Machine-local homelab wrapper does not match this checkout; refusing to replace it"
     fi
-    update_homelab_beszel_agent_key "$actual_identity"
     (( SYNC_HARDWARE )) && sync_homelab_hardware
     cleanup_homelab_wrapper_lock
     return 0
@@ -970,11 +934,6 @@ while (( $# > 0 )); do
     --hardware-dest)
       require_value "$1" "${2-}"
       HARDWARE_DEST="$2"
-      shift 2
-      ;;
-    --beszel-agent-key)
-      require_value "$1" "${2-}"
-      BESZEL_AGENT_KEY="$2"
       shift 2
       ;;
     --print-host-key)
@@ -1177,8 +1136,6 @@ if (( RUN_CHECKS )); then
     xrdp
     xrdp-sesman
     glance
-    beszel-hub
-    beszel-agent
     linkwarden
   )
 

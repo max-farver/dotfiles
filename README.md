@@ -78,9 +78,9 @@ if [ "$install" = INSTALL ]; then
 fi
 ```
 
-The script derives a candidate from the invoking account's numeric UID, validates its NSS record, home directory ownership, and `sudo` access, then requires you to type the detected username. It writes the confirmed identity and generated hardware configuration to root-owned `/etc/nixos/homelab-bootstrap/`; neither is stored in or overwritten by the Git work tree. `--initialize-homelab-secrets` encrypts the initial Linkwarden secret to the generated host key before first boot. The first boot starts the Beszel Hub but deliberately leaves the agent disabled. Subsequent runs verify the persisted identity and refuse to adopt a different account automatically. After `INSTALL`, reboot from the physical console and retain the prior systemd-boot generation as the rollback path.
+The script derives a candidate from the invoking account's numeric UID, validates its NSS record, home directory ownership, and `sudo` access, then requires you to type the detected username. It writes the confirmed identity and generated hardware configuration to root-owned `/etc/nixos/homelab-bootstrap/`; neither is stored in or overwritten by the Git work tree. `--initialize-homelab-secrets` encrypts the initial Linkwarden secret to the generated host key before first boot. The existing local administrator is validated for bootstrap safety but is not created or managed by the homelab Nix configuration. Subsequent runs verify the persisted identity and refuse to adopt a different account automatically. After `INSTALL`, reboot from the physical console and retain the prior systemd-boot generation as the rollback path.
 
-Before staging, the script rejects an origin mismatch, a non-concrete generated root filesystem, an unusable local unlock password, or unverified Linkwarden secret provisioning. It also preserves the verified host-recipient secret artifacts across later repository checkouts, so Beszel enrollment cannot revert them.
+Before staging, the script rejects an origin mismatch, a non-concrete generated root filesystem, an unusable local unlock password, or unverified Linkwarden secret provisioning. It also preserves the verified host-recipient secret artifacts across later repository checkouts.
 
 After that first boot, enroll Tailscale from the physical console and restart the endpoint-provisioning unit:
 
@@ -88,20 +88,6 @@ After that first boot, enroll Tailscale from the physical console and restart th
 sudo tailscale up --advertise-tags=tag:server
 sudo systemctl restart tailscale-services
 ```
-
-### Enroll the Beszel agent after first boot
-
-After the Hub is reachable, open its **Add System** flow and copy the public key it displays. Run this as the same local administrator; it changes only the agent key in the root-owned identity file, stages a build, and does not activate it:
-
-```sh
-~/.config/scripts/setup-system.sh \
-  --system homelab \
-  --beszel-agent-key "$(cat /path/to/key-copied-from-beszel-hub.pub)"
-
-sudo nixos-rebuild boot --no-write-lock-file --flake /etc/nixos/homelab-bootstrap#homelab --option experimental-features "nix-command flakes"
-```
-
-Reboot from the physical console to start the agent. Do not pass `--sync-hardware` while enrolling the agent.
 
 ### Homelab recovery
 
