@@ -21,6 +21,10 @@ setup() {
   SCRIPT="$TEST_DIR/setup-homelab.sh"
 
   mkdir -p "$MOCK_BIN" "$GIT_DIR/objects" "$WORK_TREE/nixos" "$OPERATOR_HOME"
+  : > "$MOCK_BIN/valid-login-shell"
+  chmod 0755 "$MOCK_BIN/valid-login-shell"
+  export OPERATOR_SHELL="$MOCK_BIN/valid-login-shell"
+  export OPERATOR_MANAGED_MARKER="$TEST_DIR/operator-managed"
   : > "$GIT_DIR/config"
   cp "$SOURCE_SCRIPT" "$SCRIPT"
   chmod 0755 "$SCRIPT"
@@ -64,6 +68,7 @@ set -euo pipefail
 printf '%s\n' "$*" >> "${NIX_LOG:?}"
 case "$*" in
   *config.users.mutableUsers) printf '%s\n' "${HOMELAB_MUTABLE_USERS:-true}" ;;
+  *config.users.users*) [[ -e "${OPERATOR_MANAGED_MARKER:?}" ]] && printf 'true\n' || printf 'false\n' ;;
   *config.networking.hostName) printf 'homelab\n' ;;
 esac
 EOF
@@ -108,7 +113,7 @@ EOF
 set -euo pipefail
 [[ "${FORBID_NSS-0}" != 1 ]] || exit 99
 case "${1-}:${2-}" in
-  passwd:"${OPERATOR_UID:?}") printf '%s:x:%s:%s::%s:/bin/bash\n' "${OPERATOR_NAME:?}" "${NSS_UID:-$OPERATOR_UID}" "${OPERATOR_GID:?}" "${OPERATOR_HOME:?}" ;;
+  passwd:"${OPERATOR_UID:?}") printf '%s:x:%s:%s::%s:%s\n' "${OPERATOR_NAME:?}" "${NSS_UID:-$OPERATOR_UID}" "${OPERATOR_GID:?}" "${OPERATOR_HOME:?}" "${OPERATOR_SHELL:-/bin/bash}" ;;
   group:"${OPERATOR_GID:?}") printf '%s:x:%s:\n' "${OPERATOR_GROUP:?}" "${OPERATOR_GID:?}" ;;
   *) exit 2 ;;
 esac
@@ -175,7 +180,7 @@ run_homelab_namespace() {
     env PATH="$MOCK_BIN:$PATH" GIT_LOG="$GIT_LOG" NIX_LOG="$NIX_LOG" SUDO_LOG="$SUDO_LOG" REBUILD_LOG="$REBUILD_LOG" \
     TEST_DIR="$TEST_DIR" SCRIPT="$SCRIPT" GIT_DIR="$GIT_DIR" WORK_TREE="$WORK_TREE" HARDWARE_SRC="$HARDWARE_SRC" ENV_FILE="$ENV_FILE" \
     OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_UID="$OPERATOR_UID" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" \
-    ATTESTATION="${ATTESTATION-}" FAILURE_MODE="${FAILURE_MODE-}" AGE_FAIL="${AGE_FAIL-0}" \
+    ATTESTATION="${ATTESTATION-}" FAILURE_MODE="${FAILURE_MODE-}" AGE_FAIL="${AGE_FAIL-0}" OPERATOR_MANAGED_MARKER="$OPERATOR_MANAGED_MARKER" \
     NAMESPACE_SETUP="$namespace_setup" NAMESPACE_CAPTURE="$namespace_capture" \
     bash -ceu '
       mount -t tmpfs tmpfs /etc/nixos
@@ -236,6 +241,21 @@ run_homelab_namespace() {
   [[ ! -s "$GIT_LOG" ]]
 }
 
+@test "service and non-executable operator shells fail before checkout" {
+  local operator_shell non_executable_shell
+  non_executable_shell="$TEST_DIR/non-executable-shell"
+  printf '#!/usr/bin/env bash\n' > "$non_executable_shell"
+  chmod 0644 "$non_executable_shell"
+
+  for operator_shell in /sbin/nologin /bin/false "$non_executable_shell"; do
+    : > "$GIT_LOG"; : > "$NIX_LOG"; : > "$REBUILD_LOG"
+    OPERATOR_SHELL="$operator_shell" run_plain --dry-run --initialize-homelab-secrets --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"$operator_shell"* && "$output" == *"login shell"* ]]
+    [[ ! -s "$GIT_LOG" && ! -s "$NIX_LOG" && ! -s "$REBUILD_LOG" ]]
+  done
+}
+
 @test "first-run confirmation must exactly match the discovered operator" {
   run env PATH="$MOCK_BIN:$PATH" GIT_LOG="$GIT_LOG" NIX_LOG="$NIX_LOG" SUDO_LOG="$SUDO_LOG" \
     OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_UID="$OPERATOR_UID" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" \
@@ -261,6 +281,25 @@ run_homelab_namespace() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"nixos-rebuild build --no-write-lock-file --flake /etc/nixos/homelab-bootstrap#homelab"* ]]
   [[ "$output" != *"nixos-rebuild switch"* && "$output" != *"nixos-rebuild boot"* ]]
+}
+
+@test "declaratively managed operator fails after Nix evaluation and before rebuild" {
+  run_homelab_namespace '
+    rm -f "$OPERATOR_MANAGED_MARKER"
+    printf "NEXTAUTH_SECRET=test-secret\\n" > "$ENV_FILE"
+    printf "$OPERATOR_NAME\\n" | setpriv --reuid 65534 --regid 65534 --clear-groups "$SCRIPT" --initialize-homelab-secrets --linkwarden-env-file "$ENV_FILE" --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild
+    : > "$GIT_LOG"; : > "$NIX_LOG"; : > "$REBUILD_LOG"
+    : > "$OPERATOR_MANAGED_MARKER"
+  ' '
+    cp "$NIX_LOG" "$TEST_DIR/operator-managed-nix.log"
+    cp "$REBUILD_LOG" "$TEST_DIR/operator-managed-rebuild.log"
+    chmod 0644 "$TEST_DIR"/operator-managed-*.log
+  ' --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"declaratively manages existing local operator $OPERATOR_NAME"* ]]
+  [[ "$(<"$TEST_DIR/operator-managed-nix.log")" == *"config.users.users"* ]]
+  [[ "$(<"$TEST_DIR/operator-managed-nix.log")" == *"--apply users: builtins.hasAttr \"$OPERATOR_NAME\" users"* ]]
+  [[ ! -s "$TEST_DIR/operator-managed-rebuild.log" ]]
 }
 
 @test "fresh initialization creates root-owned local ciphertext and attested identity" {

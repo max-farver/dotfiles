@@ -25,6 +25,7 @@ HOMELAB_OPERATOR_UID=""
 HOMELAB_OPERATOR_GROUP=""
 HOMELAB_OPERATOR_GID=""
 HOMELAB_OPERATOR_HOME=""
+HOMELAB_OPERATOR_SHELL=""
 HOMELAB_IDENTITY_NIX=""
 HOMELAB_FLAKE_NIX=""
 GENERATED_CIPHERTEXT=""
@@ -251,7 +252,7 @@ detect_homelab_operator() {
   HOMELAB_OPERATOR_UID="$(id -u)"
   [[ "$HOMELAB_OPERATOR_UID" =~ ^[1-9][0-9]*$ ]] || die "Homelab bootstrap requires a non-root numeric UID"
   passwd_entry="$(getent passwd "$HOMELAB_OPERATOR_UID")" || die "No NSS passwd entry exists for UID $HOMELAB_OPERATOR_UID"
-  IFS=: read -r HOMELAB_OPERATOR_NAME _ nss_uid HOMELAB_OPERATOR_GID _ HOMELAB_OPERATOR_HOME _ <<< "$passwd_entry"
+  IFS=: read -r HOMELAB_OPERATOR_NAME _ nss_uid HOMELAB_OPERATOR_GID _ HOMELAB_OPERATOR_HOME HOMELAB_OPERATOR_SHELL <<< "$passwd_entry"
   [[ "$nss_uid" == "$HOMELAB_OPERATOR_UID" ]] || die "NSS passwd entry UID does not match invoking UID $HOMELAB_OPERATOR_UID"
   [[ "$HOMELAB_OPERATOR_NAME" =~ ^[a-z_][a-z0-9_-]*\$?$ ]] || die "Refusing unsupported homelab operator name from NSS: $HOMELAB_OPERATOR_NAME"
   [[ "$HOMELAB_OPERATOR_GID" =~ ^[0-9]+$ && 10#$HOMELAB_OPERATOR_GID -gt 0 ]] || die "NSS primary GID must be a positive integer for $HOMELAB_OPERATOR_NAME"
@@ -262,6 +263,13 @@ detect_homelab_operator() {
   group_entry="$(getent group "$HOMELAB_OPERATOR_GID")" || die "No NSS group entry exists for GID $HOMELAB_OPERATOR_GID"
   IFS=: read -r HOMELAB_OPERATOR_GROUP _ _ _ <<< "$group_entry"
   [[ "$HOMELAB_OPERATOR_GROUP" =~ ^[a-z_][a-z0-9_-]*\$?$ ]] || die "Refusing unsupported primary group from NSS: $HOMELAB_OPERATOR_GROUP"
+  case "$HOMELAB_OPERATOR_SHELL" in
+    /sbin/nologin|/usr/sbin/nologin|/bin/false|/usr/bin/false)
+      die "Homelab operator has a non-login shell: $HOMELAB_OPERATOR_SHELL"
+      ;;
+  esac
+  [[ "$HOMELAB_OPERATOR_SHELL" == /* && -f "$HOMELAB_OPERATOR_SHELL" && -x "$HOMELAB_OPERATOR_SHELL" ]] \
+    || die "Homelab operator login shell is not an executable regular file: ${HOMELAB_OPERATOR_SHELL:-unset}"
 
   HOMELAB_IDENTITY_NIX="$(cat <<EOF
 {
@@ -296,8 +304,8 @@ EOF
 EOF
 )"
 
-  printf '[i] Homelab operator: %s (uid=%s, primary-group=%s, gid=%s, home=%s)\n' \
-    "$HOMELAB_OPERATOR_NAME" "$HOMELAB_OPERATOR_UID" "$HOMELAB_OPERATOR_GROUP" "$HOMELAB_OPERATOR_GID" "$HOMELAB_OPERATOR_HOME"
+  printf '[i] Homelab operator: %s (uid=%s, primary-group=%s, gid=%s, home=%s, shell=%s)\n' \
+    "$HOMELAB_OPERATOR_NAME" "$HOMELAB_OPERATOR_UID" "$HOMELAB_OPERATOR_GROUP" "$HOMELAB_OPERATOR_GID" "$HOMELAB_OPERATOR_HOME" "$HOMELAB_OPERATOR_SHELL"
   if (( DRY_RUN )); then
     printf '[dry-run] validate sudo capability and require exact confirmation before creating %s\n' "$HOMELAB_BOOTSTRAP_DIR"
     return 0
@@ -609,12 +617,20 @@ create_fresh_wrapper() {
   run_as_root chmod 0755 "$HOMELAB_BOOTSTRAP_DIR"
 }
 
-require_homelab_mutable_users() {
-  local mutable_users
-  mutable_users="$(nix --extra-experimental-features "$NIX_EXPERIMENTAL_FEATURES" eval --no-write-lock-file --raw "$HOMELAB_BOOTSTRAP_FLAKE#nixosConfigurations.homelab.config.users.mutableUsers")" \
+require_homelab_login_preservation() {
+  local mutable_users operator_managed
+
+  mutable_users="$(nix --extra-experimental-features "$NIX_EXPERIMENTAL_FEATURES" eval --no-write-lock-file --json "$HOMELAB_BOOTSTRAP_FLAKE#nixosConfigurations.homelab.config.users.mutableUsers")" \
     || die "Could not evaluate users.mutableUsers for the staged homelab configuration"
   [[ "$mutable_users" == "true" ]] \
     || die "Refusing to stage homelab configuration with users.mutableUsers=$mutable_users; the bootstrap preserves an existing unmanaged administrator"
+
+  operator_managed="$(nix --extra-experimental-features "$NIX_EXPERIMENTAL_FEATURES" eval --no-write-lock-file --json "$HOMELAB_BOOTSTRAP_FLAKE#nixosConfigurations.homelab.config.users.users" --apply "users: builtins.hasAttr \"$HOMELAB_OPERATOR_NAME\" users")" \
+    || die "Could not verify whether the staged homelab configuration manages $HOMELAB_OPERATOR_NAME"
+  [[ "$operator_managed" == "false" ]] \
+    || die "Refusing to stage homelab configuration because it declaratively manages existing local operator $HOMELAB_OPERATOR_NAME"
+
+  printf '[i] Local login preservation is verified for %s: executable login shell, unlocked password, mutable users, and no declarative user management\n' "$HOMELAB_OPERATOR_NAME"
 }
 
 ensure_homelab_unlock_password() {
@@ -727,7 +743,7 @@ need_cmd nix "nix is required; run this from NixOS or install Nix before using t
 if [[ -f "$HOMELAB_BOOTSTRAP_FLAKE/flake.nix" ]]; then
   nix_cmd flake show --no-write-lock-file "$HOMELAB_BOOTSTRAP_FLAKE"
   nix_cmd eval --no-write-lock-file --raw "$HOMELAB_BOOTSTRAP_FLAKE#nixosConfigurations.homelab.config.networking.hostName"
-  require_homelab_mutable_users
+  require_homelab_login_preservation
 elif (( DRY_RUN )); then
   nix_cmd flake show --no-write-lock-file "$HOMELAB_BOOTSTRAP_FLAKE"
   nix_cmd eval --no-write-lock-file --raw "$HOMELAB_BOOTSTRAP_FLAKE#nixosConfigurations.homelab.config.networking.hostName"
