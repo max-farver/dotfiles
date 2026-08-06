@@ -92,7 +92,6 @@
         };
     in
     {
-      nixosModules.homelabOperator = import ./system-specific/machines/homelab/operator.nix;
 
       nixosConfigurations = rec {
         framework16 = mkNixosSystem {

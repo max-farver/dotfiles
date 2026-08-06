@@ -27,12 +27,6 @@ in
   boot.loader.efi.canTouchEfiVariables = true;
 
 
-  age.secrets.linkwarden-env = {
-    file = ../../../secrets/linkwarden.env.age;
-    mode = "0400";
-    owner = "root";
-    group = "root";
-  };
 
   services.openssh = {
     enable = true;
@@ -95,7 +89,6 @@ in
     openFirewall = false;
     enableRegistration = false;
     database.createLocally = true;
-    environmentFile = config.age.secrets.linkwarden-env.path;
     environment = {
       NEXTAUTH_URL = "https://linkwarden.tailf2b6d7.ts.net";
     };

@@ -19,6 +19,7 @@ let
     cfg.home
     cfg.flakePath
     cfg.ageIdentityPath
+    cfg.linkwardenSecretFile
   ];
 
   identityValid =
@@ -88,59 +89,39 @@ in
       default = null;
       description = "Absolute SSH identity path used to decrypt bootstrap secrets.";
     };
+    linkwardenSecretFile = mkOption {
+      type = types.nullOr types.path;
+      default = null;
+      description = "Machine-local encrypted Linkwarden environment file.";
+    };
+
 
   };
 
   config = mkMerge [
     {
       assertions = [
-      {
-        assertion = cfg.validated;
-        message = "homelab requires a validated machine-local operator identity; import /etc/nixos/homelab-bootstrap/identity.nix through the wrapper flake.";
-      }
-      {
-        assertion = cfg.secretsValidated;
-        message = "homelab requires root-validated secret provisioning; set homelab.operator.secretsValidated = true in /etc/nixos/homelab-bootstrap/identity.nix only after fresh required-secret initialization succeeds.";
-      }
-
-      {
-        assertion = !cfg.validated || identityPresent;
-        message = "homelab.operator.validated requires name, uid, primaryGroup, primaryGid, home, flakePath, and ageIdentityPath.";
-      }
-      {
-        assertion = !cfg.validated || isValidName cfg.name;
-        message = "homelab.operator.name must be a valid non-root local account name.";
-      }
-      {
-        assertion = !cfg.validated || isNonRootId cfg.uid;
-        message = "homelab.operator.uid must be a non-zero numeric UID.";
-      }
-      {
-        assertion = !cfg.validated || isValidName cfg.primaryGroup;
-        message = "homelab.operator.primaryGroup must be a valid non-root group name.";
-      }
-      {
-        assertion = !cfg.validated || isNonRootId cfg.primaryGid;
-        message = "homelab.operator.primaryGid must be a non-zero numeric GID.";
-      }
-      {
-        assertion = !cfg.validated || (isAbsolutePath cfg.home && cfg.home != "/" && cfg.home != "/root");
-        message = "homelab.operator.home must be an absolute, non-root home directory.";
-      }
-      {
-        assertion = !cfg.validated || isAbsolutePath cfg.flakePath;
-        message = "homelab.operator.flakePath must be an absolute wrapper flake reference.";
-      }
-      {
-        assertion = !cfg.validated || isAbsolutePath cfg.ageIdentityPath;
-        message = "homelab.operator.ageIdentityPath must be an absolute path.";
-      }
-    ];
+        {
+          assertion = identityValid;
+          message = "homelab requires a validated non-root operator identity with name, uid, primaryGroup, primaryGid, home, flakePath, ageIdentityPath, and linkwardenSecretFile; import /etc/nixos/homelab-bootstrap/identity.nix through the wrapper flake.";
+        }
+        {
+          assertion = cfg.secretsValidated;
+          message = "homelab requires root-validated secret provisioning; set homelab.operator.secretsValidated = true in /etc/nixos/homelab-bootstrap/identity.nix only after fresh required-secret initialization succeeds.";
+        }
+      ];
     }
   (mkIf identityValid {
 
     programs.nh.flake = cfg.flakePath;
     age.identityPaths = [ cfg.ageIdentityPath ];
+    age.secrets.linkwarden-env = {
+      file = cfg.linkwardenSecretFile;
+      mode = "0400";
+      owner = "root";
+      group = "root";
+    };
+    services.linkwarden.environmentFile = config.age.secrets.linkwarden-env.path;
   })
   ];
 }

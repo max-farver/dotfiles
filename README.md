@@ -59,18 +59,14 @@ Run this **as the existing local administrator**, never with `sudo`. It download
 ```sh
 set -euo pipefail
 
-bootstrap=/tmp/setup-system.sh
-curl -fsSL https://raw.githubusercontent.com/max-farver/dotfiles/main/scripts/setup-system.sh -o "$bootstrap"
-chmod 0755 "$bootstrap"
+curl -fsSL https://raw.githubusercontent.com/max-farver/dotfiles/main/scripts/setup-homelab.sh -o /tmp/setup-homelab.sh
+chmod 0755 /tmp/setup-homelab.sh
 
-"$bootstrap" \
-  --system homelab \
-  --sync-hardware \
-  --initialize-homelab-secrets \
-  --skip-neovim-check
+/tmp/setup-homelab.sh --sync-hardware --initialize-homelab-secrets
 
 sudo cat /etc/nixos/homelab-bootstrap/identity.nix
 sudo cat /etc/nixos/homelab-bootstrap/hardware-configuration.nix
+sudo test -s /etc/nixos/homelab-bootstrap/linkwarden.env.age
 
 read -r -p 'Type INSTALL to register the reviewed homelab generation for the next boot: ' install
 if [ "$install" = INSTALL ]; then
@@ -78,9 +74,9 @@ if [ "$install" = INSTALL ]; then
 fi
 ```
 
-The script derives a candidate from the invoking account's numeric UID, validates its NSS record, home directory ownership, and `sudo` access, then requires you to type the detected username. It writes the confirmed identity and generated hardware configuration to root-owned `/etc/nixos/homelab-bootstrap/`; neither is stored in or overwritten by the Git work tree. `--initialize-homelab-secrets` encrypts the initial Linkwarden secret to the generated host key before first boot. The existing local administrator is validated for bootstrap safety but is not created or managed by the homelab Nix configuration. Subsequent runs verify the persisted identity and refuse to adopt a different account automatically. After `INSTALL`, reboot from the physical console and retain the prior systemd-boot generation as the rollback path.
+The script derives a candidate from the invoking account's numeric UID, validates its NSS record, home directory ownership, and `sudo` access, then requires you to type the detected username. It writes the confirmed identity and generated hardware configuration to root-owned `/etc/nixos/homelab-bootstrap/`; neither is stored in or overwritten by the Git work tree. `--initialize-homelab-secrets` encrypts the initial Linkwarden secret to the generated host key before first boot and stores the root-owned ciphertext at `/etc/nixos/homelab-bootstrap/linkwarden.env.age`; it is never stored in or preserved around the Git checkout. The existing local administrator is validated for bootstrap safety but is not created or managed by the homelab Nix configuration. Subsequent runs verify the persisted identity and local ciphertext and refuse to adopt a different account automatically. After `INSTALL`, reboot from the physical console and complete Tailscale enrollment below.
 
-Before staging, the script rejects an origin mismatch, a non-concrete generated root filesystem, an unusable local unlock password, or unverified Linkwarden secret provisioning. It also preserves the verified host-recipient secret artifacts across later repository checkouts.
+Before staging, the script rejects an origin mismatch, a non-concrete generated root filesystem, an unusable local unlock password, or unverified Linkwarden secret provisioning.
 
 After that first boot, enroll Tailscale from the physical console and restart the endpoint-provisioning unit:
 
@@ -93,7 +89,7 @@ sudo systemctl restart tailscale-services
 
 If a staged generation cannot authenticate the original local user or loses network access, boot the previous systemd-boot generation from the physical console. Do not run the homelab target from a root recovery shell or manually create a replacement user. Return to the known-good local account, inspect the generated wrapper, correct its inputs, and stage a new boot generation instead. The setup script intentionally rejects root invocation and cannot replace the confirmed machine-local identity on later runs.
 
-The script is stored at repository root `scripts/setup-system.sh`, so it appears at `~/.config/scripts/setup-system.sh` after checkout because the work tree is `$HOME/.config`.
+The dedicated script is stored at repository root `scripts/setup-homelab.sh`, so it appears at `~/.config/scripts/setup-homelab.sh` after checkout because the work tree is `$HOME/.config`.
 
 ## NixOS systems
 
@@ -133,6 +129,6 @@ See `nvim/README.md` for plugin management and `:PackUpdate`.
 1. Add `nixos/system-specific/machines/<name>/configuration.nix`.
 2. For desktop or Home Manager-managed hosts, add `nixos/system-specific/machines/<name>/home.nix`.
 3. For desktop or Home Manager-managed hosts, add an entry in `nixos/flake.nix` under `nixosConfigurations` using `mkNixosSystem` with `modules = [ ./system-specific/machines/<name>/configuration.nix ];` and `homeModule = ./system-specific/machines/<name>/home.nix;`.
-4. For server hosts without a Home Manager module, copy the existing `homelab` flake pattern: `nixpkgs.lib.nixosSystem` with `agenix.nixosModules.default`.
+4. For server hosts without a Home Manager module, use the `nixpkgs.lib.nixosSystem` plus `agenix.nixosModules.default` flake pattern.
 5. Validate with `nix flake show ~/.config/nixos --no-write-lock-file`.
-6. Apply with `~/.config/scripts/setup-system.sh --system <name>`.
+6. Machines that follow the generic checkout-and-switch flow use `~/.config/scripts/setup-system.sh --system <name>`. A server that needs the staged, root-owned wrapper pattern must instead model the homelab workflow and use `~/.config/scripts/setup-homelab.sh`.
