@@ -17,6 +17,9 @@ in
 
   networking.hostName = "homelab";
 
+  # The bootstrap validates an existing administrator; NixOS must not reconcile it away.
+  users.mutableUsers = true;
+
   programs.firefox.enable = true;
 
   boot.loader.systemd-boot.enable = true;

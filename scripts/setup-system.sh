@@ -122,6 +122,17 @@ nixos_rebuild() {
   fi
 }
 
+require_homelab_mutable_users() {
+  local mutable_users
+
+  [[ "$SYSTEM" == "homelab" ]] || return 0
+
+  mutable_users="$(nix --extra-experimental-features "$NIX_EXPERIMENTAL_FEATURES" eval --no-write-lock-file --raw "$HOMELAB_BOOTSTRAP_FLAKE#nixosConfigurations.homelab.config.users.mutableUsers")" \
+    || die "Could not evaluate users.mutableUsers for the staged homelab configuration"
+  [[ "$mutable_users" == "true" ]] \
+    || die "Refusing to stage homelab configuration with users.mutableUsers=$mutable_users; the bootstrap preserves an existing unmanaged administrator"
+}
+
 ensure_homelab_unlock_password() {
   local password_status
   local password_state
@@ -1110,6 +1121,7 @@ fi
 if [[ -f "$VALIDATION_FLAKE/flake.nix" ]]; then
   nix_cmd flake show --no-write-lock-file "$VALIDATION_FLAKE"
   nix_cmd eval --no-write-lock-file --raw "$VALIDATION_FLAKE#nixosConfigurations.$SYSTEM.config.networking.hostName"
+  require_homelab_mutable_users
 elif (( DRY_RUN )); then
   nix_cmd flake show --no-write-lock-file "$VALIDATION_FLAKE"
   nix_cmd eval --no-write-lock-file --raw "$VALIDATION_FLAKE#nixosConfigurations.$SYSTEM.config.networking.hostName"

@@ -74,6 +74,10 @@ EOF
 if [[ -n "${NIX_LOG-}" ]]; then
   printf '%s\n' "$*" >> "$NIX_LOG"
 fi
+
+if [[ "${*: -1}" == *".config.users.mutableUsers" ]]; then
+  printf '%s\n' "${HOMELAB_MUTABLE_USERS:-true}"
+fi
 EOF
   cat > "$MOCK_BIN/nix-instantiate" <<'EOF'
 #!/usr/bin/env bash
@@ -495,7 +499,7 @@ EOF
   ' _ "$OPERATOR_NAME" "$ISOLATED_SCRIPT"
 
   [ "$status" -eq 0 ]
-  [ "$(<"$NIX_LOG")" = $'--extra-experimental-features nix-command flakes flake show --no-write-lock-file /etc/nixos/homelab-bootstrap\n--extra-experimental-features nix-command flakes eval --no-write-lock-file --raw /etc/nixos/homelab-bootstrap#nixosConfigurations.homelab.config.networking.hostName' ]
+  [ "$(<"$NIX_LOG")" = $'--extra-experimental-features nix-command flakes flake show --no-write-lock-file /etc/nixos/homelab-bootstrap\n--extra-experimental-features nix-command flakes eval --no-write-lock-file --raw /etc/nixos/homelab-bootstrap#nixosConfigurations.homelab.config.networking.hostName\n--extra-experimental-features nix-command flakes eval --no-write-lock-file --raw /etc/nixos/homelab-bootstrap#nixosConfigurations.homelab.config.users.mutableUsers\n--extra-experimental-features nix-command flakes eval --no-write-lock-file --raw /etc/nixos/homelab-bootstrap#nixosConfigurations.homelab.config.users.mutableUsers' ]
 
   [[ "$output" == *"[dry-run] nix --extra-experimental-features nix-command\\ flakes flake show --no-write-lock-file /etc/nixos/homelab-bootstrap"* ]]
   [[ "$output" == *"[dry-run] nix --extra-experimental-features nix-command\\ flakes eval --no-write-lock-file --raw /etc/nixos/homelab-bootstrap#nixosConfigurations.homelab.config.networking.hostName"* ]]
@@ -894,6 +898,57 @@ EOF
   [ "$(<"$LOCK_REMOVAL_STATE")" = "removed" ]
   [ "$(<"$REBUILD_LOCK_STATE")" = "absent" ]
   [[ "$(<"$MOCK_LOG")" == *"nixos-rebuild build --no-write-lock-file --flake /etc/nixos/homelab-bootstrap#homelab --option experimental-features nix-command flakes"* ]]
+}
+
+@test "homelab bootstrap refuses immutable-user configuration before rebuild" {
+  chmod 0777 "$TEST_DIR"
+  chmod 0666 "$MOCK_LOG"
+
+  run unshare --user --map-auto --setuid 0 --setgid 0 --mount --propagation private env PATH="$MOCK_BIN:$PATH" MOCK_LOG="$MOCK_LOG" HOMELAB_MUTABLE_USERS=false TEST_DIR="$TEST_DIR" OPERATOR_UID="$OPERATOR_UID" OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" GIT_DIR="$GIT_DIR" WORK_TREE="$WORK_TREE" HARDWARE_SRC="$HARDWARE_SRC" bash -c '
+    mount -t tmpfs tmpfs /etc/nixos
+    mount -t tmpfs tmpfs /etc/ssh
+    chmod 0777 /etc/ssh /etc/nixos
+    ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
+    chmod 0666 /etc/ssh/ssh_host_ed25519_key.pub
+    chmod 0644 /etc/ssh/ssh_host_ed25519_key
+    setpriv --reuid 65534 --regid 65534 --clear-groups prepare-homelab-secrets "$WORK_TREE"
+    mkdir /etc/nixos/homelab-bootstrap
+    chmod 0777 /etc/nixos/homelab-bootstrap
+    cat > /etc/nixos/homelab-bootstrap/identity.nix <<EOF
+{
+  homelab.operator = {
+    validated = true;
+    name = "$OPERATOR_NAME";
+    uid = $OPERATOR_UID;
+    primaryGroup = "$OPERATOR_GROUP";
+    primaryGid = $OPERATOR_GID;
+    home = "$OPERATOR_HOME";
+    flakePath = "/etc/nixos/homelab-bootstrap#homelab";
+    ageIdentityPath = "/etc/ssh/ssh_host_ed25519_key";
+    secretsValidated = true;
+  };
+}
+EOF
+    cat > /etc/nixos/homelab-bootstrap/flake.nix <<EOF
+{
+  description = "Machine-local homelab bootstrap";
+
+  inputs.dotfiles.url = "path:$WORK_TREE/nixos";
+
+  outputs = { dotfiles, ... }: {
+    nixosConfigurations.homelab = dotfiles.nixosConfigurations.homelab.extendModules {
+      modules = [ ./identity.nix ./hardware-configuration.nix ];
+    };
+  };
+}
+EOF
+    printf "persisted hardware\\n" > /etc/nixos/homelab-bootstrap/hardware-configuration.nix
+    setpriv --reuid 65534 --regid 65534 --clear-groups "$1" --system homelab --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-neovim-check
+  ' _ "$ISOLATED_SCRIPT"
+
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"users.mutableUsers=false"* ]]
+  [[ "$(<"$MOCK_LOG")" != *"nixos-rebuild "* ]]
 }
 
 @test "symlink homelab wrapper lock is rejected without deletion or rebuild" {
