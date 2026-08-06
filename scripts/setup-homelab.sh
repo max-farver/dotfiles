@@ -633,6 +633,21 @@ require_homelab_login_preservation() {
   printf '[i] Local login preservation is verified for %s: executable login shell, unlocked password, mutable users, and no declarative user management\n' "$HOMELAB_OPERATOR_NAME"
 }
 
+verify_staged_homelab_login_shell() {
+  local toplevel shell_name staged_shell
+
+  shell_name="${HOMELAB_OPERATOR_SHELL##*/}"
+  [[ "$shell_name" =~ ^[A-Za-z0-9._+-]+$ ]] \
+    || die "Homelab operator login shell has an unsupported basename: $HOMELAB_OPERATOR_SHELL"
+  toplevel="$(nix --extra-experimental-features "$NIX_EXPERIMENTAL_FEATURES" eval --no-write-lock-file --raw "$HOMELAB_BOOTSTRAP_FLAKE#nixosConfigurations.homelab.config.system.build.toplevel")" \
+    || die "Could not evaluate the staged homelab system toplevel for local login verification"
+  staged_shell="$toplevel/sw/bin/$shell_name"
+  [[ -x "$staged_shell" ]] \
+    || die "Staged homelab system does not provide the existing operator login shell: $staged_shell"
+
+  printf '[i] Staged homelab system provides the existing operator login shell: %s\n' "$staged_shell"
+}
+
 ensure_homelab_unlock_password() {
   local password_status password_state
   password_status="$(sudo passwd --status "$HOMELAB_OPERATOR_NAME")" \
@@ -755,6 +770,9 @@ if (( SKIP_REBUILD )); then
   printf '[i] Skipping nixos-rebuild\n'
 else
   run sudo nixos-rebuild build --no-write-lock-file --flake "$HOMELAB_BOOTSTRAP_FLAKE#homelab" --option experimental-features "$NIX_EXPERIMENTAL_FEATURES"
+  if (( ! DRY_RUN )); then
+    verify_staged_homelab_login_shell
+  fi
 fi
 if (( INITIALIZE_HOMELAB_SECRETS )); then
   printf '[i] Tailscale enrollment is deferred until the staged homelab generation boots; after boot, run: sudo tailscale up --advertise-tags=tag:server\n'

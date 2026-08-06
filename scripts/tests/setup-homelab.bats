@@ -13,6 +13,8 @@ setup() {
   NIX_LOG="$TEST_DIR/nix.log"
   SUDO_LOG="$TEST_DIR/sudo.log"
   REBUILD_LOG="$TEST_DIR/rebuild.log"
+  STAGED_TOPLEVEL="$TEST_DIR/staged-toplevel"
+  REBUILD_MARKER="$TEST_DIR/rebuild-completed"
   OPERATOR_NAME="bootstrap_operator"
   OPERATOR_UID=4242
   OPERATOR_GROUP="bootstrap_group"
@@ -33,6 +35,7 @@ setup() {
   : > "$NIX_LOG"
   : > "$SUDO_LOG"
   : > "$REBUILD_LOG"
+  rm -f "$REBUILD_MARKER"
   write_valid_hardware
   write_mock_commands
   chmod 0777 "$TEST_DIR" "$MOCK_BIN" "$WORK_TREE" "$WORK_TREE/nixos" "$OPERATOR_HOME"
@@ -70,6 +73,11 @@ case "$*" in
   *config.users.mutableUsers) printf '%s\n' "${HOMELAB_MUTABLE_USERS:-true}" ;;
   *config.users.users*) [[ -e "${OPERATOR_MANAGED_MARKER:?}" ]] && printf 'true\n' || printf 'false\n' ;;
   *config.networking.hostName) printf 'homelab\n' ;;
+  *config.system.build.toplevel)
+    [[ "${FAIL_ON_TOPLEVEL_EVAL:-0}" != 1 ]] || exit 88
+    [[ "${REQUIRE_REBUILD_MARKER:-0}" != 1 || -e "${REBUILD_MARKER:?}" ]] || exit 89
+    printf '%s\n' "${STAGED_TOPLEVEL:?}"
+    ;;
 esac
 EOF
   cat > "$MOCK_BIN/nix-instantiate" <<'EOF'
@@ -162,12 +170,19 @@ EOF
 #!/usr/bin/env bash
 set -euo pipefail
 printf '%s\n' "$*" >> "${REBUILD_LOG:?}"
+: > "${REBUILD_MARKER:?}"
+if [[ "${MOCK_REBUILD_CREATE_STAGED_SHELL:-0}" == 1 ]]; then
+  mkdir -p "${STAGED_TOPLEVEL:?}/sw/bin"
+  : > "${STAGED_TOPLEVEL:?}/sw/bin/$(basename -- "${OPERATOR_SHELL:?}")"
+  chmod 0755 "${STAGED_TOPLEVEL:?}/sw/bin/$(basename -- "${OPERATOR_SHELL:?}")"
+fi
 EOF
   chmod +x "$MOCK_BIN"/*
 }
 
 run_plain() {
   run env PATH="$MOCK_BIN:$PATH" GIT_LOG="$GIT_LOG" NIX_LOG="$NIX_LOG" SUDO_LOG="$SUDO_LOG" REBUILD_LOG="$REBUILD_LOG" \
+    STAGED_TOPLEVEL="$STAGED_TOPLEVEL" REBUILD_MARKER="$REBUILD_MARKER" FAIL_ON_TOPLEVEL_EVAL="${FAIL_ON_TOPLEVEL_EVAL-0}" REQUIRE_REBUILD_MARKER="${REQUIRE_REBUILD_MARKER-0}" MOCK_REBUILD_CREATE_STAGED_SHELL="${MOCK_REBUILD_CREATE_STAGED_SHELL-0}" \
     OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_UID="$OPERATOR_UID" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" \
     "$SCRIPT" "$@"
 }
@@ -178,6 +193,7 @@ run_homelab_namespace() {
   shift 2
   run unshare --user --map-auto --setuid 0 --setgid 0 --mount --propagation private \
     env PATH="$MOCK_BIN:$PATH" GIT_LOG="$GIT_LOG" NIX_LOG="$NIX_LOG" SUDO_LOG="$SUDO_LOG" REBUILD_LOG="$REBUILD_LOG" \
+    STAGED_TOPLEVEL="$STAGED_TOPLEVEL" REBUILD_MARKER="$REBUILD_MARKER" FAIL_ON_TOPLEVEL_EVAL="${FAIL_ON_TOPLEVEL_EVAL-0}" REQUIRE_REBUILD_MARKER="${REQUIRE_REBUILD_MARKER-0}" MOCK_REBUILD_CREATE_STAGED_SHELL="${MOCK_REBUILD_CREATE_STAGED_SHELL-0}" \
     TEST_DIR="$TEST_DIR" SCRIPT="$SCRIPT" GIT_DIR="$GIT_DIR" WORK_TREE="$WORK_TREE" HARDWARE_SRC="$HARDWARE_SRC" ENV_FILE="$ENV_FILE" \
     OPERATOR_NAME="$OPERATOR_NAME" OPERATOR_UID="$OPERATOR_UID" OPERATOR_GROUP="$OPERATOR_GROUP" OPERATOR_GID="$OPERATOR_GID" OPERATOR_HOME="$OPERATOR_HOME" \
     ATTESTATION="${ATTESTATION-}" FAILURE_MODE="${FAILURE_MODE-}" AGE_FAIL="${AGE_FAIL-0}" OPERATOR_MANAGED_MARKER="$OPERATOR_MANAGED_MARKER" \
@@ -281,6 +297,35 @@ run_homelab_namespace() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"nixos-rebuild build --no-write-lock-file --flake /etc/nixos/homelab-bootstrap#homelab"* ]]
   [[ "$output" != *"nixos-rebuild switch"* && "$output" != *"nixos-rebuild boot"* ]]
+}
+
+@test "missing staged login shell fails after build before reporting success" {
+  REQUIRE_REBUILD_MARKER=1 run_homelab_namespace 'printf "NEXTAUTH_SECRET=test-secret\\n" > "$ENV_FILE"' ':' --initialize-homelab-secrets --linkwarden-env-file "$ENV_FILE" --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"Staged homelab system does not provide the existing operator login shell: $STAGED_TOPLEVEL/sw/bin/valid-login-shell"* ]]
+  [[ "$output" != *"[+] Done"* ]]
+  [[ "$(<"$REBUILD_LOG")" == *"build --no-write-lock-file --flake /etc/nixos/homelab-bootstrap#homelab"* ]]
+  [[ "$(<"$NIX_LOG")" == *"config.system.build.toplevel"* ]]
+}
+
+@test "staged login shell supplied by the built generation succeeds" {
+  REQUIRE_REBUILD_MARKER=1 MOCK_REBUILD_CREATE_STAGED_SHELL=1 run_homelab_namespace 'printf "NEXTAUTH_SECRET=test-secret\\n" > "$ENV_FILE"' ':' --initialize-homelab-secrets --linkwarden-env-file "$ENV_FILE" --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Staged homelab system provides the existing operator login shell: $STAGED_TOPLEVEL/sw/bin/valid-login-shell"* ]]
+  [[ "$output" == *"[+] Done"* ]]
+  [[ "$(<"$REBUILD_LOG")" == *"build --no-write-lock-file --flake /etc/nixos/homelab-bootstrap#homelab"* ]]
+}
+
+@test "dry-run and skipped rebuild do not probe the staged system toplevel" {
+  FAIL_ON_TOPLEVEL_EVAL=1 run_plain --dry-run --initialize-homelab-secrets --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC"
+  [ "$status" -eq 0 ]
+  [[ "$(<"$NIX_LOG")" != *"config.system.build.toplevel"* ]]
+
+  : > "$NIX_LOG"
+  FAIL_ON_TOPLEVEL_EVAL=1 run_homelab_namespace 'printf "NEXTAUTH_SECRET=test-secret\\n" > "$ENV_FILE"' ':' --initialize-homelab-secrets --linkwarden-env-file "$ENV_FILE" --git-dir "$GIT_DIR" --work-tree "$WORK_TREE" --hardware-src "$HARDWARE_SRC" --skip-rebuild
+  [ "$status" -eq 0 ]
+  [[ "$(<"$NIX_LOG")" != *"config.system.build.toplevel"* ]]
+  [[ ! -s "$REBUILD_LOG" ]]
 }
 
 @test "declaratively managed operator fails after Nix evaluation and before rebuild" {

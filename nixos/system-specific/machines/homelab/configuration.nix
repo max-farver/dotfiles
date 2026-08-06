@@ -20,6 +20,9 @@ in
   # The bootstrap validates an existing administrator; NixOS must not reconcile it away.
   users.mutableUsers = true;
 
+  # Preserve the existing operator's conventional local login shell across generations.
+  programs.zsh.enable = true;
+
   programs.firefox.enable = true;
 
   boot.loader.systemd-boot.enable = true;
