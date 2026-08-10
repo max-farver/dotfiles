@@ -103,6 +103,8 @@ nixos-install --root /mnt \
   --flake /mnt/home/mfarver/.config/nixos#homelab
 ```
 
+Do not run `nixos-enter --root /mnt` until `nixos-install` exits successfully; before installation, `/mnt` is only a mounted target filesystem and is not yet a NixOS installation.
+
 Create the operator account and password before rebooting. SSH password authentication is enabled temporarily; root password login remains prohibited.
 
 ```sh
