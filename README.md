@@ -48,7 +48,7 @@ nix build ~/.config/nixos#nixosConfigurations.framework16.config.system.build.to
 
 ### Fresh homelab installation
 
-Boot a current NixOS installer in UEFI mode. Complete this flow from its terminal as `nixos`; do not complete the graphical installer. The disk-selection and format commands below are destructive.
+Boot a current NixOS installer in UEFI mode. Complete this flow from its terminal as `nixos`; do not complete the graphical installer. Start a root shell first with `sudo -i`. The disk-selection and format commands below are destructive.
 
 #### Select and partition the installation disk
 
