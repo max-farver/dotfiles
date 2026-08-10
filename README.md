@@ -66,12 +66,6 @@ wipefs -n "$DISK"
 
 Confirm that `$DISK` is the intended whole physical disk and that none of its partitions are mounted. Create a GPT with a 1 GiB EFI System Partition and an ext4 root partition:
 
-Provide the operator's real public key to the installer before running the install block. Mount the removable media containing that `.pub` file, then set `OPERATOR_PUBLIC_KEY` to its actual path. Do not use the literal placeholder below; the command must succeed before continuing.
-
-```sh
-export OPERATOR_PUBLIC_KEY=/run/media/nixos/<mounted-key-media>/mfarver.pub
-test -r "$OPERATOR_PUBLIC_KEY" || exit 1
-```
 
 
 ```sh
@@ -105,21 +99,17 @@ test -f /mnt/home/mfarver/.config/nixos/flake.nix || exit 1
 # replace the repository's non-activatable bootstrap template before install.
 install -Dm644 /mnt/etc/nixos/hardware-configuration.nix \
   /mnt/home/mfarver/.config/nixos/system-specific/machines/homelab/hardware-configuration.nix
-install -Dm644 "$OPERATOR_PUBLIC_KEY" /mnt/root/mfarver.pub
 
 nixos-install --root /mnt \
   --flake /mnt/home/mfarver/.config/nixos#homelab
 ```
 
-Create the operator account before rebooting. Homelab disables SSH password and keyboard-interactive authentication, so install the public key now instead of weakening SSH policy:
+Create the operator account and password before rebooting. SSH password authentication is enabled temporarily; root password login remains prohibited.
 
 ```sh
 nixos-enter --root /mnt
 useradd --create-home --groups wheel mfarver
 passwd mfarver
-install -d -m 700 -o mfarver -g users /home/mfarver/.ssh
-install -m 600 -o mfarver -g users /root/mfarver.pub /home/mfarver/.ssh/authorized_keys
-rm /root/mfarver.pub
 chown -R mfarver:users /home/mfarver/.cfg /home/mfarver/.config
 exit
 reboot
