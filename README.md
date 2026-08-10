@@ -89,8 +89,7 @@ mkdir -p /mnt/boot
 mount "$BOOT_PART" /mnt/boot
 
 nixos-generate-config --root /mnt
-
-mkdir -p /mnt/home/mfarver
+mkdir -p /mnt/home/mfarver/.config
 git clone --bare https://github.com/max-farver/dotfiles /mnt/home/mfarver/.cfg
 git --git-dir=/mnt/home/mfarver/.cfg --work-tree=/mnt/home/mfarver/.config checkout main
 test -f /mnt/home/mfarver/.config/nixos/flake.nix || exit 1
