@@ -35,6 +35,7 @@ Untracked files are hidden with `status.showUntrackedFiles no`, matching `~/.cfg
 
 - `framework16` — default Framework laptop system; imports `nixos/system-specific/machines/framework16/configuration.nix` and `home.nix`.
 - `nixos` — compatibility target for the legacy/default rebuild path, using the Framework system with the legacy hostname `nixos`.
+- `homelab` — standalone x86_64 server/desktop target with Plasma, XRDP, OpenSSH, loopback-only Glance, Firefox, and system Neovim.
 - `homeConfigurations.pixel-8-pro` — Home Manager-only profile, not a `nixos-rebuild` target.
 
 Validate and build the default Framework output:
@@ -43,6 +44,66 @@ Validate and build the default Framework output:
 nix flake show ~/.config/nixos --no-write-lock-file
 nix build ~/.config/nixos#nixosConfigurations.framework16.config.system.build.toplevel --no-link
 ```
+
+
+### Fresh homelab installation
+
+Boot a current NixOS installer in UEFI mode. Partition the target disk first, then set these variables to the **already-created partitions** and an operator SSH public key. The format commands erase the selected partitions.
+
+```sh
+export BOOT_PART=/dev/disk/by-id/<disk>-part1
+export ROOT_PART=/dev/disk/by-id/<disk>-part2
+export OPERATOR_PUBLIC_KEY=/path/to/mfarver.pub
+
+mkfs.fat -F 32 "$BOOT_PART"
+mkfs.ext4 -L nixos "$ROOT_PART"
+mount "$ROOT_PART" /mnt
+mkdir -p /mnt/boot
+mount "$BOOT_PART" /mnt/boot
+
+nixos-generate-config --root /mnt
+
+mkdir -p /mnt/home/mfarver
+git clone --bare https://github.com/max-farver/dotfiles /mnt/home/mfarver/.cfg
+git --git-dir=/mnt/home/mfarver/.cfg --work-tree=/mnt/home/mfarver/.config checkout main
+
+# The generated file contains this machine's real filesystem UUIDs. It must
+# replace the repository's non-activatable bootstrap template before install.
+install -Dm644 /mnt/etc/nixos/hardware-configuration.nix \
+  /mnt/home/mfarver/.config/nixos/system-specific/machines/homelab/hardware-configuration.nix
+install -Dm644 "$OPERATOR_PUBLIC_KEY" /mnt/root/mfarver.pub
+
+nixos-install --root /mnt \
+  --flake /mnt/home/mfarver/.config/nixos#homelab
+```
+
+Create the operator account before rebooting. Homelab disables SSH password and keyboard-interactive authentication, so install the public key now instead of weakening SSH policy:
+
+```sh
+nixos-enter --root /mnt
+useradd --create-home --groups wheel mfarver
+passwd mfarver
+install -d -m 700 -o mfarver -g users /home/mfarver/.ssh
+install -m 600 -o mfarver -g users /root/mfarver.pub /home/mfarver/.ssh/authorized_keys
+rm /root/mfarver.pub
+chown -R mfarver:users /home/mfarver/.cfg /home/mfarver/.config
+exit
+reboot
+```
+
+After signing in as `mfarver`, validate the installed host and its Neovim configuration:
+
+```sh
+test "$EDITOR" = nvim
+test "$VISUAL" = nvim
+command -v nvim
+command -v firefox
+nvim --headless '+lua assert(vim.fn.stdpath("config") == "/home/mfarver/.config/nvim")' +qa
+systemctl is-active sshd glance xrdp xrdp-sesman display-manager
+curl -fsS http://127.0.0.1:8080/ >/dev/null
+```
+
+Glance listens only on `127.0.0.1:8080`, and XRDP is intentionally not firewall-exposed. Use the local Plasma session to open Glance in Firefox; TCP 22 is the only exposed port.
 
 
 ## Neovim
