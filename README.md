@@ -66,6 +66,14 @@ wipefs -n "$DISK"
 
 Confirm that `$DISK` is the intended whole physical disk and that none of its partitions are mounted. Create a GPT with a 1 GiB EFI System Partition and an ext4 root partition:
 
+Provide the operator's real public key to the installer before running the install block. Mount the removable media containing that `.pub` file, then set `OPERATOR_PUBLIC_KEY` to its actual path. Do not use the literal placeholder below; the command must succeed before continuing.
+
+```sh
+export OPERATOR_PUBLIC_KEY=/run/media/nixos/<mounted-key-media>/mfarver.pub
+test -r "$OPERATOR_PUBLIC_KEY" || exit 1
+```
+
+
 ```sh
 parted --script "$DISK" -- \
   mklabel gpt \
@@ -76,9 +84,8 @@ partprobe "$DISK"
 
 export BOOT_PART="${DISK}-part1"
 export ROOT_PART="${DISK}-part2"
-export OPERATOR_PUBLIC_KEY=/path/to/mfarver.pub
-test -b "$BOOT_PART"
-test -b "$ROOT_PART"
+test -b "$BOOT_PART" || exit 1
+test -b "$ROOT_PART" || exit 1
 
 
 mkfs.fat -F 32 "$BOOT_PART"
@@ -92,6 +99,7 @@ nixos-generate-config --root /mnt
 mkdir -p /mnt/home/mfarver
 git clone --bare https://github.com/max-farver/dotfiles /mnt/home/mfarver/.cfg
 git --git-dir=/mnt/home/mfarver/.cfg --work-tree=/mnt/home/mfarver/.config checkout main
+test -f /mnt/home/mfarver/.config/nixos/flake.nix || exit 1
 
 # The generated file contains this machine's real filesystem UUIDs. It must
 # replace the repository's non-activatable bootstrap template before install.
