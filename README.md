@@ -48,12 +48,38 @@ nix build ~/.config/nixos#nixosConfigurations.framework16.config.system.build.to
 
 ### Fresh homelab installation
 
-Boot a current NixOS installer in UEFI mode. Partition the target disk first, then set these variables to the **already-created partitions** and an operator SSH public key. The format commands erase the selected partitions.
+Boot a current NixOS installer in UEFI mode. Complete this flow from its terminal as `nixos`; do not complete the graphical installer. The disk-selection and format commands below are destructive.
+
+#### Select and partition the installation disk
+
+First, list physical disks and identify the target by its model, serial number, and size. Do not select the installer USB or any disk with data to retain. Prefer a stable `/dev/disk/by-id/` path over `/dev/sdX` or `/dev/nvmeXnY` names.
 
 ```sh
-export BOOT_PART=/dev/disk/by-id/<disk>-part1
-export ROOT_PART=/dev/disk/by-id/<disk>-part2
+lsblk --paths -d -o NAME,SIZE,MODEL,SERIAL,TRAN,TYPE
+
+# Set this only after visually matching the intended physical disk.
+export DISK=/dev/disk/by-id/<unique-physical-disk-id>
+test -b "$DISK"
+lsblk --paths -o NAME,SIZE,MODEL,SERIAL,TRAN,TYPE,MOUNTPOINTS "$DISK"
+wipefs -n "$DISK"
+```
+
+Confirm that `$DISK` is the intended whole physical disk and that none of its partitions are mounted. Create a GPT with a 1 GiB EFI System Partition and an ext4 root partition:
+
+```sh
+parted --script "$DISK" -- \
+  mklabel gpt \
+  mkpart ESP fat32 1MiB 1025MiB \
+  set 1 esp on \
+  mkpart root ext4 1025MiB 100%
+partprobe "$DISK"
+
+export BOOT_PART="${DISK}-part1"
+export ROOT_PART="${DISK}-part2"
 export OPERATOR_PUBLIC_KEY=/path/to/mfarver.pub
+test -b "$BOOT_PART"
+test -b "$ROOT_PART"
+
 
 mkfs.fat -F 32 "$BOOT_PART"
 mkfs.ext4 -L nixos "$ROOT_PART"
