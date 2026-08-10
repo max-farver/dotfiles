@@ -48,80 +48,56 @@ nix build ~/.config/nixos#nixosConfigurations.framework16.config.system.build.to
 
 ### Fresh homelab installation
 
-Boot a current NixOS installer in UEFI mode. Complete this flow from its terminal as `nixos`; do not complete the graphical installer. Start a root shell first with `sudo -i`. The disk-selection and format commands below are destructive.
+Boot the current x86_64 NixOS graphical installer in UEFI mode and run the graphical installer to completion. Select KDE Plasma, create the login name `mfarver` with administrator/sudo access and a password, set the hostname to `homelab`, and use the installer’s normal disk and boot choices. Leave encryption, partition sizing, and disk selection to the graphical installer UI.
 
-#### Select and partition the installation disk
+Reboot into the installed system and sign into Plasma. The graphical installer is the source of truth for the initial account, password, disk layout, bootloader, and `/etc/nixos/hardware-configuration.nix`.
 
-First, list physical disks and identify the target by its model, serial number, and size. Do not select the installer USB or any disk with data to retain. Prefer a stable `/dev/disk/by-id/` path over `/dev/sdX` or `/dev/nvmeXnY` names.
+Confirm networking works and open Konsole. The following preserves the installer-created Plasma configuration as a timestamped sibling while installing the complete configured work tree at the established `$HOME/.config` location. Any failure stops the procedure before rebuilding.
 
 ```sh
-lsblk --paths -d -o NAME,SIZE,MODEL,SERIAL,TRAN,TYPE
+test ! -e "$HOME/.cfg" || { echo "$HOME/.cfg already exists" >&2; exit 1; }
+git clone --bare https://github.com/max-farver/dotfiles "$HOME/.cfg"
 
-# Set this only after visually matching the intended physical disk.
-export DISK=/dev/disk/by-id/<unique-physical-disk-id>
-test -b "$DISK"
-lsblk --paths -o NAME,SIZE,MODEL,SERIAL,TRAN,TYPE,MOUNTPOINTS "$DISK"
-wipefs -n "$DISK"
+backup="$HOME/.config.installer-backup-$(date +%Y%m%d-%H%M%S)"
+test ! -e "$backup" || { echo "$backup already exists" >&2; exit 1; }
+mv "$HOME/.config" "$backup"
+mkdir -p "$HOME/.config"
+
+git --git-dir="$HOME/.cfg" --work-tree="$HOME/.config" checkout main
+git --git-dir="$HOME/.cfg" config status.showUntrackedFiles no
+test -f "$HOME/.config/nixos/flake.nix" || exit 1
 ```
 
-Confirm that `$DISK` is the intended whole physical disk and that none of its partitions are mounted. Create a GPT with a 1 GiB EFI System Partition and an ext4 root partition:
-
-
+`/etc/nixos/hardware-configuration.nix` from the completed GUI install is the sole source of truth. Copy it byte-for-byte over the repository placeholder because the flake imports the repository file. Do not regenerate, merge, normalize, or manually rewrite the generated module: the checked-in `REPLACE-ROOT-UUID`/`REPLACE-BOOT-UUID` template is deliberately non-activatable.
 
 ```sh
-parted --script "$DISK" -- \
-  mklabel gpt \
-  mkpart ESP fat32 1MiB 1025MiB \
-  set 1 esp on \
-  mkpart root ext4 1025MiB 100%
-partprobe "$DISK"
+hardware="$HOME/.config/nixos/system-specific/machines/homelab/hardware-configuration.nix"
+sudo install -Dm644 /etc/nixos/hardware-configuration.nix "$hardware"
+sudo chown mfarver:users "$hardware"
 
-export BOOT_PART="${DISK}-part1"
-export ROOT_PART="${DISK}-part2"
-test -b "$BOOT_PART" || exit 1
-test -b "$ROOT_PART" || exit 1
+cmp -s /etc/nixos/hardware-configuration.nix "$hardware" || {
+  echo "repository hardware configuration differs from the GUI-generated file" >&2
+  exit 1
+}
 
+if grep -Eq 'REPLACE-(ROOT|BOOT)-UUID' "$hardware"; then
+  echo "hardware configuration still contains placeholder UUIDs" >&2
+  exit 1
+fi
 
-mkfs.fat -F 32 "$BOOT_PART"
-mkfs.ext4 -L nixos "$ROOT_PART"
-mount "$ROOT_PART" /mnt
-mkdir -p /mnt/boot
-mount "$BOOT_PART" /mnt/boot
-
-findmnt --target /mnt || exit 1
-findmnt --target /mnt/boot || exit 1
-
-nixos-generate-config --root /mnt
-mkdir -p /mnt/home/mfarver/.config
-git clone --bare https://github.com/max-farver/dotfiles /mnt/home/mfarver/.cfg
-git --git-dir=/mnt/home/mfarver/.cfg --work-tree=/mnt/home/mfarver/.config checkout main
-test -f /mnt/home/mfarver/.config/nixos/flake.nix || exit 1
-
-# The generated file contains this machine's real filesystem UUIDs. It must
-# replace the repository's non-activatable bootstrap template before install.
-install -Dm644 /mnt/etc/nixos/hardware-configuration.nix \
-  /mnt/home/mfarver/.config/nixos/system-specific/machines/homelab/hardware-configuration.nix
-
-nixos-install --root /mnt \
-  --flake /mnt/home/mfarver/.config/nixos#homelab
-```
-
-Do not run `nixos-enter --root /mnt` until `nixos-install` exits successfully; before installation, `/mnt` is only a mounted target filesystem and is not yet a NixOS installation.
-
-Create the operator account and password before rebooting. SSH password authentication is enabled temporarily; root password login remains prohibited.
-
-```sh
-nixos-enter --root /mnt
-useradd --create-home --groups wheel mfarver
-passwd mfarver
-chown -R mfarver:users /home/mfarver/.cfg /home/mfarver/.config
-exit
+sudo nixos-rebuild switch --flake "$HOME/.config/nixos#homelab"
 reboot
 ```
 
-After signing in as `mfarver`, validate the installed host and its Neovim configuration:
+If the first rebuild specifically reports that `nix-command` or `flakes` is disabled, replace only the rebuild line with `sudo env NIX_CONFIG='experimental-features = nix-command flakes' nixos-rebuild switch --flake "$HOME/.config/nixos#homelab"`; `nixos/system-specific/x86_64-linux/server.nix` enables both features in the activated system. Reboot only after a successful switch, then sign back into Plasma. Do not use the Framework-only rebuild aliases from `nixos/terminal/zsh.nix`, and do not run the Attic bootstrap as part of installation.
+
+After rebooting and signing back in, run:
 
 ```sh
+test "$(hostname)" = homelab
+readlink -e /run/current-system >/dev/null
+! grep -Eq 'REPLACE-(ROOT|BOOT)-UUID' \
+  "$HOME/.config/nixos/system-specific/machines/homelab/hardware-configuration.nix"
 test "$EDITOR" = nvim
 test "$VISUAL" = nvim
 command -v nvim
@@ -131,7 +107,7 @@ systemctl is-active sshd glance xrdp xrdp-sesman display-manager
 curl -fsS http://127.0.0.1:8080/ >/dev/null
 ```
 
-Glance listens only on `127.0.0.1:8080`, and XRDP is intentionally not firewall-exposed. Use the local Plasma session to open Glance in Firefox; TCP 22 is the only exposed port.
+Glance is loopback-only, XRDP is not firewall-exposed, and TCP 22 is the sole exposed port.
 
 
 ## Neovim
