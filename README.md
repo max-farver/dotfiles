@@ -88,6 +88,9 @@ mount "$ROOT_PART" /mnt
 mkdir -p /mnt/boot
 mount "$BOOT_PART" /mnt/boot
 
+findmnt --target /mnt || exit 1
+findmnt --target /mnt/boot || exit 1
+
 nixos-generate-config --root /mnt
 mkdir -p /mnt/home/mfarver/.config
 git clone --bare https://github.com/max-farver/dotfiles /mnt/home/mfarver/.cfg
